@@ -2,23 +2,43 @@ import QtQuick 2.12
 import QtQuick.Window 2.12
 import Qt.labs.platform 1.1
 import QtQuick.Controls 2.12
+import QtQuick.Dialogs 1.1
 
-Window {
+import Qt3D.Core 2.12
+
+import QtQuick.Scene3D 2.12
+
+import Qt3D.Core 2.12
+import Qt3D.Render 2.12
+import Qt3D.Input 2.12
+import Qt3D.Extras 2.12
+
+ApplicationWindow {
     visible: true
     width: 640
     height: 480
     title: "Krice3D"
+    header: mainMenu
 
     MenuBar {
+        id: mainMenu
         menus: [
             Menu {
                 title: qsTr("File")
 
                 MenuItem {
                     text: qsTr("Open STL")
+
+                    onPressed:
+                    {
+                        fileDialog.open()
+                    }
                 }
                 MenuItem{
                     text: qsTr("Open GCode")
+                }
+                MenuItem {
+                    text: qsTr("Recently Opened...")
                 }
                 MenuItem{
                     text: qsTr("Close file")
@@ -81,6 +101,72 @@ Window {
                     text: qsTr("About")
                 }
             }
+        ]
+    }
+
+    FileDialog
+    {
+        id: fileDialog
+        onAccepted:
+        {
+            console.log(fileDialog.fileUrl)
+            sceneLoader.source = fileDialog.fileUrl
+        }
+    }
+
+    Scene3D
+    {
+        anchors.fill: parent
+
+        aspects: ["input", "logic"]
+        cameraAspectRatioMode: Scene3D.AutomaticAspectRatio
+
+        Entity
+        {
+            id: sceneRoot
+
+            Camera
+            {
+                id: camera
+                projectionType: CameraLens.PerspectiveProjection
+                fieldOfView: 30
+                aspectRatio: 16/9
+                nearPlane : 0.1
+                farPlane : 1000.0
+                position: Qt.vector3d( 10.0, 0.0, 0.0 )
+                upVector: Qt.vector3d( 0.0, 1.0, 0.0 )
+                viewCenter: Qt.vector3d( 0.0, 0.0, 0.0 )
+            }
+
+            OrbitCameraController
+            {
+                camera: camera
+            }
+
+            components: [
+                RenderSettings
+                {
+                    activeFrameGraph: ForwardRenderer
+                    {
+                        clearColor: Qt.rgba(0, 0.5, 1, 1)
+                        camera: camera
+                    }
+                },
+                InputSettings
+                {
+                }
             ]
+
+            Entity
+            {
+                id: stlModel
+                components: [
+                    SceneLoader
+                    {
+                        id: sceneLoader
+                    }
+                ]
+            }
+        }
     }
 }
