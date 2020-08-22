@@ -104,8 +104,7 @@ ApplicationWindow {
         ]
     }
 
-    FileDialog
-    {
+    FileDialog {
         id: fileDialog
         onAccepted:
         {
@@ -114,46 +113,41 @@ ApplicationWindow {
         }
     }
 
-    Scene3D
-    {
+    Scene3D {
         anchors.fill: parent
 
         aspects: ["input", "logic"]
         cameraAspectRatioMode: Scene3D.AutomaticAspectRatio
 
-        Entity
-        {
+        Entity {
             id: sceneRoot
 
-            Camera
-            {
+            Camera {
                 id: camera
                 projectionType: CameraLens.PerspectiveProjection
                 fieldOfView: 30
                 aspectRatio: 16/9
                 nearPlane : 0.1
                 farPlane : 1000.0
-                position: Qt.vector3d( 10.0, 0.0, 0.0 )
+                position: Qt.vector3d( 45.0, 45.0, 45.0 )
                 upVector: Qt.vector3d( 0.0, 1.0, 0.0 )
                 viewCenter: Qt.vector3d( 0.0, 0.0, 0.0 )
             }
 
-            OrbitCameraController
-            {
+            OrbitCameraController {
                 camera: camera
+                linearSpeed: 333
+                lookSpeed: 100
             }
 
             components: [
-                RenderSettings
-                {
-                    activeFrameGraph: ForwardRenderer
-                    {
+                RenderSettings {
+                    activeFrameGraph: ForwardRenderer {
                         clearColor: Qt.rgba(0, 0.5, 1, 1)
                         camera: camera
                     }
                 },
-                InputSettings
-                {
+                InputSettings {
                 }
             ]
 
@@ -161,9 +155,16 @@ ApplicationWindow {
             {
                 id: stlModel
                 components: [
-                    SceneLoader
-                    {
+                    SceneLoader {
                         id: sceneLoader
+
+                        source: "file:///C:/Users/Grzegorz Ilnicki/Downloads/40_mm_ratchet_-_all_in_one_-_opened.stl"
+                        onStatusChanged: {
+                            if (status == SceneLoader.Ready)
+                            {
+                                console.log(source)
+                            }
+                        }
                     }
                 ]
             }
