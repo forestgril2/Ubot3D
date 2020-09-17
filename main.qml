@@ -158,11 +158,17 @@ ApplicationWindow {
                     SceneLoader {
                         id: sceneLoader
 
-                        source: "file:///C:/Users/Grzegorz Ilnicki/Downloads/40_mm_ratchet_-_all_in_one_-_opened.stl"
+                        source: "file:///C:/Users/Grzegorz Ilnicki/Desktop/JOB/Ubot3D/40_mm_ratchet_-_all_in_one_-_opened.stl"
                         onStatusChanged: {
                             if (status == SceneLoader.Ready)
                             {
-                                console.log(source)
+                                console.log(stlModel.data)
+                                console.log(stlModel.childNodes)
+                                console.log("stlModel.propertyTrackingOverrides: " + stlModel.propertyTrackingOverrides)
+                            }
+                            else
+                            {
+                                console.log(status)
                             }
                         }
                     }
