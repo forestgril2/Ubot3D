@@ -162,6 +162,11 @@ ApplicationWindow {
             Mesh {
                 id: modelMesh
                 source: "file:///C:/Users/Grzegorz Ilnicki/Desktop/JOB/Ubot3D/40_mm_ratchet_-_all_in_one_-_opened.stl"
+
+                onStatusChanged: {
+                    if(status == Mesh.Ready)
+                        camera.viewAll()
+                }
             }
 
             Entity {
