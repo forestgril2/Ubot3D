@@ -1,17 +1,16 @@
-import QtQuick 2.12
-import QtQuick.Window 2.12
+import QtQuick 2.15
+import QtQuick.Window 2.15
 import Qt.labs.platform 1.1
-import QtQuick.Controls 2.12
+import QtQuick.Controls 2.15
 import QtQuick.Dialogs 1.1
 
-import Qt3D.Core 2.12
+import Qt3D.Core 2.15
 
-import QtQuick.Scene3D 2.12
+import QtQuick.Scene3D 2.15
 
-import Qt3D.Core 2.12
-import Qt3D.Render 2.12
-import Qt3D.Input 2.12
-import Qt3D.Extras 2.12
+import Qt3D.Render 2.15
+import Qt3D.Input 2.15
+import Qt3D.Extras 2.15
 
 ApplicationWindow {
     visible: true
@@ -109,7 +108,8 @@ ApplicationWindow {
         onAccepted:
         {
             console.log(fileDialog.fileUrl)
-            sceneLoader.source = fileDialog.fileUrl
+//            sceneLoader.source = fileDialog.fileUrl
+            modelMesh.source = fileDialog.fileUrl
         }
     }
 
@@ -151,29 +151,48 @@ ApplicationWindow {
                 }
             ]
 
-            Entity
-            {
-                id: stlModel
-                components: [
-                    SceneLoader {
-                        id: sceneLoader
-
-                        source: "file:///C:/Users/Grzegorz Ilnicki/Desktop/JOB/Ubot3D/40_mm_ratchet_-_all_in_one_-_opened.stl"
-                        onStatusChanged: {
-                            if (status == SceneLoader.Ready)
-                            {
-                                console.log(stlModel.data)
-                                console.log(stlModel.childNodes)
-                                console.log("stlModel.propertyTrackingOverrides: " + stlModel.propertyTrackingOverrides)
-                            }
-                            else
-                            {
-                                console.log(status)
-                            }
-                        }
-                    }
-                ]
+            PhongMaterial {
+                id: material
             }
+
+            Transform {
+                id: modelTransform
+            }
+
+            Mesh {
+                id: modelMesh
+                source: "file:///C:/Users/Grzegorz Ilnicki/Desktop/JOB/Ubot3D/40_mm_ratchet_-_all_in_one_-_opened.stl"
+            }
+
+            Entity {
+                id: stlModel
+                components: [modelMesh, material, modelTransform]
+            }
+
+
+//            Entity {
+//                id: stLoaderlModel
+
+//                components: [
+//                    SceneLoader {
+//                        id: sceneLoader
+
+////                        source: "file:///C:/Users/Grzegorz Ilnicki/Desktop/JOB/Ubot3D/40_mm_ratchet_-_all_in_one_-_opened.stl"
+//                        onStatusChanged: {
+//                            if (status == SceneLoader.Ready)
+//                            {
+//                                console.log(stlModel.data)
+//                                console.log(stlModel.childNodes)
+//                                console.log("stlModel.propertyTrackingOverrides: " + stlModel.propertyTrackingOverrides)
+//                            }
+//                            else
+//                            {
+//                                console.log(status)
+//                            }
+//                        }
+//                    }
+//                ]
+//            }
         }
     }
 }
