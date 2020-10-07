@@ -1,6 +1,6 @@
-QT += quick
+QT += 3dcore 3drender 3dinput 3dlogic 3dextras 3danimation quick quick3d
 
-CONFIG += c++11
+CONFIG += c++17
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -31,3 +31,13 @@ QML_DESIGNER_IMPORT_PATH =
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/release/ -lassimp-vc142-mtd
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/Debug/ -lassimp-vc142-mtd
+else:unix: LIBS += -L$$PWD/../assimp-5.0.1/build/code/ -lassimp-vc142-mtd
+
+INCLUDEPATH += $$PWD/../assimp-5.0.1/include
+INCLUDEPATH += $$PWD/../assimp-5.0.1/build/include
+DEPENDPATH += $$PWD/../assimp-5.0.1/include
+DEPENDPATH += $$PWD/../assimp-5.0.1/build/include
