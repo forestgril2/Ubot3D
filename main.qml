@@ -1,11 +1,7 @@
-//import QtQuick 2.15
-//import QtQuick.Window 2.15
-//import QtQuick.Controls 2.15
-import QtQuick.Dialogs 1.1
+//import QtQuick.Dialogs 1.1
 
 import Qt3D.Core 2.15
-//import QtQuick3D 1.15
-//import QtQuick3D.Helpers 1.15
+import QtQuick3D.Helpers 1.15
 
 //import QtQuick.Scene3D 2.15
 
@@ -16,156 +12,149 @@ import QtQuick 2.15
 import QtQuick.Window 2.15
 import QtQuick3D 1.15
 import QtQuick.Controls 2.15
+import customgeometry 1.0
 
 Window {
+    id: window
+    width: 1280
+    height: 720
     visible: true
-    width: 640
-    height: 480
-    title: "Krice3D"
+    color: "#848895"
 
-    MainMenu {
-        id: mainMenu
-    }
+    View3D {
+        id: v3d
+        anchors.fill: parent
+        camera: camera
 
-    Node {
-        id: scene3DInstance
+         PerspectiveCamera {
+            id: camera
+            fieldOfView: 45
+            clipNear: 0.1
+            clipFar: 1000.0
+            x: 0
+            y: -75
+            z: 50
+
+            onRotationChanged: {
+                console.log(" camera eulerRotation: " + eulerRotation)
+            }
+        }
 
         DirectionalLight {
-            ambientColor: Qt.rgba(1.0, 1.0, 1.0, 1.0)
+            position: Qt.vector3d(-500, 500, -100)
+            color: Qt.rgba(0.4, 0.2, 0.6, 1.0)
+            ambientColor: Qt.rgba(0.1, 0.1, 0.1, 1.0)
+        }
+
+        PointLight {
+            position: Qt.vector3d(0, 0, 100)
+            color: Qt.rgba(0.1, 1.0, 0.1, 1.0)
+            ambientColor: Qt.rgba(0.2, 0.2, 0.2, 1.0)
         }
 
         Model {
-            id: model
-            source: "#Sphere"
-//            source: "file:///C:/ProjectsData/stl_files/qml/meshes/node091_W_Aya_100K_01.mesh"
-
-            materials: [material]
-        }
-
-        Node {
-            id: node091_W_Aya_100K_obj
-
-
-            Model {
-                id: node091_W_Aya_100K_01
-                source: "#Sphere"
-//                source: "file:///C:/ProjectsData/stl_files/qml/meshes/node091_W_Aya_100K_01.mesh"
-
+            visible: radioGridGeom.checked
+            scale: Qt.vector3d(100, 100, 100)
+            geometry: GridGeometry {
+                id: grid
+                horizontalLines: 20
+                verticalLines: 20
+            }
+            materials: [
                 DefaultMaterial {
-                    id: node091_W_Aya_2K_01_material
-                    diffuseColor: "#ff999999"
+                    lineWidth: sliderLineWidth.value
                 }
-                materials: [
-                    node091_W_Aya_2K_01_material
-                ]
+            ]
+        }
+
+        Model {
+            id: triangleModel
+            property alias geometry: triangleModel.geometry
+            visible: radioCustGeom.checked
+            scale: Qt.vector3d(1, 1, 1)
+            geometry: ExampleTriangleGeometry {
+                normals: cbNorm.checked
+                normalXY: sliderNorm.value
+                uv: cbUV.checked
+                uvAdjust: sliderUV.value
+                warp: modelWarpSlider.value
+
+                onBoundsChanged: {
+                    console.log(" model bounds min: " + triangleModel.geometry.minBounds)
+                    console.log(" model bounds max: " + triangleModel.geometry.maxBounds)
+                    console.log(" modelCenter : " + modelCenter)
+                }
             }
+
+            materials: [
+                DefaultMaterial {
+                    Texture {
+                        id: baseColorMap
+                        source: "qt_logo_rect.png"
+                    }
+                    cullMode: DefaultMaterial.NoCulling
+                    diffuseMap: cbTexture.checked ? baseColorMap : null
+                    specularAmount: 0.5
+                }
+            ]
         }
 
-        PhongMaterial {
-            id: material
-        }
-
-        Transform {
-            id: modelTransform
-        }
-
-        Mesh {
-            id: modelMesh
-            source: "file:///C:/Users/Grzegorz Ilnicki/Desktop/JOB/Ubot3D/40_mm_ratchet_-_all_in_one_-_opened.stl"
-            //source: "file:///C:/ProjectsData/stl_files/091_W_Aya_100K.obj"
-        }
-
-        Entity {
-            id: stlModel
-            components: [modelMesh, material, modelTransform]
-        }
-
-        Node {
-            OrthographicCamera {
-                id: camera
-                clipNear:  0.1
-                clipFar: 1000.0
-//                position: Qt.vector3d( 45.0, 45.0, 45.0 )
+        Model {
+            visible: radioPointGeom.checked
+            scale: Qt.vector3d(100, 100, 100)
+            geometry: ExamplePointGeometry {
             }
+            materials: [
+                DefaultMaterial {
+                    lighting: DefaultMaterial.NoLighting
+                    cullMode: DefaultMaterial.NoCulling
+                    diffuseColor: "yellow"
+//                    pointSize: sliderPointSize.value
+                }
+            ]
         }
     }
 
-    // The views
-    Rectangle {
-        id: cover
-        anchors.top: mainMenu.bottom
-        anchors {
-            left: parent.left
-            bottom: parent.bottom
-            right: parent.right
-        }
+    WasdController {
+        controlledObject: camera
+    }
 
-        color: "#848895"
-        border.color: "black"
 
-        View3D {
-            id: mainView
-            anchors.fill: parent
-            importScene: scene3DInstance
-            camera: camera
-        }
+    MouseArea {
+        anchors.fill: parent
+        onDoubleClicked: {
+            var modelCenter = triangleModel.geometry.minBounds.plus(triangleModel.geometry.maxBounds).times(0.5)
+            camera.lookAt(modelCenter)
 
-        Label {
-            text: "Main View"
-            anchors.fill: parent
-            anchors.margins: 10
-            color: "#222840"
-            font.pointSize: 14
-        }
+            //               var eulerRotation = camera.eulerRotation
+            //                camera.setEulerRotation(Qt.vector3d(eulerRotation.x,0,eulerRotation.z))
 
-        MouseArea {
-            enabled: true
-            anchors.fill: parent
+            var dir = (modelCenter.minus(camera.position)).normalized()
+            var up = Qt.vector3d(0,0,1)
+            var hor = (up.crossProduct(dir)).normalized()
+            up = (dir.crossProduct(hor)).normalized()
 
-            onClicked: {
-                console.log("CLICKED, model: " + node091_W_Aya_100K_obj.model.bounds)
-                camera.lookAt(node091_W_Aya_100K_obj.position)
-            }
+            // hor.x hor.y hor.z
+            // up.x  up.y  up.z
+            // dir.x dir.y dir.z
+
+            var qw = Math.sqrt(1+hor.x + up.y + dir.z)/2
+            var qx = (up.z - dir.y)/(4 * qw)
+            var qy = (dir.x - hor.z)/(4 * qw)
+            var qz = (hor.y - up.x)/(4 * qw)
+
+//            console.log("camera.rotation: " + camera.rotation);
+
+            camera.rotation = Qt.quaternion(qw,qx,qy,qz)
         }
     }
 
-    Mesh {
-
+    Slider {
+        id: modelWarpSlider
+        anchors.left: parent
+        orientation: Qt.Vertical
+        from: -0.05
+        to: 0.05
+        width: 50
     }
-
-//    OrbitCameraController {
-//        camera: ortographicCamera
-//    }
-
-//    PhongMaterial {
-//        id: material
-//    }
-
-    FileDialog {
-        id: fileDialog
-        onAccepted:
-        {
-            console.log(fileDialog.fileUrl)
-            //            sceneLoader.source = fileDialog.fileUrl
-            scene3DInstance.modelMesh.source = fileDialog.fileUrl
-        }
-    }
-
-//    Rectangle {
-//        id: scene
-//        anchors.fill: parent
-//        anchors.margins: 50
-//        color: "darkRed"
-
-
-
-//        transform: Rotation {
-//            id: sceneRotation
-//            axis.x: 1
-//            axis.y: 0
-//            axis.z: 0
-//            origin.x: scene.width / 2
-//            origin.y: scene.height / 2
-//        }
-//    }
 }

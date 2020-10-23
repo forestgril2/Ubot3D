@@ -14,23 +14,35 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-        main.cpp
+    main.cpp \
+    examplegeometry.cpp
 
-RESOURCES += qml.qrc
+HEADERS += \
+        examplegeometry.h
 
-TRANSLATIONS += \
+RESOURCES += \
     Ubot3D_en_150.ts
 
-# Additional import path used to resolve QML modules in Qt Creator's code model
-QML_IMPORT_PATH =
+OTHER_FILES += \
+        doc/src/*.*
 
 # Additional import path used to resolve QML modules just for Qt Quick Designer
+QML_IMPORT_PATH =
+# Additional import path used to resolve QML modules just for Qt Quick Designer
 QML_DESIGNER_IMPORT_PATH =
+
+QML_IMPORT_NAME = customgeometry
+QML_IMPORT_MAJOR_VERSION = 1
+
+CONFIG += qmltypes
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+#target.path = $$[QT_INSTALL_EXAMPLES]/quick3d/customgeometry
+#INSTALLS += target
 
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/release/ -lassimp-vc142-mtd
@@ -41,3 +53,4 @@ INCLUDEPATH += $$PWD/../assimp-5.0.1/include
 INCLUDEPATH += $$PWD/../assimp-5.0.1/build/include
 DEPENDPATH += $$PWD/../assimp-5.0.1/include
 DEPENDPATH += $$PWD/../assimp-5.0.1/build/include
+
