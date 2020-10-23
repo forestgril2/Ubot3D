@@ -21,6 +21,7 @@ HEADERS += \
         examplegeometry.h
 
 RESOURCES += \
+    qml.qrc \
     Ubot3D_en_150.ts
 
 OTHER_FILES += \

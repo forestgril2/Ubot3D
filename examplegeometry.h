@@ -17,12 +17,16 @@ class ExampleTriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector3D minBounds READ minBounds WRITE setMinBounds NOTIFY boundsChanged)
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(float warp READ warp WRITE setWarp NOTIFY warpChanged)
+	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
 	QML_NAMED_ELEMENT(ExampleTriangleGeometry)
 
 public:
     ExampleTriangleGeometry();
 
-    Q_INVOKABLE QQuaternion getRotation()
+//    Q_INVOKABLE QQuaternion getRotation();
+
+	QString getInputFile() const;
+	void setInputFile(const QString& url);
 
     bool normals() const { return m_hasNormals; }
     void setNormals(bool enable);
@@ -63,6 +67,8 @@ private:
     bool m_hasUV = false;
     float m_uvAdjust = 0.0f;
     float _warp = 0.0f;
+
+	QString _inputFile = "C:/ProjectsData/stl_files/mandoriflelow.stl";
 };
 
 class ExamplePointGeometry : public QQuick3DGeometry

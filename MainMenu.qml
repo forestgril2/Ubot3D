@@ -1,40 +1,29 @@
-import QtQuick.Dialogs 1.1
-
-//import Qt3D.Core 2.15
-//import QtQuick3D 1.15
-//import QtQuick3D.Helpers 1.15
-
-//import QtQuick.Scene3D 2.15
-
-//import Qt3D.Render 2.15
-//import Qt3D.Input 2.15
-//import Qt3D.Extras 2.15
-
+import Qt.labs.platform 1.1
 import QtQuick 2.15
 import QtQuick.Window 2.15
 import QtQuick3D 1.15
 import QtQuick.Controls 2.15
 
 MenuBar {
-	anchors {
-		left: parent.left
-		top: parent.top
-		right: parent.right
-	}
-	height: 30
+//	anchors {
+//		left: parent.left
+//		top: parent.top
+//		right: parent.right
+//	}
+//	height: 30
 	
 	id: mainMenu
 	menus: [
 		Menu {
 			title: qsTr("File")
-			
+
 			MenuItem {
 				text: qsTr("Open STL")
 				
-				onPressed:
-				{
-					fileDialog.open()
-				}
+                onTriggered:
+                {
+                    fileDialog.open()
+                }
 			}
 			MenuItem{
 				text: qsTr("Open GCode")

@@ -71,7 +71,7 @@ bool DoTheImportThing(const std::string& pFile)
 	scene = importer.ReadFile(pFile,
 							  aiProcess_CalcTangentSpace |
 							  aiProcess_Triangulate |
-							  aiProcess_JoinIdenticalVertices |
+//							  aiProcess_JoinIdenticalVertices |
 							  aiProcess_SortByPType);
 	// If the import failed, report it
 	if(!scene)
@@ -90,13 +90,29 @@ bool DoTheImportThing(const std::string& pFile)
 
 ExampleTriangleGeometry::ExampleTriangleGeometry()
 {
-    updateData();
+	updateData();
+}
+
+QString ExampleTriangleGeometry::getInputFile() const
+{
+	return _inputFile;
+}
+
+void ExampleTriangleGeometry::setInputFile(const QString& url)
+{
+	if (url == _inputFile)
+		return;
+
+	_inputFile = url;
+	isAssimpReadDone = false;
+	updateData();
+	update();
 }
 
 void ExampleTriangleGeometry::setNormals(bool enable)
 {
-    if (m_hasNormals == enable)
-        return;
+	if (m_hasNormals == enable)
+		return;
 
     m_hasNormals = enable;
     emit normalsChanged();
@@ -182,7 +198,7 @@ void ExampleTriangleGeometry::updateData()
 {
 	if (!isAssimpReadDone)
 	{
-		if (!DoTheImportThing("C:/ProjectsData/stl_files/mandorifle.stl"))
+		if (!DoTheImportThing(_inputFile.toStdString().c_str()))
 			return;
 
 		assimpLogScene(scene);

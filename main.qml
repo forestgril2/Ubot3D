@@ -1,4 +1,6 @@
-//import QtQuick.Dialogs 1.1
+//import QtQuick.Dialogs 1.3
+
+import Qt.labs.platform 1.1
 
 import Qt3D.Core 2.15
 import QtQuick3D.Helpers 1.15
@@ -10,6 +12,7 @@ import Qt3D.Render 2.15
 import Qt3D.Extras 2.15
 import QtQuick 2.15
 import QtQuick.Window 2.15
+//import QtQuick.Dialogs 1.2
 import QtQuick3D 1.15
 import QtQuick.Controls 2.15
 import customgeometry 1.0
@@ -21,6 +24,25 @@ Window {
     visible: true
     color: "#848895"
 
+    FileDialog {
+        id: fileDialog
+        onAccepted:
+        {
+            console.log(fileDialog.currentFile)
+            var fullSystemFilePath = fileDialog.currentFile.toString()
+            console.log(fullSystemFilePath)
+            var pos = fullSystemFilePath.search("file:///");
+            console.log(pos)
+            fullSystemFilePath = fullSystemFilePath.substring(pos+8)
+            console.log(fullSystemFilePath)
+            triangleModel.geometry.inputFile = fullSystemFilePath
+        }
+    }
+
+    MainMenu {
+
+    }
+
     View3D {
         id: v3d
         anchors.fill: parent
@@ -30,7 +52,7 @@ Window {
             id: camera
             fieldOfView: 45
             clipNear: 0.1
-            clipFar: 1000.0
+            clipFar: 10000.0
             x: 0
             y: -75
             z: 50
@@ -153,8 +175,8 @@ Window {
         id: modelWarpSlider
         anchors.left: parent
         orientation: Qt.Vertical
-        from: -0.05
-        to: 0.05
+        from: -0.1
+        to: 0.1
         width: 50
     }
 }
