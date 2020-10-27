@@ -104,6 +104,11 @@ QQuaternion ExampleTriangleGeometry::getRotation(const QVector3D& lookAt, const 
 	return QQuaternion::fromDirection(-lookAt + lookFrom, {0,0,1});
 }
 
+QQuaternion ExampleTriangleGeometry::getRotation(const QVector3D& axis, const float angle)
+{
+	return QQuaternion::fromAxisAndAngle(axis, angle);
+}
+
 QString ExampleTriangleGeometry::getInputFile() const
 {
 	return _inputFile;

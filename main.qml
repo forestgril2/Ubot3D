@@ -107,6 +107,7 @@ Window {
             property alias geometry: triangleModel.geometry
             visible: radioCustGeom.checked
             scale: Qt.vector3d(1, 1, 1)
+            rotation: triangleModel.geometry.getRotation(Qt.vector3d(0,0,1), pointModelRotationSlider.value)
             geometry: ExampleTriangleGeometry {
                 normals: cbNorm.checked
                 normalXY: sliderNorm.value
@@ -115,9 +116,10 @@ Window {
                 warp: triangleModelWarpSlider.value
 
                 onBoundsChanged: {
+                    var modelCenter = triangleModel.geometry.minBounds.plus(triangleModel.geometry.maxBounds).times(0.5)
                     console.log(" model bounds min: " + triangleModel.geometry.minBounds)
                     console.log(" model bounds max: " + triangleModel.geometry.maxBounds)
-                    console.log(" modelCenter : " + triangleModel.geometry.modelCenter)
+                    console.log(" modelCenter : " + modelCenter)
                 }
 
                 onModelLoaded: {
@@ -144,6 +146,7 @@ Window {
             property alias geometry: pointModel.geometry
             visible: radioPointGeom.checked
             scale: Qt.vector3d(1, 1, 1)
+            rotation: triangleModel.geometry.getRotation(Qt.vector3d(0,0,1), pointModelRotationSlider.value)
             geometry: ExamplePointGeometry {}
             position: Qt.vector3d(pointModelWarpSlider.value, 0, 0)
             materials: [
@@ -200,11 +203,18 @@ Window {
             width: 50
         }
 
+        Slider {
+            id: pointModelRotationSlider
+            orientation: Qt.Vertical
+            from: -180
+            to: 180
+            width: 50
+        }
+
         Button {
-            id: reset
+            id: snapToFloor
 
-
-            text: "Snap to floor"
+            text: "Snap model to floor"
 
             topInset: 20
             topPadding: 20

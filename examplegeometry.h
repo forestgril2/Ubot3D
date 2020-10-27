@@ -24,6 +24,7 @@ public:
     ExampleTriangleGeometry();
 
 	static Q_INVOKABLE QQuaternion getRotation(const QVector3D& lookAt, const QVector3D& lookFrom);
+	static Q_INVOKABLE QQuaternion getRotation(const QVector3D& axis, const float angle);
 
 	QString getInputFile() const;
 	void setInputFile(const QString& url);
