@@ -138,6 +138,7 @@ Window {
     }
 
     WasdController {
+        id: controller
         controlledObject: camera
     }
 
@@ -168,6 +169,8 @@ Window {
 //            console.log("camera.rotation: " + camera.rotation);
 
             camera.rotation = Qt.quaternion(qw,qx,qy,qz)
+
+            controller.focus = true
         }
     }
 
