@@ -205,7 +205,7 @@ QVector3D ExampleTriangleGeometry::maxBounds() const
 	return QVector3D(maxBound.x, maxBound.y, maxBound.z);
 }
 
-void ExampleTriangleGeometry::updateData()
+void ExampleTriangleGeometry::reloadSceneIfNecessary()
 {
 	if (!isAssimpReadDone)
 	{
@@ -216,8 +216,11 @@ void ExampleTriangleGeometry::updateData()
 		setBounds({minBound.x, minBound.y, minBound.z}, {maxBound.x, maxBound.y,maxBound.z});
 		emit modelLoaded();
 	}
-
 	clear();
+}
+void ExampleTriangleGeometry::updateData()
+{
+	reloadSceneIfNecessary();
 
     int stride = 3 * sizeof(float);
     if (m_hasNormals)
@@ -314,22 +317,22 @@ ExamplePointGeometry::ExamplePointGeometry()
 
 void ExamplePointGeometry::updateData()
 {
-    clear();
+	clear();
 
-    const int N = 2000;
+	unsigned numVertices = scene->mMeshes[0]->mNumVertices;
 
     const int stride = 3 * sizeof(float);
 
     QByteArray v;
-    v.resize(N * stride);
+	v.resize(numVertices * stride);
     float *p = reinterpret_cast<float *>(v.data());
 
-    for (int i = 0; i < N; ++i) {
-        const float x = float(QRandomGenerator::global()->bounded(200.0f) - 100.0f) / 20.0f;
-        const float y = float(QRandomGenerator::global()->bounded(200.0f) - 100.0f) / 20.0f;
-        *p++ = x;
-        *p++ = y;
-        *p++ = 0.0f;
+	for (unsigned i = 0; i < numVertices; ++i)
+	{
+		const aiVector3D& vertex = scene->mMeshes[0]->mVertices[i];
+		*p++ = vertex.x;
+		*p++ = vertex.y;
+		*p++ = vertex.z;
     }
 
     setVertexData(v);

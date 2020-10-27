@@ -62,6 +62,7 @@ signals:
 
 private:
     void updateData();
+	void reloadSceneIfNecessary();
 
     bool m_hasNormals = false;
     float m_normalXY = 0.0f;
@@ -80,9 +81,7 @@ class ExamplePointGeometry : public QQuick3DGeometry
 
 public:
     ExamplePointGeometry();
-
-private:
-    void updateData();
+	Q_INVOKABLE void updateData();
 };
 
 #endif

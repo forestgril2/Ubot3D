@@ -112,7 +112,7 @@ Window {
                 normalXY: sliderNorm.value
                 uv: cbUV.checked
                 uvAdjust: sliderUV.value
-                warp: modelWarpSlider.value
+                warp: triangleModelWarpSlider.value
 
                 onBoundsChanged: {
                     console.log(" model bounds min: " + triangleModel.geometry.minBounds)
@@ -140,10 +140,12 @@ Window {
         }
 
         Model {
+            id: pointModel
+            property alias geometry: pointModel.geometry
             visible: radioPointGeom.checked
-            scale: Qt.vector3d(100, 100, 100)
-            geometry: ExamplePointGeometry {
-            }
+            scale: Qt.vector3d(1, 1, 1)
+            geometry: ExamplePointGeometry {}
+            position: Qt.vector3d(pointModelWarpSlider.value, 0, 0)
             materials: [
                 DefaultMaterial {
                     lighting: DefaultMaterial.NoLighting
@@ -152,6 +154,14 @@ Window {
 //                    pointSize: sliderPointSize.value
                 }
             ]
+
+            Connections {
+                target: triangleModel.geometry
+                function onModelLoaded() {
+                    pointModel.geometry.updateData()
+                    pointModel.geometry.update()
+                }
+            }
         }
     }
 
@@ -168,28 +178,39 @@ Window {
         }
     }
 
-    Slider {
-        id: modelWarpSlider
-        anchors.left: parent
-        orientation: Qt.Vertical
-        from: -0.1
-        to: 0.1
-        width: 50
-    }
-
-    Button {
-        id: reset
+    Row {
         anchors {
-            left: modelWarpSlider.right
             top: parent.top
+            left: parent.left
         }
 
-        text: "Snap to floor"
+        Slider {
+            id: triangleModelWarpSlider
+            orientation: Qt.Vertical
+            from: -0.1
+            to: 0.1
+            width: 50
+        }
 
-        topInset: 20
-        topPadding: 20
-        width: 100
-        height: 50
+        Slider {
+            id: pointModelWarpSlider
+            orientation: Qt.Vertical
+            from: -15
+            to: 15
+            width: 50
+        }
 
+        Button {
+            id: reset
+
+
+            text: "Snap to floor"
+
+            topInset: 20
+            topPadding: 20
+            width: 100
+            height: 50
+
+        }
     }
 }
