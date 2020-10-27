@@ -107,7 +107,9 @@ Window {
             property alias geometry: triangleModel.geometry
             visible: radioCustGeom.checked
             scale: Qt.vector3d(1, 1, 1)
-            rotation: triangleModel.geometry.getRotation(Qt.vector3d(0,0,1), pointModelRotationSlider.value)
+            rotation: commonRotationCheckBox.checked ?
+                          triangleModel.geometry.getRotation(Qt.vector3d(0,0,1), pointModelRotationSlider.value) :
+                          Qt.quaternion(0,0,0,0)
             geometry: ExampleTriangleGeometry {
                 normals: cbNorm.checked
                 normalXY: sliderNorm.value
@@ -139,6 +141,21 @@ Window {
                     specularAmount: 0.5
                 }
             ]
+
+
+            function snapToFloor()
+            {
+                if( typeof snapToFloor.wasPressed == 'undefined' ) {
+                        snapToFloor.wasPressed = false;
+
+                    console.log("snapToFloor pressed")
+                    triangleModel.position = triangleModel.position.minus(Qt.vector3d(0,0, triangleModel.geometry.minBounds.z))
+                }
+                else
+                {
+                    console.log("snapToFloor already pressed")
+                }
+            }
         }
 
         Model {
@@ -211,16 +228,28 @@ Window {
             width: 50
         }
 
-        Button {
-            id: snapToFloor
+        Column {
+
+            Button {
+                id: snapToFloor
 
             text: "Snap model to floor"
 
-            topInset: 20
-            topPadding: 20
-            width: 100
-            height: 50
+                topInset: 20
+                topPadding: 20
+                height: 70
 
+                onPressed: {
+                    triangleModel.snapToFloor()
+                }
+
+            }
+
+            CheckBox {
+                id: commonRotationCheckBox
+                text: qsTr("Rotate together")
+                checkState: Qt.Unchecked
+            }
         }
     }
 }
