@@ -20,6 +20,10 @@ static bool isAssimpReadDone = false;
 // Create an instance of the Importer class
 static Assimp::Importer importer;
 static const aiScene* scene;
+
+static aiVector3D maxFloatBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+static aiVector3D minFloatBound(FLT_MAX, FLT_MAX, FLT_MAX);
+
 static aiVector3D maxBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 static aiVector3D minBound(FLT_MAX, FLT_MAX, FLT_MAX);
 
@@ -56,6 +60,8 @@ void logBounds()
 static void assimpReadMeshBounds(const aiScene* scene, const unsigned meshIndex = 0u)
 {
 	const unsigned numMeshVertices = scene->mMeshes[meshIndex]->mNumVertices;
+	minBound = minFloatBound;
+	maxBound = maxFloatBound;
 	for (unsigned i = 0; i < numMeshVertices; ++i)
 	{
 		updateBounds(&(scene->mMeshes[meshIndex]->mVertices[i].x));
@@ -63,7 +69,7 @@ static void assimpReadMeshBounds(const aiScene* scene, const unsigned meshIndex 
 	logBounds();
 }
 
-bool DoTheImportThing(const std::string& pFile)
+bool importModelFromFile(const std::string& pFile)
 {
 	// And have it read the given file with some example postprocessing
 	// Usually - if speed is not the most important aspect for you - you'll
@@ -91,6 +97,11 @@ bool DoTheImportThing(const std::string& pFile)
 ExampleTriangleGeometry::ExampleTriangleGeometry()
 {
 	updateData();
+}
+
+QQuaternion ExampleTriangleGeometry::getRotation(const QVector3D& lookAt, const QVector3D& lookFrom)
+{
+	return QQuaternion::fromDirection(-lookAt + lookFrom, {0,0,1});
 }
 
 QString ExampleTriangleGeometry::getInputFile() const
@@ -198,11 +209,12 @@ void ExampleTriangleGeometry::updateData()
 {
 	if (!isAssimpReadDone)
 	{
-		if (!DoTheImportThing(_inputFile.toStdString().c_str()))
+		if (!importModelFromFile(_inputFile.toStdString().c_str()))
 			return;
 
 		assimpLogScene(scene);
 		setBounds({minBound.x, minBound.y, minBound.z}, {maxBound.x, maxBound.y,maxBound.z});
+		emit modelLoaded();
 	}
 
 	clear();

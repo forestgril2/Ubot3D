@@ -23,7 +23,7 @@ class ExampleTriangleGeometry : public QQuick3DGeometry
 public:
     ExampleTriangleGeometry();
 
-//    Q_INVOKABLE QQuaternion getRotation();
+	static Q_INVOKABLE QQuaternion getRotation(const QVector3D& lookAt, const QVector3D& lookFrom);
 
 	QString getInputFile() const;
 	void setInputFile(const QString& url);
@@ -58,6 +58,7 @@ signals:
     void uvAdjustChanged();
     void warpChanged();
 	void boundsChanged();
+	void modelLoaded();
 
 private:
     void updateData();

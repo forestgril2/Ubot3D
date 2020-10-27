@@ -44,11 +44,16 @@ Window {
     }
 
     View3D {
-        id: v3d
+        id: view3d
         anchors.fill: parent
         camera: camera
 
-         PerspectiveCamera {
+        Component.onCompleted: {
+            console.log(" ### ComponentComplete")
+            camera.lookAtModel()
+        }
+
+        PerspectiveCamera {
             id: camera
             fieldOfView: 45
             clipNear: 0.1
@@ -57,9 +62,17 @@ Window {
             y: -75
             z: 50
 
-            onRotationChanged: {
-                console.log(" camera eulerRotation: " + eulerRotation)
+            function lookAtModel()
+            {
+                var modelCenter = triangleModel.geometry.minBounds.plus(triangleModel.geometry.maxBounds).times(0.5)
+                var lookAtModelCenterRotation = triangleModel.geometry.getRotation(modelCenter, camera.position)
+                console.log("camera.rotation: " + lookAtModelCenterRotation);
+                camera.rotation = lookAtModelCenterRotation
             }
+
+//            onRotationChanged: {
+//                console.log(" camera eulerRotation: " + eulerRotation)
+//            }
         }
 
         DirectionalLight {
@@ -104,7 +117,12 @@ Window {
                 onBoundsChanged: {
                     console.log(" model bounds min: " + triangleModel.geometry.minBounds)
                     console.log(" model bounds max: " + triangleModel.geometry.maxBounds)
-                    console.log(" modelCenter : " + modelCenter)
+                    console.log(" modelCenter : " + triangleModel.geometry.modelCenter)
+                }
+
+                onModelLoaded: {
+                    console.log(" modelLoaded")
+                    camera.lookAtModel()
                 }
             }
 
@@ -142,34 +160,10 @@ Window {
         controlledObject: camera
     }
 
-
     MouseArea {
         anchors.fill: parent
         onDoubleClicked: {
-            var modelCenter = triangleModel.geometry.minBounds.plus(triangleModel.geometry.maxBounds).times(0.5)
-            camera.lookAt(modelCenter)
-
-            //               var eulerRotation = camera.eulerRotation
-            //                camera.setEulerRotation(Qt.vector3d(eulerRotation.x,0,eulerRotation.z))
-
-            var dir = (modelCenter.minus(camera.position)).normalized()
-            var up = Qt.vector3d(0,0,1)
-            var hor = (up.crossProduct(dir)).normalized()
-            up = (dir.crossProduct(hor)).normalized()
-
-            // hor.x hor.y hor.z
-            // up.x  up.y  up.z
-            // dir.x dir.y dir.z
-
-            var qw = Math.sqrt(1+hor.x + up.y + dir.z)/2
-            var qx = (up.z - dir.y)/(4 * qw)
-            var qy = (dir.x - hor.z)/(4 * qw)
-            var qz = (hor.y - up.x)/(4 * qw)
-
-//            console.log("camera.rotation: " + camera.rotation);
-
-            camera.rotation = Qt.quaternion(qw,qx,qy,qz)
-
+            camera.lookAtModel()
             controller.focus = true
         }
     }
@@ -181,5 +175,21 @@ Window {
         from: -0.1
         to: 0.1
         width: 50
+    }
+
+    Button {
+        id: reset
+        anchors {
+            left: modelWarpSlider.right
+            top: parent.top
+        }
+
+        text: "Snap to floor"
+
+        topInset: 20
+        topPadding: 20
+        width: 100
+        height: 50
+
     }
 }
