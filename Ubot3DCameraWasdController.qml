@@ -29,10 +29,12 @@
 
 import QtQuick
 import QtQuick3D
+import customgeometry 1.0
 
 Item {
     id: root
     property Node controlledObject: undefined
+    property var camera: undefined
 
     property real speed: 1
     property real shiftSpeed: 3
@@ -59,11 +61,15 @@ Item {
 
     property alias acceptedButtons: dragHandler.acceptedButtons
 
-
-
     implicitWidth: parent.width
     implicitHeight: parent.height
     focus: keysEnabled
+
+    // TODO: This is only temporary, this 3D commands functionality should be moved to
+    //       a separate class.
+    ExampleTriangleGeometry {
+        id: commands3D
+    }
 
     DragHandler {
         id: dragHandler
@@ -242,6 +248,7 @@ Item {
             status.processInput();
     }
 
+
     QtObject {
         id: status
 
@@ -298,21 +305,32 @@ Item {
 
             if (useMouse) {
                 // Get the delta
-                var rotationVector = controlledObject.eulerRotation;
+                var rotation = controlledObject.rotation;
                 var delta = Qt.vector2d(lastPos.x - currentPos.x,
                                         lastPos.y - currentPos.y);
-                // rotate x
-                var rotateX = delta.x * xSpeed
-                if (xInvert)
-                    rotateX = -rotateX;
-                rotationVector.y += rotateX;
 
-                // rotate y
-                var rotateY = delta.y * -ySpeed
-                if (yInvert)
-                    rotateY = -rotateY;
-                rotationVector.x += rotateY;
-                controlledObject.setEulerRotation(rotationVector);
+                var origin = camera.position
+                var pointSceneFrom = camera.mapFromViewport(Qt.vector3d(lastPos.x/implicitWidth, lastPos.y/implicitHeight, 0))
+                var pointSceneTo = camera.mapFromViewport(Qt.vector3d(currentPos.x/implicitWidth, currentPos.y/implicitHeight, 0))
+
+                var axisFrom = pointSceneFrom.minus(camera.position)
+                var axisTo = pointSceneTo.minus(camera.position)
+
+                if (axisFrom.length() > 0 && axisTo.length() > 0)
+                {
+                    var additionalRotation = commands3D.getRotationFromAxes(axisTo, axisFrom)
+                    if (additionalRotation.x !== 0)
+                    {
+                        var finalRotation = commands3D.getRotation(rotation, additionalRotation)
+                        console.log(" camera rotation: " + finalRotation)
+
+                        if (finalRotation.x)
+                        {
+                            controlledObject.setRotation(finalRotation)
+                        }
+                    }
+                }
+
                 lastPos = currentPos;
             }
         }

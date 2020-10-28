@@ -43,6 +43,7 @@ Window {
 
     }
 
+
     View3D {
         id: view3d
         anchors.fill: parent
@@ -51,6 +52,12 @@ Window {
         Component.onCompleted: {
             console.log(" ### ComponentComplete")
             camera.lookAtModel()
+        }
+
+        Ubot3DCameraWasdController {
+            id: controller
+            controlledObject: camera
+            camera: camera
         }
 
         PerspectiveCamera {
@@ -157,14 +164,13 @@ Window {
 
             function snapToFloor()
             {
-                if( typeof snapToFloor.wasPressed == 'undefined' ) {
+                if (typeof snapToFloor.wasPressed == 'undefined') {
                         snapToFloor.wasPressed = false;
 
                     console.log("snapToFloor pressed")
                     triangleModel.position = triangleModel.position.minus(Qt.vector3d(0,0, triangleModel.geometry.minBounds.z))
                 }
-                else
-                {
+                else {
                     console.log("snapToFloor already pressed")
                 }
             }
@@ -197,10 +203,6 @@ Window {
         }
     }
 
-    UbotWasdController {
-        id: controller
-        controlledObject: camera
-    }
 
     MouseArea {
         anchors.fill: parent

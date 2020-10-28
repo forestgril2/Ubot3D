@@ -104,9 +104,31 @@ QQuaternion ExampleTriangleGeometry::getRotation(const QVector3D& lookAt, const 
 	return QQuaternion::fromDirection(-lookAt + lookFrom, {0,0,1});
 }
 
+QQuaternion ExampleTriangleGeometry::getRotationFromAxes(const QVector3D& axisFrom, const QVector3D& axisTo)
+{
+	QVector3D axis = getRotationAxis(axisFrom, axisTo);
+	float angle = getSmallRotationAngle(axisFrom, axisTo);
+	return getRotation(axis, angle);
+}
+
 QQuaternion ExampleTriangleGeometry::getRotation(const QVector3D& axis, const float angle)
 {
 	return QQuaternion::fromAxisAndAngle(axis, angle);
+}
+
+QQuaternion ExampleTriangleGeometry::getRotation(const QQuaternion& current, const QQuaternion& additional)
+{
+	return current*additional;
+}
+
+float ExampleTriangleGeometry::getSmallRotationAngle(const QVector3D& from, const QVector3D& to)
+{
+	return 180.0f/(float)M_PI*acos(QVector3D::dotProduct(from.normalized(), to.normalized()));
+}
+
+QVector3D ExampleTriangleGeometry::getRotationAxis(const QVector3D& from, const QVector3D& to)
+{
+	return QVector3D::crossProduct(from, to).normalized();
 }
 
 QString ExampleTriangleGeometry::getInputFile() const

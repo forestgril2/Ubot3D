@@ -24,7 +24,11 @@ public:
     ExampleTriangleGeometry();
 
 	static Q_INVOKABLE QQuaternion getRotation(const QVector3D& lookAt, const QVector3D& lookFrom);
+	static Q_INVOKABLE QQuaternion getRotationFromAxes(const QVector3D& axisFrom, const QVector3D& axisTo);
 	static Q_INVOKABLE QQuaternion getRotation(const QVector3D& axis, const float angle);
+	static Q_INVOKABLE QQuaternion getRotation(const QQuaternion& current, const QQuaternion& additional);
+	static Q_INVOKABLE float getSmallRotationAngle(const QVector3D& from, const QVector3D& to);
+	static Q_INVOKABLE QVector3D getRotationAxis(const QVector3D& from, const QVector3D& to);
 
 	QString getInputFile() const;
 	void setInputFile(const QString& url);
