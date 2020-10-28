@@ -102,11 +102,13 @@ Window {
             ]
         }
 
+
         Model {
             id: triangleModel
             property alias geometry: triangleModel.geometry
             visible: radioCustGeom.checked
             scale: Qt.vector3d(1, 1, 1)
+            pickable: true
             rotation: commonRotationCheckBox.checked ?
                           triangleModel.geometry.getRotation(Qt.vector3d(0,0,1), pointModelRotationSlider.value) :
                           Qt.quaternion(0,0,0,0)
@@ -129,6 +131,16 @@ Window {
                     camera.lookAtModel()
                 }
             }
+
+            ObjectPicker {
+                id: picker
+
+                onClicked: {
+                    console.log("clicked")
+                }
+
+            }
+
 
             materials: [
                 DefaultMaterial {
@@ -185,7 +197,7 @@ Window {
         }
     }
 
-    WasdController {
+    UbotWasdController {
         id: controller
         controlledObject: camera
     }
@@ -233,7 +245,7 @@ Window {
             Button {
                 id: snapToFloor
 
-            text: "Snap model to floor"
+                text: "Snap model to floor"
 
                 topInset: 20
                 topPadding: 20
