@@ -99,24 +99,24 @@ ExampleTriangleGeometry::ExampleTriangleGeometry()
 	updateData();
 }
 
-QQuaternion ExampleTriangleGeometry::getRotation(const QVector3D& lookAt, const QVector3D& lookFrom)
+QQuaternion ExampleTriangleGeometry::getRotationFromDirection(const QVector3D& direction, const QVector3D& up)
 {
-	return QQuaternion::fromDirection(-lookAt + lookFrom, {0,0,1});
+	return QQuaternion::fromDirection(-direction, up);
 }
 
 QQuaternion ExampleTriangleGeometry::getRotationFromAxes(const QVector3D& axisFrom, const QVector3D& axisTo)
 {
 	QVector3D axis = getRotationAxis(axisFrom, axisTo);
 	float angle = getSmallRotationAngle(axisFrom, axisTo);
-	return getRotation(axis, angle);
+	return getRotationFromAxisAndAngle(axis, angle);
 }
 
-QQuaternion ExampleTriangleGeometry::getRotation(const QVector3D& axis, const float angle)
+QQuaternion ExampleTriangleGeometry::getRotationFromAxisAndAngle(const QVector3D& axis, const float angle)
 {
 	return QQuaternion::fromAxisAndAngle(axis, angle);
 }
 
-QQuaternion ExampleTriangleGeometry::getRotation(const QQuaternion& current, const QQuaternion& additional)
+QQuaternion ExampleTriangleGeometry::getRotationFromQuaternions(const QQuaternion& current, const QQuaternion& additional)
 {
 	return current*additional;
 }

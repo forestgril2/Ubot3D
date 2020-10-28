@@ -72,7 +72,9 @@ Window {
             function lookAtModel()
             {
                 var modelCenter = triangleModel.geometry.minBounds.plus(triangleModel.geometry.maxBounds).times(0.5)
-                var lookAtModelCenterRotation = triangleModel.geometry.getRotation(modelCenter, camera.position)
+                var direction = modelCenter.minus(camera.position)
+                var upDirection = Qt.vector3d(0,0,1)
+                var lookAtModelCenterRotation = triangleModel.geometry.getRotationFromDirection(direction, upDirection)
                 console.log("camera.rotation: " + lookAtModelCenterRotation);
                 camera.rotation = lookAtModelCenterRotation
             }
@@ -181,7 +183,7 @@ Window {
             property alias geometry: pointModel.geometry
             visible: radioPointGeom.checked
             scale: Qt.vector3d(1, 1, 1)
-            rotation: triangleModel.geometry.getRotation(Qt.vector3d(0,0,1), pointModelRotationSlider.value)
+            rotation: triangleModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), pointModelRotationSlider.value)
             geometry: ExamplePointGeometry {}
             position: Qt.vector3d(pointModelWarpSlider.value, 0, 0)
             materials: [

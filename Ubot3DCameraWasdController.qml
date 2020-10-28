@@ -321,7 +321,7 @@ Item {
                     var additionalRotation = commands3D.getRotationFromAxes(axisTo, axisFrom)
                     if (additionalRotation.x !== 0)
                     {
-                        var finalRotation = commands3D.getRotation(rotation, additionalRotation)
+                        var finalRotation = commands3D.getRotationFromQuaternions(rotation, additionalRotation)
                         console.log(" camera rotation: " + finalRotation)
 
                         if (finalRotation.x)
