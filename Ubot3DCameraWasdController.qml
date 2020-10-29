@@ -347,7 +347,9 @@ Item {
                 }
 
                 lastPos = currentPos;
+                focus = true
             }
+
         }
     }
 }
