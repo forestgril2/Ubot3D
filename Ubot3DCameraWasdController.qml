@@ -311,7 +311,7 @@ Item {
                                         lastPos.y - currentPos.y);
 
                 var origin = camera.position
-                var pointSceneFrom = camera.mapFromViewport(Qt.vector3d(lastPos.x/implicitWidth, lastPos.y/implicitHeight, 0))
+                // Use mouse translation delta to designate, how view center would move.
                 var pointSceneTo = camera.mapFromViewport(Qt.vector3d(currentPos.x/implicitWidth, currentPos.y/implicitHeight, 0))
 
                 var axisFrom = pointSceneFrom.minus(camera.position)

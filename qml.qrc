@@ -4,5 +4,7 @@
         <file>MainMenu.qml</file>
         <file>Ubot3DCameraWasdController.qml</file>
         <file>Ikona.png</file>
+        <file>Node091_W_Aya_100K.qml</file>
+        <file>meshes/node091_W_Aya_100K_01.mesh</file>
     </qresource>
 </RCC>

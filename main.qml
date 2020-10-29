@@ -133,6 +133,10 @@ Window {
             ambientColor: Qt.rgba(0.2, 0.2, 0.2, 1.0)
         }
 
+        Node091_W_Aya_100K {
+            scale: Qt.vector3d(0.1, 0.1, 0.1)
+        }
+
         Model {
             scale: Qt.vector3d(100, 100, 100)
             geometry: GridGeometry {
@@ -150,21 +154,24 @@ Window {
         Model {
             id: triangleModel
             property alias geometry: triangleModel.geometry
+            property bool isPicked: false
             objectName: "STL triangles"
             pickable: true
-            scale: Qt.vector3d(1, 1, 1)
             rotation: commonRotationCheckBox.checked ?
                           triangleModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), pointModelRotationSlider.value) :
                           Qt.quaternion(0,0,0,0)
 
-//            ObjectPicker {
-//                id: picker
+            ObjectPicker {
+                id: picker
 
-//                onClicked: {
-//                    console.log("clicked")
-//                }
+                onClicked: {
+                    console.log("clicked")
+                }
 
-//            }
+            }
+//            source: "#Cube"
+//            source: "node091_W_Aya_100K_01.mesh"
+
 
             geometry: ExampleTriangleGeometry {
                 warp: triangleModelWarpSlider.value
