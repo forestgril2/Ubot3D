@@ -319,7 +319,8 @@ Item {
 
                 if (axisFrom.length() > 0 && axisTo.length() > 0)
                 {
-                    var additionalRotation = isMouseDragInverted ? commands3D.getRotationFromAxes(axisTo, axisFrom) : commands3D.getRotationFromAxes(axisFrom, axisTo)
+                    var additionalRotation = isMouseDragInverted ? commands3D.getRotationFromAxes(axisTo, axisFrom) :
+                                                                   commands3D.getRotationFromAxes(axisFrom, axisTo)
                     var axis = commands3D.getRotationAxis(additionalRotation)
                     var angle = commands3D.getRotationAngle(additionalRotation)
 
@@ -341,7 +342,6 @@ Item {
                             var newPointSceneTo = camera.mapFromViewport(Qt.vector3d(0.5, 0.5, 0))
                             var newDirection = newPointSceneTo.minus(origin)
                             camera.setRotation(commands3D.getRotationFromDirection(newDirection, Qt.vector3d(0,0,1)))
-
                         }
                     }
                 }

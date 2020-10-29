@@ -120,7 +120,7 @@ Window {
             scale: Qt.vector3d(1, 1, 1)
             pickable: true
             rotation: commonRotationCheckBox.checked ?
-                          triangleModel.geometry.getRotation(Qt.vector3d(0,0,1), pointModelRotationSlider.value) :
+                          triangleModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), pointModelRotationSlider.value) :
                           Qt.quaternion(0,0,0,0)
             geometry: ExampleTriangleGeometry {
                 normals: cbNorm.checked
