@@ -318,10 +318,10 @@ Item {
 
                 if (axisFrom.length() > 0 && axisTo.length() > 0)
                 {
-                    var additionalRotation = commands3D.getRotationFromAxes(axisTo, axisFrom)
+                    var additionalRotation = commands3D.getRotationFromAxes(axisFrom, axisTo)
                     if (additionalRotation.x !== 0)
                     {
-                        var finalRotation = commands3D.getRotationFromQuaternions(rotation, additionalRotation)
+                        var finalRotation = commands3D.getRotationFromQuaternions(additionalRotation, rotation)
                         console.log(" camera rotation: " + finalRotation)
 
                         if (finalRotation.x)
