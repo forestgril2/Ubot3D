@@ -131,6 +131,22 @@ QVector3D ExampleTriangleGeometry::getRotationAxis(const QVector3D& from, const 
 	return QVector3D::crossProduct(from, to).normalized();
 }
 
+QVector3D ExampleTriangleGeometry::getRotationAxis(const QQuaternion& rotation)
+{
+	float angle;
+	QVector3D vector;
+	rotation.getAxisAndAngle(&vector, &angle);
+	return vector;
+}
+
+float ExampleTriangleGeometry::getRotationAngle(const QQuaternion& rotation)
+{
+	float angle;
+	QVector3D vector;
+	rotation.getAxisAndAngle(&vector, &angle);
+	return angle;
+}
+
 QString ExampleTriangleGeometry::getInputFile() const
 {
 	return _inputFile;

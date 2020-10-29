@@ -310,10 +310,6 @@ Item {
                 var delta = Qt.vector2d(lastPos.x - currentPos.x,
                                         lastPos.y - currentPos.y);
 
-                // Get direction along  and cast
-
-//                var
-
                 var origin = camera.position
                 var pointSceneFrom = camera.mapFromViewport(Qt.vector3d(lastPos.x/implicitWidth, lastPos.y/implicitHeight, 0))
                 var pointSceneTo = camera.mapFromViewport(Qt.vector3d(currentPos.x/implicitWidth, currentPos.y/implicitHeight, 0))
@@ -324,14 +320,24 @@ Item {
                 if (axisFrom.length() > 0 && axisTo.length() > 0)
                 {
                     var additionalRotation = isMouseDragInverted ? commands3D.getRotationFromAxes(axisTo, axisFrom) : commands3D.getRotationFromAxes(axisFrom, axisTo)
+                    var axis = commands3D.getRotationAxis(additionalRotation)
+                    var angle = commands3D.getRotationAngle(additionalRotation)
+
+                    var mouseRotationDragSpeed = 2;
+
+                    angle *= isMouseDragInverted ? 1.0 : mouseRotationDragSpeed
+
+                    additionalRotation = commands3D.getRotationFromAxisAndAngle(axis, angle)
+
                     if (additionalRotation.x !== 0)
                     {
-                        var finalRotation = commands3D.getRotationFromQuaternions(additionalRotation, rotation)
-//                        console.log(" camera rotation: " + finalRotation)
+                        var preFinalRotation = commands3D.getRotationFromQuaternions(additionalRotation, rotation)
 
-                        if (finalRotation.x)
+                        if (preFinalRotation.x)
                         {
-                            controlledObject.setRotation(finalRotation)
+                            controlledObject.setRotation(preFinalRotation)
+
+                            // Now, that we have the camera view direction aligned, as desired, make sure the up vector is up.
                             var newPointSceneTo = camera.mapFromViewport(Qt.vector3d(0.5, 0.5, 0))
                             var newDirection = newPointSceneTo.minus(origin)
                             camera.setRotation(commands3D.getRotationFromDirection(newDirection, Qt.vector3d(0,0,1)))

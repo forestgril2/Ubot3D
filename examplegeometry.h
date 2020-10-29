@@ -29,6 +29,8 @@ public:
 	static Q_INVOKABLE QQuaternion getRotationFromQuaternions(const QQuaternion& current, const QQuaternion& additional);
 	static Q_INVOKABLE float getSmallRotationAngle(const QVector3D& from, const QVector3D& to);
 	static Q_INVOKABLE QVector3D getRotationAxis(const QVector3D& from, const QVector3D& to);
+	static Q_INVOKABLE QVector3D getRotationAxis(const QQuaternion& rotation);
+	static Q_INVOKABLE float getRotationAngle(const QQuaternion& rotation);
 
 	QString getInputFile() const;
 	void setInputFile(const QString& url);
