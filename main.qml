@@ -58,6 +58,7 @@ Window {
             id: controller
             controlledObject: camera
             camera: camera
+            isMouseDragInverted: mouseMoveDragInvertCheckBox.checked
         }
 
         PerspectiveCamera {
@@ -264,6 +265,12 @@ Window {
             CheckBox {
                 id: commonRotationCheckBox
                 text: qsTr("Rotate together")
+                checkState: Qt.Unchecked
+            }
+
+            CheckBox {
+                id: mouseMoveDragInvertCheckBox
+                text: qsTr("Invert mouse drag")
                 checkState: Qt.Unchecked
             }
         }

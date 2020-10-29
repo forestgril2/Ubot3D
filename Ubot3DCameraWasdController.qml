@@ -35,6 +35,7 @@ Item {
     id: root
     property Node controlledObject: undefined
     property var camera: undefined
+    property bool isMouseDragInverted: false
 
     property real speed: 1
     property real shiftSpeed: 3
@@ -305,9 +306,13 @@ Item {
 
             if (useMouse) {
                 // Get the delta
-                var rotation = controlledObject.rotation;
+                var rotation = camera.rotation;
                 var delta = Qt.vector2d(lastPos.x - currentPos.x,
                                         lastPos.y - currentPos.y);
+
+                // Get direction along  and cast
+
+//                var
 
                 var origin = camera.position
                 var pointSceneFrom = camera.mapFromViewport(Qt.vector3d(lastPos.x/implicitWidth, lastPos.y/implicitHeight, 0))
@@ -318,15 +323,19 @@ Item {
 
                 if (axisFrom.length() > 0 && axisTo.length() > 0)
                 {
-                    var additionalRotation = commands3D.getRotationFromAxes(axisFrom, axisTo)
+                    var additionalRotation = isMouseDragInverted ? commands3D.getRotationFromAxes(axisTo, axisFrom) : commands3D.getRotationFromAxes(axisFrom, axisTo)
                     if (additionalRotation.x !== 0)
                     {
                         var finalRotation = commands3D.getRotationFromQuaternions(additionalRotation, rotation)
-                        console.log(" camera rotation: " + finalRotation)
+//                        console.log(" camera rotation: " + finalRotation)
 
                         if (finalRotation.x)
                         {
                             controlledObject.setRotation(finalRotation)
+                            var newPointSceneTo = camera.mapFromViewport(Qt.vector3d(0.5, 0.5, 0))
+                            var newDirection = newPointSceneTo.minus(origin)
+                            camera.setRotation(commands3D.getRotationFromDirection(newDirection, Qt.vector3d(0,0,1)))
+
                         }
                     }
                 }
