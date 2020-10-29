@@ -3,5 +3,6 @@
         <file>main.qml</file>
         <file>MainMenu.qml</file>
         <file>Ubot3DCameraWasdController.qml</file>
+        <file>Ikona.png</file>
     </qresource>
 </RCC>

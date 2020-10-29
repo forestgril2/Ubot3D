@@ -43,6 +43,42 @@ Window {
 
     }
 
+    Row {
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: 20
+        Label {
+            id: pickName
+            color: "#222840"
+            font.pointSize: 14
+            text: "Last Pick: None"
+        }
+        Label {
+            id: pickPosition
+            color: "#222840"
+            font.pointSize: 14
+            text: "Screen Position: (0, 0)"
+        }
+        Label {
+            id: uvPosition
+            color: "#222840"
+            font.pointSize: 14
+            text: "UV Position: (0.00, 0.00)"
+        }
+        Label {
+            id: distance
+            color: "#222840"
+            font.pointSize: 14
+            text: "Distance: 0.00"
+        }
+        Label {
+            id: scenePosition
+            color: "#222840"
+            font.pointSize: 14
+            text: "World Position: (0.00, 0.00)"
+        }
+    }
+
 
     View3D {
         id: view3d
@@ -53,6 +89,10 @@ Window {
             console.log(" ### ComponentComplete")
             camera.lookAtModel()
         }
+
+//        RenderSettings {
+
+//        }
 
         Ubot3DCameraWasdController {
             id: controller
@@ -65,7 +105,7 @@ Window {
             id: camera
             fieldOfView: 45
             clipNear: 0.1
-            clipFar: 10000.0
+            clipFar: 1000.0
             x: 0
             y: -75
             z: 50
@@ -79,10 +119,6 @@ Window {
                 console.log("camera.rotation: " + lookAtModelCenterRotation);
                 camera.rotation = lookAtModelCenterRotation
             }
-
-//            onRotationChanged: {
-//                console.log(" camera eulerRotation: " + eulerRotation)
-//            }
         }
 
         DirectionalLight {
@@ -98,7 +134,6 @@ Window {
         }
 
         Model {
-            visible: radioGridGeom.checked
             scale: Qt.vector3d(100, 100, 100)
             geometry: GridGeometry {
                 id: grid
@@ -112,21 +147,26 @@ Window {
             ]
         }
 
-
         Model {
             id: triangleModel
             property alias geometry: triangleModel.geometry
-            visible: radioCustGeom.checked
-            scale: Qt.vector3d(1, 1, 1)
+            objectName: "STL triangles"
             pickable: true
+            scale: Qt.vector3d(1, 1, 1)
             rotation: commonRotationCheckBox.checked ?
                           triangleModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), pointModelRotationSlider.value) :
                           Qt.quaternion(0,0,0,0)
+
+//            ObjectPicker {
+//                id: picker
+
+//                onClicked: {
+//                    console.log("clicked")
+//                }
+
+//            }
+
             geometry: ExampleTriangleGeometry {
-                normals: cbNorm.checked
-                normalXY: sliderNorm.value
-                uv: cbUV.checked
-                uvAdjust: sliderUV.value
                 warp: triangleModelWarpSlider.value
 
                 onBoundsChanged: {
@@ -142,24 +182,14 @@ Window {
                 }
             }
 
-            ObjectPicker {
-                id: picker
-
-                onClicked: {
-                    console.log("clicked")
-                }
-
-            }
-
-
             materials: [
                 DefaultMaterial {
                     Texture {
                         id: baseColorMap
-                        source: "qt_logo_rect.png"
+                        source: "Ikona.png"
                     }
                     cullMode: DefaultMaterial.NoCulling
-                    diffuseMap: cbTexture.checked ? baseColorMap : null
+                    diffuseMap: null //baseColorMap
                     specularAmount: 0.5
                 }
             ]
@@ -182,7 +212,8 @@ Window {
         Model {
             id: pointModel
             property alias geometry: pointModel.geometry
-            visible: radioPointGeom.checked
+            objectName: "STL points"
+            pickable: true
             scale: Qt.vector3d(1, 1, 1)
             rotation: triangleModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), pointModelRotationSlider.value)
             geometry: ExamplePointGeometry {}
@@ -208,10 +239,34 @@ Window {
 
 
     MouseArea {
-        anchors.fill: parent
+        anchors.fill: view3d
         onDoubleClicked: {
             camera.lookAtModel()
             controller.focus = true
+        }
+
+        onClicked: {
+            // Get screen coordinates of the click
+            pickPosition.text = "Screen Position: (" + mouse.x + ", " + mouse.y + ")"
+            var result = view3d.pick(mouse.x, mouse.y);
+            if (result.objectHit) {
+                var pickedObject = result.objectHit;
+                // Toggle the isPicked property for the model
+                pickedObject.isPicked = !pickedObject.isPicked;
+                // Get picked model name
+                pickName.text = "Last Pick: " + pickedObject.objectName;
+                // Get other pick specifics
+                uvPosition.text = "UV Position: ("
+                        + result.uvPosition.x.toFixed(2) + ", "
+                        + result.uvPosition.y.toFixed(2) + ")";
+                distance.text = "Distance: " + result.distance.toFixed(2);
+                scenePosition.text = "World Position: ("
+                        + result.scenePosition.x.toFixed(2) + ", "
+                        + result.scenePosition.y.toFixed(2) + ")";
+            }
+            else {
+                pickName.text = "Last Pick: None";
+            }
         }
     }
 
