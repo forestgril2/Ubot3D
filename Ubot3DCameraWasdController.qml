@@ -307,12 +307,17 @@ Item {
             if (useMouse) {
                 // Get the delta
                 var rotation = camera.rotation;
+                var mouseRotationDragSpeed = 6.28; // 2*Pi seems a good setting, by chance.
                 var delta = Qt.vector2d(lastPos.x - currentPos.x,
-                                        lastPos.y - currentPos.y);
+                                        lastPos.y - currentPos.y).times(isMouseDragInverted ? -mouseRotationDragSpeed : 1);
 
                 var origin = camera.position
                 // Use mouse translation delta to designate, how view center would move.
-                var pointSceneTo = camera.mapFromViewport(Qt.vector3d(currentPos.x/implicitWidth, currentPos.y/implicitHeight, 0))
+                var pointSceneTo = camera.mapFromViewport(Qt.vector3d(0.5+delta.x/implicitWidth, 0.5+delta.y/implicitHeight, 0))
+                camera.rotation = commands3D.getRotationFromDirection(pointSceneTo.minus(origin), Qt.vector3d(0,0,1))
+                lastPos = currentPos;
+                focus = true
+                return
 
                 var axisFrom = pointSceneFrom.minus(camera.position)
                 var axisTo = pointSceneTo.minus(camera.position)
@@ -323,8 +328,6 @@ Item {
                                                                    commands3D.getRotationFromAxes(axisFrom, axisTo)
                     var axis = commands3D.getRotationAxis(additionalRotation)
                     var angle = commands3D.getRotationAngle(additionalRotation)
-
-                    var mouseRotationDragSpeed = 2;
 
                     angle *= isMouseDragInverted ? 1.0 : mouseRotationDragSpeed
 

@@ -79,7 +79,6 @@ Window {
         }
     }
 
-
     View3D {
         id: view3d
         anchors.fill: parent
@@ -89,10 +88,6 @@ Window {
             console.log(" ### ComponentComplete")
             camera.lookAtModel()
         }
-
-//        RenderSettings {
-
-//        }
 
         Ubot3DCameraWasdController {
             id: controller
@@ -133,9 +128,9 @@ Window {
             ambientColor: Qt.rgba(0.2, 0.2, 0.2, 1.0)
         }
 
-        Node091_W_Aya_100K {
-            scale: Qt.vector3d(0.1, 0.1, 0.1)
-        }
+//        Node091_W_Aya_100K {
+//            scale: Qt.vector3d(0.1, 0.1, 0.1)
+//        }
 
         Model {
             scale: Qt.vector3d(100, 100, 100)
