@@ -1,4 +1,4 @@
-QT += 3dcore 3drender 3dinput 3dlogic 3dextras 3danimation quick quick3d
+QT += quick quick3d
 
 CONFIG += c++17
 

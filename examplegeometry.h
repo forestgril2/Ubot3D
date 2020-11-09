@@ -16,7 +16,6 @@ class ExampleTriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(float warp READ warp WRITE setWarp NOTIFY warpChanged)
 	Q_PROPERTY(QVector3D minBounds READ minBounds WRITE setMinBounds NOTIFY boundsChanged)
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
-	Q_PROPERTY(float warp READ warp WRITE setWarp NOTIFY warpChanged)
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
 	QML_NAMED_ELEMENT(ExampleTriangleGeometry)
 
@@ -31,6 +30,7 @@ public:
 	static Q_INVOKABLE QVector3D getRotationAxis(const QVector3D& from, const QVector3D& to);
 	static Q_INVOKABLE QVector3D getRotationAxis(const QQuaternion& rotation);
 	static Q_INVOKABLE float getRotationAngle(const QQuaternion& rotation);
+
 
 	QString getInputFile() const;
 	void setInputFile(const QString& url);

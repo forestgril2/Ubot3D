@@ -1,15 +1,11 @@
 //import QtQuick.Dialogs 1.3
 
 import Qt.labs.platform 1.1
-
-import Qt3D.Core 2.15
 import QtQuick3D.Helpers 1.15
 
 //import QtQuick.Scene3D 2.15
 
-import Qt3D.Render 2.15
-//import Qt3D.Input 2.15
-import Qt3D.Extras 2.15
+
 import QtQuick 2.15
 import QtQuick.Window 2.15
 //import QtQuick.Dialogs 1.2
@@ -156,14 +152,14 @@ Window {
                           triangleModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), pointModelRotationSlider.value) :
                           Qt.quaternion(0,0,0,0)
 
-            ObjectPicker {
-                id: picker
+//            ObjectPicker {
+//                id: picker
 
-                onClicked: {
-                    console.log("clicked")
-                }
+//                onClicked: {
+//                    console.log("clicked")
+//                }
 
-            }
+//            }
 //            source: "#Cube"
 //            source: "node091_W_Aya_100K_01.mesh"
 
