@@ -130,7 +130,7 @@ Window {
             }
             materials: [
                 DefaultMaterial {
-                    lineWidth: sliderLineWidth.value
+//                    lineWidth: sliderLineWidth.value
                 }
             ]
         }
@@ -139,7 +139,7 @@ Window {
             id: triangleModel
             property alias geometry: triangleModel.geometry
             property bool isPicked: false
-            objectName: "STL triangles"
+            objectName: "STL geometry"
             pickable: true
             rotation: commonRotationCheckBox.checked ?
                           triangleModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), pointModelRotationSlider.value) :
@@ -165,6 +165,7 @@ Window {
                     console.log(" model bounds min: " + triangleModel.geometry.minBounds)
                     console.log(" model bounds max: " + triangleModel.geometry.maxBounds)
                     console.log(" modelCenter : " + modelCenter)
+//                    console.log(" triangleModel.geometry. : " + triangleModel.bounds)
                 }
 
                 onModelLoaded: {
@@ -175,12 +176,12 @@ Window {
 
             materials: [
                 DefaultMaterial {
-                    Texture {
-                        id: baseColorMap
-                        source: "Ikona.png"
-                    }
+//                    Texture {
+//                        id: baseColorMap
+//                        source: "Ikona.png"
+//                    }
                     cullMode: DefaultMaterial.NoCulling
-                    diffuseMap: null //baseColorMap
+                    diffuseColor: triangleModel.geometry.isPicked ? "lightgreen" : "lightgrey"
                     specularAmount: 0.5
                 }
             ]
@@ -213,7 +214,20 @@ Window {
             controller.focus = true
         }
 
+        function getOriginAndRay(x,y) {
+            var origin = camera.position
+            var pointAtScreen = Qt.vector3d(x/view3d.width, y/view3d.height, 0)
+            var pointSceneTo = camera.mapFromViewport(pointAtScreen)
+            var ray = pointSceneTo.minus(origin).normalized()
+            return {origin, ray}
+        }
+
         onClicked: {
+            var originAndRay = getOriginAndRay(mouse.x, mouse.y)
+            triangleModel.geometry.getPick(originAndRay.origin, originAndRay.ray)
+//            console.log(" getOriginAndRay: " + originAndRay.origin + "," + originAndRay.ray)
+
+//            console.log(" triangleModel.bounds : " + triangleModel.bounds)
             // Get screen coordinates of the click
             pickPosition.text = "Screen Position: (" + mouse.x + ", " + mouse.y + ")"
             var result = view3d.pick(mouse.x, mouse.y);

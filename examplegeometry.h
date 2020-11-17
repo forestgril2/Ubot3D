@@ -16,6 +16,7 @@ class ExampleTriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(float warp READ warp WRITE setWarp NOTIFY warpChanged)
 	Q_PROPERTY(QVector3D minBounds READ minBounds WRITE setMinBounds NOTIFY boundsChanged)
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
+	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
 	QML_NAMED_ELEMENT(ExampleTriangleGeometry)
 
@@ -30,6 +31,15 @@ public:
 	static Q_INVOKABLE QVector3D getRotationAxis(const QVector3D& from, const QVector3D& to);
 	static Q_INVOKABLE QVector3D getRotationAxis(const QQuaternion& rotation);
 	static Q_INVOKABLE float getRotationAngle(const QQuaternion& rotation);
+
+
+	struct PickResult
+	{
+		bool isPick = false;
+		QVector3D pickPos;
+	};
+
+	Q_INVOKABLE PickResult getPick(const QVector3D& origin, const QVector3D& direction);
 
 
 	QString getInputFile() const;
@@ -54,6 +64,16 @@ public:
     QVector3D minBounds() const;
 	QVector3D maxBounds() const;
 
+	bool isPicked() const;
+	void setPicked(const bool isPicked)
+	{
+		if (_isPicked == isPicked)
+			return;
+
+		_isPicked = isPicked;
+		isPickedChanged();
+	}
+
 public slots:
     void setMinBounds(const QVector3D& minBounds);
 	void setMaxBounds(const QVector3D& maxBounds);
@@ -66,6 +86,7 @@ signals:
     void warpChanged();
 	void boundsChanged();
 	void modelLoaded();
+	void isPickedChanged();
 
 private:
     void updateData();
@@ -76,6 +97,8 @@ private:
     bool m_hasUV = false;
     float m_uvAdjust = 0.0f;
     float _warp = 0.0f;
+
+	bool _isPicked = false;
 
 	QString _inputFile = "C:/ProjectsData/stl_files/mandoriflelow.stl";
 };

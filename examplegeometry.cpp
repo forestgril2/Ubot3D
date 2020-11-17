@@ -147,6 +147,13 @@ float ExampleTriangleGeometry::getRotationAngle(const QQuaternion& rotation)
 	return angle;
 }
 
+ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVector3D& origin, const QVector3D& direction)
+{
+	setPicked(!_isPicked);
+
+	return PickResult();
+}
+
 QString ExampleTriangleGeometry::getInputFile() const
 {
 	return _inputFile;
@@ -246,6 +253,11 @@ QVector3D ExampleTriangleGeometry::minBounds() const
 QVector3D ExampleTriangleGeometry::maxBounds() const
 {
 	return QVector3D(maxBound.x, maxBound.y, maxBound.z);
+}
+
+bool ExampleTriangleGeometry::isPicked() const
+{
+	return _isPicked;
 }
 
 void ExampleTriangleGeometry::reloadSceneIfNecessary()
@@ -351,6 +363,8 @@ void ExampleTriangleGeometry::updateData()
                      m_hasNormals ? 6 * sizeof(float) : 3 * sizeof(float),
                      QQuick3DGeometry::Attribute::F32Type);
     }
+
+	geometryNodeDirty();
 }
 
 ExamplePointGeometry::ExamplePointGeometry()
