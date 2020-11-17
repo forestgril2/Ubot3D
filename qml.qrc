@@ -5,5 +5,6 @@
         <file>Ubot3DCameraWasdController.qml</file>
         <file>Ikona.png</file>
         <file>Node091_W_Aya_100K.qml</file>
+        <file>PointModel.qml</file>
     </qresource>
 </RCC>
