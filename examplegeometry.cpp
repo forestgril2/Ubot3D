@@ -176,10 +176,39 @@ ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVect
 
 	QSSGRenderRay::RayData rayData = QSSGRenderRay::createRayData(globalTransform, hitRay);
 
-//	QSSGMeshUtilities::Mesh* mesh;
-	QSSGByteView meshData;
-	QSSGMeshUtilities::Mesh* mesh = QSSGMeshUtilities::Mesh::initialize(QSSGMeshUtilities::MeshDataHeader::getCurrentFileVersion(), 0, meshData);
+	QSSGRef<QSSGMeshUtilities::QSSGMeshBuilder> meshBuilder = QSSGMeshUtilities::QSSGMeshBuilder::createMeshBuilder();
+	QSSGMeshUtilities::MeshData meshData;
+	QByteArray vertexBufferCopy;
+	QByteArray indexBufferCopy;
+
+	vertexBufferCopy.reserve(vertexBuffer().size());
+//	indexBufferCopy.reserve(indexBuffer().size());
+
+	meshData.m_vertexBuffer = meshData.m_vertexBuffer.replace(0, vertexBuffer().size(), vertexBuffer().constData());
+
+//	meshData.m_vertexBuffer = vertexBufferCopy;
+//	meshData.m_indexBuffer = indexBuffer();
+	qDebug() << " ### indexBuffer().size():" << indexBuffer().size();
+	meshData.m_stride = stride();
+	meshData.m_attributeCount = attributeCount();
+
+//	for (unsigned i = 0; i < meshData.m_attributeCount; ++i)
+//	{
+//		meshData.m_attributes[i].semantic = QSSGMeshUtilities::MeshData::Attribute::PositionSemantic;
+//		meshData.m_attributes[i].offset = 0;
+//		meshData.m_attributes[i].componentType = QSSGMeshUtilities::MeshData::Attribute::F32Type;
+//	}
+	QString error;
+	QSSGMeshUtilities::Mesh* mesh = meshBuilder->buildMesh(meshData, error, QSSGBounds3(minBounds(), maxBounds()));
+
+	qDebug() << " ### error:" << error;
+//	mesh->m_subsets = m_subsets;
+//	mesh->m_joints = m_joints;
+
 	QSSGMeshBVHBuilder meshBVHBuilder(mesh);
+	QSSGMeshBVH* bvh = meshBVHBuilder.buildTree();
+
+	qDebug() << " ### GOT HERE";
 
 
 	setPicked(!_isPicked);
@@ -385,17 +414,17 @@ void ExampleTriangleGeometry::updateData()
                  0,
                  QQuick3DGeometry::Attribute::F32Type);
 
-    if (m_hasNormals) {
-        addAttribute(QQuick3DGeometry::Attribute::NormalSemantic,
-                     3 * sizeof(float),
-                     QQuick3DGeometry::Attribute::F32Type);
-    }
+//    if (m_hasNormals) {
+//        addAttribute(QQuick3DGeometry::Attribute::NormalSemantic,
+//                     3 * sizeof(float),
+//                     QQuick3DGeometry::Attribute::F32Type);
+//    }
 
-    if (m_hasUV) {
-        addAttribute(QQuick3DGeometry::Attribute::TexCoordSemantic,
-                     m_hasNormals ? 6 * sizeof(float) : 3 * sizeof(float),
-                     QQuick3DGeometry::Attribute::F32Type);
-    }
+//    if (m_hasUV) {
+//        addAttribute(QQuick3DGeometry::Attribute::TexCoordSemantic,
+//                     m_hasNormals ? 6 * sizeof(float) : 3 * sizeof(float),
+//                     QQuick3DGeometry::Attribute::F32Type);
+//    }
 
 	geometryNodeDirty();
 }

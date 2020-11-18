@@ -8,6 +8,9 @@
 
 #include <qqml.h>
 
+#include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrenderray_p.h>
+#include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
+
 class ExampleTriangleGeometry : public QQuick3DGeometry
 {
     Q_OBJECT
@@ -103,6 +106,9 @@ private:
     float _warp = 0.0f;
 
 	bool _isPicked = false;
+
+	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
+	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
 	QString _inputFile = "C:/ProjectsData/stl_files/mandoriflelow.stl";
 };
