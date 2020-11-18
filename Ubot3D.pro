@@ -1,12 +1,16 @@
-QT += quick quick3d
+#QT += quick3d-private quick3druntimerender-private gui quick3dassetimport-private gui-private quick core quick3d quick3dutils-private qml core-private quick3dassetimport
+QT += quick3d qml
 
 CONFIG += c++17
+
+#QTPLUGIN += assetimporters
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
 # depend on your compiler). Refer to the documentation for the
 # deprecated API to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
+#DEFINES += QT_BUILD_QUICK3DASSETIMPORT_LIB
 
 # You can also make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -57,6 +61,7 @@ DEPENDPATH += $$PWD/../assimp-5.0.1/build/include
 
 INCLUDEPATH += D:\Projects\qt6-build-dev\qtbase\include\QtQuick3DUtils\6.0.0
 INCLUDEPATH += D:\Projects\qt6-build-dev\qtbase\include\QtGui\6.0.0
+INCLUDEPATH += D:\Projects\qt6-build-dev\qtbase\include\QtQuick3DAssetImport\6.0.0
 
 #QT += quick3dassetimport-private quick3dutils-private shadertools-private quick-private
 
