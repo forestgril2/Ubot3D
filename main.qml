@@ -224,7 +224,7 @@ Window {
 
         onClicked: {
             var originAndRay = getOriginAndRay(mouse.x, mouse.y)
-            triangleModel.geometry.getPick(originAndRay.origin, originAndRay.ray)
+            triangleModel.geometry.getPick(originAndRay.origin, originAndRay.ray, triangleModel.sceneTransform)
 //            console.log(" getOriginAndRay: " + originAndRay.origin + "," + originAndRay.ray)
 
 //            console.log(" triangleModel.bounds : " + triangleModel.bounds)

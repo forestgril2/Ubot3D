@@ -14,7 +14,16 @@
 #include <assimp/postprocess.h>
 #include <assimp/DefaultLogger.hpp>
 
-//#include "assimphelpers.h"
+//#include <D:\Projects\qt6-build-dev\qtbase\include\QtQuick3DUtils\6.0.0\QtQuick3DUtils\private\qssgbounds3_p.h>
+
+
+//#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrendernode_p.h>
+//#include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrendermesh_p.h>
+//#include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshutilities.cpp>
+#include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrenderray_p.h>
+//#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrendermodel_p.h>
+//#include <D:\Projects\qt6\qtquick3d\src\utils\qssgoption_p.h>
+//#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrenderlayer_p.h>
 
 static bool isAssimpReadDone = false;
 // Create an instance of the Importer class
@@ -26,6 +35,9 @@ static aiVector3D minFloatBound(FLT_MAX, FLT_MAX, FLT_MAX);
 
 static aiVector3D maxBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 static aiVector3D minBound(FLT_MAX, FLT_MAX, FLT_MAX);
+
+// To have QSG included
+QT_BEGIN_NAMESPACE
 
 void assimpErrorLogging(const std::string&& pError)
 {
@@ -147,8 +159,21 @@ float ExampleTriangleGeometry::getRotationAngle(const QQuaternion& rotation)
 	return angle;
 }
 
-ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVector3D& origin, const QVector3D& direction)
+ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVector3D& origin,
+																	 const QVector3D& direction,
+																	 const QMatrix4x4& globalTransform)
 {
+	QSSGRenderRay hitRay(origin, direction);
+
+	// From tst_picking.cpp: void picking::test_picking()
+//	QSSGRenderLayer dummyLayer;
+//	const QSSGRenderNode* node === ???;
+//	const QSSGRenderModel &model = static_cast<const QSSGRenderModel &>(node);
+//	const auto &globalTransform = model.globalTransform;
+
+	QSSGRenderRay::RayData rayData = QSSGRenderRay::createRayData(globalTransform, hitRay);
+
+
 	setPicked(!_isPicked);
 
 	return PickResult();
@@ -401,3 +426,6 @@ void ExamplePointGeometry::updateData()
                  0,
                  QQuick3DGeometry::Attribute::F32Type);
 }
+
+
+QT_END_NAMESPACE

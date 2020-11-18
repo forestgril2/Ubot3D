@@ -3,6 +3,7 @@
 
 #include <QQuick3DGeometry>
 #include <QVector3D>
+#include <QMatrix4x4>
 #include <QQuaternion>
 #include <qqml.h>
 
@@ -39,7 +40,9 @@ public:
 		QVector3D pickPos;
 	};
 
-	Q_INVOKABLE PickResult getPick(const QVector3D& origin, const QVector3D& direction);
+	Q_INVOKABLE PickResult getPick(const QVector3D& origin,
+								   const QVector3D& direction,
+								   const QMatrix4x4& globalTransform);
 
 
 	QString getInputFile() const;
