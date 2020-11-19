@@ -178,19 +178,27 @@ ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVect
 
 	QSSGRef<QSSGMeshUtilities::QSSGMeshBuilder> meshBuilder = QSSGMeshUtilities::QSSGMeshBuilder::createMeshBuilder();
 	QSSGMeshUtilities::MeshData meshData;
+
 	QByteArray vertexBufferCopy;
+	meshData.m_vertexBuffer.resize(vertexData().size());
+	memcpy(meshData.m_vertexBuffer.data(), vertexData().data(), vertexData().size());
+
 	QByteArray indexBufferCopy;
-
-	vertexBufferCopy.reserve(vertexBuffer().size());
-//	indexBufferCopy.reserve(indexBuffer().size());
-
-	meshData.m_vertexBuffer = meshData.m_vertexBuffer.replace(0, vertexBuffer().size(), vertexBuffer().constData());
+	meshData.m_indexBuffer.resize(indexData().size());
+	memcpy(meshData.m_indexBuffer.data(), indexData().data(), indexData().size());
 
 //	meshData.m_vertexBuffer = vertexBufferCopy;
 //	meshData.m_indexBuffer = indexBuffer();
-	qDebug() << " ### indexBuffer().size():" << indexBuffer().size();
+	qDebug() << " ### indexBuffer().size():" << indexData().size();
+	qDebug() << " ### vertexBuffer().size():" << vertexData().size();
+	qDebug() << " ### attributeCount():" << attributeCount();
+	qDebug() << " ### stride():" << stride();
 	meshData.m_stride = stride();
 	meshData.m_attributeCount = attributeCount();
+	// TODO: Hacking... do it properly.... if needed :)
+	meshData.m_attributes[1].semantic = QSSGMeshUtilities::MeshData::Attribute::IndexSemantic;
+	meshData.m_attributes[1].offset = 0;
+	meshData.m_attributes[1].componentType = QSSGMeshUtilities::MeshData::Attribute::U32Type;
 
 //	for (unsigned i = 0; i < meshData.m_attributeCount; ++i)
 //	{
@@ -201,15 +209,21 @@ ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVect
 	QString error;
 	QSSGMeshUtilities::Mesh* mesh = meshBuilder->buildMesh(meshData, error, QSSGBounds3(minBounds(), maxBounds()));
 
+//	// Return the current mesh.  This is only good for this function call, item may change or be
+//    // released
+//    // due to any further function calls.
+//    Mesh &getMesh() override
+
 	qDebug() << " ### error:" << error;
 //	mesh->m_subsets = m_subsets;
 //	mesh->m_joints = m_joints;
 
+	auto &outputMesh = meshBuilder->getMesh();
 	QSSGMeshBVHBuilder meshBVHBuilder(mesh);
 	QSSGMeshBVH* bvh = meshBVHBuilder.buildTree();
 
-	qDebug() << " ### GOT HERE";
 
+	qDebug() << " ### GOT HERE";
 
 	setPicked(!_isPicked);
 
@@ -352,8 +366,12 @@ void ExampleTriangleGeometry::updateData()
 	unsigned numMeshFaces = scene->mMeshes[0]->mNumFaces;
 
     QByteArray v;
-    v.resize(3 * numMeshFaces * stride);
-    float *p = reinterpret_cast<float *>(v.data());
+	v.resize(3 * numMeshFaces * stride);
+	float* p = reinterpret_cast<float*>(v.data());
+
+	QByteArray indices;
+	indices.resize(3 * numMeshFaces * sizeof(uint32_t));
+	uint32_t* pi = reinterpret_cast<uint32_t*>(indices.data());
 
     // a triangle, front face = counter-clockwise
 //    *p++ = -1.0f; *p++ = -1.0f; *p++ = 0.0f;
@@ -391,11 +409,12 @@ void ExampleTriangleGeometry::updateData()
 
 		const aiVector3D boundDiff = maxBound-minBound;
 
-		auto setTriangleVertex = [this, &p, &boundDiff](unsigned vertexIndex) {
+		auto setTriangleVertex = [this, &p, &pi, &boundDiff](unsigned vertexIndex) {
 			const aiVector3D vertex = scene->mMeshes[0]->mVertices[vertexIndex];
 			*p++ = vertex.x + _warp*boundDiff.x*sin(vertex.z/2);
 			*p++ = vertex.y;
 			*p++ = vertex.z;
+			*pi++ = vertexIndex;
 			updateBounds(p-3);
 		};
 
@@ -406,6 +425,7 @@ void ExampleTriangleGeometry::updateData()
 	setBounds({minBound.x, minBound.y, minBound.z}, {maxBound.x, maxBound.y,maxBound.z});
 
     setVertexData(v);
+	setIndexData(indices);
     setStride(stride);
 
     setPrimitiveType(QQuick3DGeometry::PrimitiveType::Triangles);
@@ -413,6 +433,10 @@ void ExampleTriangleGeometry::updateData()
     addAttribute(QQuick3DGeometry::Attribute::PositionSemantic,
                  0,
                  QQuick3DGeometry::Attribute::F32Type);
+
+	addAttribute(QQuick3DGeometry::Attribute::IndexSemantic,
+				 0,
+				 QQuick3DGeometry::Attribute::U32Type);
 
 //    if (m_hasNormals) {
 //        addAttribute(QQuick3DGeometry::Attribute::NormalSemantic,
