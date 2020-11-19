@@ -220,12 +220,15 @@ ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVect
 
 	auto &outputMesh = meshBuilder->getMesh();
 	QSSGMeshBVHBuilder meshBVHBuilder(mesh);
-	QSSGMeshBVH* bvh = meshBVHBuilder.buildTree();
+	static const QSSGMeshBVH* bvh = meshBVHBuilder.buildTree();
 
+	QVector<QSSGRenderRay::IntersectionResult> intersections =
+		QSSGRenderRay::intersectWithBVHTriangles(rayData, bvh->triangles, 0, bvh->triangles.size());
 
-	qDebug() << " ### GOT HERE";
-
-	setPicked(!_isPicked);
+	if (intersections.size() > 0)
+	{
+		setPicked(!_isPicked);
+	}
 
 	return PickResult();
 }
