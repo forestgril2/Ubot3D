@@ -5,12 +5,16 @@
 #include <QMatrix4x4>
 #include <QQuaternion>
 
+#include <assimp/vector3.h>
+
 #include <qqml.h>
 
 #include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrenderray_p.h>
 #include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 
-class ExampleTriangleGeometry : public QQuick3DGeometry
+using Real = float;
+
+class GCodeGeometry : public QQuick3DGeometry
 {
     Q_OBJECT
     Q_PROPERTY(bool normals READ normals WRITE setNormals NOTIFY normalsChanged)
@@ -22,10 +26,10 @@ class ExampleTriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
-	QML_NAMED_ELEMENT(ExampleTriangleGeometry)
+	QML_NAMED_ELEMENT(GCodeGeometry)
 
 public:
-    ExampleTriangleGeometry();
+	GCodeGeometry();
 
 	static Q_INVOKABLE QQuaternion getRotationFromDirection(const QVector3D& direction, const QVector3D& up);
 	static Q_INVOKABLE QQuaternion getRotationFromAxes(const QVector3D& axisFrom, const QVector3D& axisTo);
@@ -96,7 +100,8 @@ signals:
 
 private:
     void updateData();
-	void reloadSceneIfNecessary();
+
+	void setRectProfile(const Real width, const Real height);
 
     bool m_hasNormals = false;
     float m_normalXY = 0.0f;
@@ -106,19 +111,11 @@ private:
 
 	bool _isPicked = false;
 
+	std::vector<aiVector3D> _path;    /** Set of points along the center of the filament path. */
+	std::vector<aiVector3D> _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
+
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
-	QString _inputFile = "C:/ProjectsData/stl_files/mandoriflelow.stl";
-};
-
-class ExamplePointGeometry : public QQuick3DGeometry
-{
-    Q_OBJECT
-    QML_NAMED_ELEMENT(ExamplePointGeometry)
-//	QML_ELEMENT
-
-public:
-    ExamplePointGeometry();
-	Q_INVOKABLE void updateData();
+	QString _inputFile = "C:/ProjectsData/stl_files/CE3_mandoblasterlow.gcode";
 };

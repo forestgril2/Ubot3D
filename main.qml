@@ -5,6 +5,7 @@ import QtQuick.Window 2.15
 import QtQuick3D 1.15
 import QtQuick.Controls 2.15
 import customgeometry 1.0
+//import GCodeGeometry 1.0
 
 Window {
     id: window
@@ -30,6 +31,10 @@ Window {
 
     MainMenu {
 
+    }
+
+    GCodeGeometry {
+        id: gcodeGeometry
     }
 
     Row {

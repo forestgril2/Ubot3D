@@ -19,10 +19,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     main.cpp \
-    examplegeometry.cpp
+    examplegeometry.cpp \
+    GCodeGeometry.cpp \
+    $$PWD/../gpr/src/gcode_program.cpp \
+    $$PWD/../gpr/src/parser.cpp
+
 
 HEADERS += \
-        examplegeometry.h
+        examplegeometry.h \
+        GCodeGeometry.h \
+        $$PWD/../gpr/src/gcode_program.h \
+        $$PWD/../gpr/src/parser.h
 
 RESOURCES += \
     qml.qrc \
@@ -39,7 +46,18 @@ QML_DESIGNER_IMPORT_PATH =
 QML_IMPORT_NAME = customgeometry
 QML_IMPORT_MAJOR_VERSION = 1
 
+## Additional import path used to resolve QML modules just for Qt Quick Designer
+#QML_IMPORT_PATH =
+## Additional import path used to resolve QML modules just for Qt Quick Designer
+#QML_DESIGNER_IMPORT_PATH =
+
+#QML_IMPORT_NAME = GCodeGeometry
+#QML_IMPORT_MAJOR_VERSION = 1
+
 CONFIG += qmltypes
+
+# link against gcode parser library = doesn't work
+#LIBS += -L$$PWD/../gpr/build/msys-gpr.dll
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -51,9 +69,11 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/release/ -lassimp-vc142-mtd
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/Debug/ -lassimp-vc142-mtd
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/Debug/ -lassimp-vc142-mtd# -L$$PWD/../gpr/build/ -lmsys-gpr
 else:unix: LIBS += -L$$PWD/../assimp-5.0.1/build/code/ -lassimp-vc142-mtd
 
+INCLUDEPATH += $$PWD/../gpr/src
+DEPENDPATH += $$PWD/../gpr/src
 INCLUDEPATH += $$PWD/../assimp-5.0.1/include
 INCLUDEPATH += $$PWD/../assimp-5.0.1/build/include
 DEPENDPATH += $$PWD/../assimp-5.0.1/include

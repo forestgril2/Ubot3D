@@ -1,4 +1,4 @@
-#include "examplegeometry.h"
+#include "GCodeGeometry.h"
 
 #include <QRandomGenerator>
 #include <QVector3D>
@@ -6,30 +6,16 @@
 
 #include <cstdio>
 #include <iostream>
+#include <fstream>
 #include <string>
 
-// ASSIMP LIBRARY INCLUDE
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-#include <assimp/DefaultLogger.hpp>
 
-//#include <D:\Projects\qt6-build-dev\qtbase\include\QtQuick3DUtils\6.0.0\QtQuick3DUtils\private\qssgbounds3_p.h>
+#include <gcode_program.h>
+#include <parser.h>
 
 
-//#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrendernode_p.h>
-//#include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrendermesh_p.h>
-//#include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshutilities.cpp>
 #include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrenderray_p.h>
 #include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
-//#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrendermodel_p.h>
-//#include <D:\Projects\qt6\qtquick3d\src\utils\qssgoption_p.h>
-//#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrenderlayer_p.h>
-
-static bool isAssimpReadDone = false;
-// Create an instance of the Importer class
-static Assimp::Importer importer;
-static const aiScene* scene;
 
 static aiVector3D maxFloatBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 static aiVector3D minFloatBound(FLT_MAX, FLT_MAX, FLT_MAX);
@@ -40,19 +26,7 @@ static aiVector3D minBound(FLT_MAX, FLT_MAX, FLT_MAX);
 // To have QSG included
 QT_BEGIN_NAMESPACE
 
-void assimpErrorLogging(const std::string&& pError)
-{
-	std::cout << __FUNCTION__ << " : " << pError << std::endl;
-}
-
-static void assimpLogScene(const aiScene* scene)
-{
-	std::cout << "DoTheSceneProcessing(), numMeshes:                       " << scene->mNumMeshes << std::endl;
-	std::cout << "DoTheSceneProcessing(), scene->mMeshes[0]->mNumFaces:    " << scene->mMeshes[0]->mNumFaces << std::endl;
-	std::cout << "DoTheSceneProcessing(), scene->mMeshes[0]->mNumVertices: " << scene->mMeshes[0]->mNumVertices << std::endl;
-}
-
-void updateBounds(const float* vertexMatrixXCoord)
+static void updateBounds(const float* vertexMatrixXCoord)
 {
 	minBound.x = (std::min(minBound.x, *vertexMatrixXCoord));
 	maxBound.x = (std::max(maxBound.x, *vertexMatrixXCoord));
@@ -64,87 +38,65 @@ void updateBounds(const float* vertexMatrixXCoord)
 	maxBound.z = (std::max(maxBound.z, *vertexMatrixXCoord));
 }
 
-void logBounds()
+static void logBounds()
 {
 	std::cout << " ### aiScene minBound(x,y,z): [" << minBound.x << "," << minBound.y << "," << minBound.z << "]" << std::endl;
 	std::cout << " ### aiScene maxBound(x,y,z): [" << maxBound.x << "," << maxBound.y << "," << maxBound.z << "]" << std::endl;
 }
 
-static void assimpReadMeshBounds(const aiScene* scene, const unsigned meshIndex = 0u)
+
+static bool importGCodeFromFile(const std::string& file)
 {
-	const unsigned numMeshVertices = scene->mMeshes[meshIndex]->mNumVertices;
-	minBound = minFloatBound;
-	maxBound = maxFloatBound;
-	for (unsigned i = 0; i < numMeshVertices; ++i)
-	{
-		updateBounds(&(scene->mMeshes[meshIndex]->mVertices[i].x));
-	}
-	logBounds();
-}
+	std::ifstream t(file);
+	std::string file_contents((std::istreambuf_iterator<char>(t)),
+				  std::istreambuf_iterator<char>());
 
-bool importModelFromFile(const std::string& pFile)
-{
-	// And have it read the given file with some example postprocessing
-	// Usually - if speed is not the most important aspect for you - you'll
-	// probably to request more postprocessing than we do in this example.
-	scene = importer.ReadFile(pFile,
-							  aiProcess_CalcTangentSpace |
-							  aiProcess_Triangulate |
-//							  aiProcess_JoinIdenticalVertices |
-							  aiProcess_SortByPType);
-	// If the import failed, report it
-	if(!scene)
-	{
-		assimpErrorLogging(std::string(importer.GetErrorString()));
-		return false;
-	}
+	gpr::gcode_program p = gpr::parse_gcode(file_contents);
 
-	assimpReadMeshBounds(scene);
-	assimpLogScene(scene);
+	std::cout << p << std::endl;
 
-	isAssimpReadDone = true;
-	// We're done. Everything will be cleaned up by the importer destructor
 	return true;
 }
 
-ExampleTriangleGeometry::ExampleTriangleGeometry()
+GCodeGeometry::GCodeGeometry()
 {
+	importGCodeFromFile(_inputFile.toStdString());
 	updateData();
 }
 
-QQuaternion ExampleTriangleGeometry::getRotationFromDirection(const QVector3D& direction, const QVector3D& up)
+QQuaternion GCodeGeometry::getRotationFromDirection(const QVector3D& direction, const QVector3D& up)
 {
 	return QQuaternion::fromDirection(-direction, up);
 }
 
-QQuaternion ExampleTriangleGeometry::getRotationFromAxes(const QVector3D& axisFrom, const QVector3D& axisTo)
+QQuaternion GCodeGeometry::getRotationFromAxes(const QVector3D& axisFrom, const QVector3D& axisTo)
 {
 	QVector3D axis = getRotationAxis(axisFrom, axisTo);
 	float angle = getSmallRotationAngle(axisFrom, axisTo);
 	return getRotationFromAxisAndAngle(axis, angle);
 }
 
-QQuaternion ExampleTriangleGeometry::getRotationFromAxisAndAngle(const QVector3D& axis, const float angle)
+QQuaternion GCodeGeometry::getRotationFromAxisAndAngle(const QVector3D& axis, const float angle)
 {
 	return QQuaternion::fromAxisAndAngle(axis, angle);
 }
 
-QQuaternion ExampleTriangleGeometry::getRotationFromQuaternions(const QQuaternion& current, const QQuaternion& additional)
+QQuaternion GCodeGeometry::getRotationFromQuaternions(const QQuaternion& current, const QQuaternion& additional)
 {
 	return current*additional;
 }
 
-float ExampleTriangleGeometry::getSmallRotationAngle(const QVector3D& from, const QVector3D& to)
+float GCodeGeometry::getSmallRotationAngle(const QVector3D& from, const QVector3D& to)
 {
-	return 180.0/(float)M_PI*acos(QVector3D::dotProduct(from.normalized(), to.normalized()));
+	return 180.0f/(float)M_PI*acos(QVector3D::dotProduct(from.normalized(), to.normalized()));
 }
 
-QVector3D ExampleTriangleGeometry::getRotationAxis(const QVector3D& from, const QVector3D& to)
+QVector3D GCodeGeometry::getRotationAxis(const QVector3D& from, const QVector3D& to)
 {
 	return QVector3D::crossProduct(from, to).normalized();
 }
 
-QVector3D ExampleTriangleGeometry::getRotationAxis(const QQuaternion& rotation)
+QVector3D GCodeGeometry::getRotationAxis(const QQuaternion& rotation)
 {
 	float angle;
 	QVector3D vector;
@@ -152,7 +104,7 @@ QVector3D ExampleTriangleGeometry::getRotationAxis(const QQuaternion& rotation)
 	return vector;
 }
 
-float ExampleTriangleGeometry::getRotationAngle(const QQuaternion& rotation)
+float GCodeGeometry::getRotationAngle(const QQuaternion& rotation)
 {
 	float angle;
 	QVector3D vector;
@@ -160,9 +112,9 @@ float ExampleTriangleGeometry::getRotationAngle(const QQuaternion& rotation)
 	return angle;
 }
 
-ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVector3D& origin,
-																	 const QVector3D& direction,
-																	 const QMatrix4x4& globalTransform)
+GCodeGeometry::PickResult GCodeGeometry::getPick(const QVector3D& origin,
+												 const QVector3D& direction,
+												 const QMatrix4x4& globalTransform)
 {
 	QSSGRenderRay hitRay(origin, direction);
 
@@ -233,23 +185,22 @@ ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVect
 	return PickResult();
 }
 
-QString ExampleTriangleGeometry::getInputFile() const
+QString GCodeGeometry::getInputFile() const
 {
 	return _inputFile;
 }
 
-void ExampleTriangleGeometry::setInputFile(const QString& url)
+void GCodeGeometry::setInputFile(const QString& url)
 {
 	if (url == _inputFile)
 		return;
 
 	_inputFile = url;
-	isAssimpReadDone = false;
 	updateData();
 	update();
 }
 
-void ExampleTriangleGeometry::setNormals(bool enable)
+void GCodeGeometry::setNormals(bool enable)
 {
 	if (m_hasNormals == enable)
 		return;
@@ -260,7 +211,7 @@ void ExampleTriangleGeometry::setNormals(bool enable)
     update();
 }
 
-void ExampleTriangleGeometry::setNormalXY(float xy)
+void GCodeGeometry::setNormalXY(float xy)
 {
     if (m_normalXY == xy)
         return;
@@ -271,7 +222,7 @@ void ExampleTriangleGeometry::setNormalXY(float xy)
     update();
 }
 
-void ExampleTriangleGeometry::setUV(bool enable)
+void GCodeGeometry::setUV(bool enable)
 {
     if (m_hasUV == enable)
         return;
@@ -282,7 +233,7 @@ void ExampleTriangleGeometry::setUV(bool enable)
     update();
 }
 
-void ExampleTriangleGeometry::setUVAdjust(float f)
+void GCodeGeometry::setUVAdjust(float f)
 {
     if (m_uvAdjust == f)
         return;
@@ -293,7 +244,7 @@ void ExampleTriangleGeometry::setUVAdjust(float f)
     update();
 }
 
-void ExampleTriangleGeometry::setWarp(float warp)
+void GCodeGeometry::setWarp(float warp)
 {
 	if (qFuzzyCompare(_warp, warp))
 		return;
@@ -304,7 +255,7 @@ void ExampleTriangleGeometry::setWarp(float warp)
     update();
 }
 
-void ExampleTriangleGeometry::setBounds(const QVector3D& min, const QVector3D& max)
+void GCodeGeometry::setBounds(const QVector3D& min, const QVector3D& max)
 {
 	QQuick3DGeometry::setBounds(min, max);
 
@@ -314,47 +265,35 @@ void ExampleTriangleGeometry::setBounds(const QVector3D& min, const QVector3D& m
 	emit boundsChanged();
 }
 
-void ExampleTriangleGeometry::setMinBounds(const QVector3D& minBounds)
+void GCodeGeometry::setMinBounds(const QVector3D& minBounds)
 {
 	setBounds(minBounds, maxBounds());
 }
 
-void ExampleTriangleGeometry::setMaxBounds(const QVector3D& maxBounds)
+void GCodeGeometry::setMaxBounds(const QVector3D& maxBounds)
 {
 	setBounds(minBounds(), maxBounds);
 }
 
-QVector3D ExampleTriangleGeometry::minBounds() const
+QVector3D GCodeGeometry::minBounds() const
 {
 	return QVector3D(minBound.x, minBound.y, minBound.z);
 }
 
-QVector3D ExampleTriangleGeometry::maxBounds() const
+QVector3D GCodeGeometry::maxBounds() const
 {
 	return QVector3D(maxBound.x, maxBound.y, maxBound.z);
 }
 
-bool ExampleTriangleGeometry::isPicked() const
+bool GCodeGeometry::isPicked() const
 {
 	return _isPicked;
 }
 
-void ExampleTriangleGeometry::reloadSceneIfNecessary()
+void GCodeGeometry::updateData()
 {
-	if (!isAssimpReadDone)
-	{
-		if (!importModelFromFile(_inputFile.toStdString().c_str()))
-			return;
-
-		assimpLogScene(scene);
-		setBounds({minBound.x, minBound.y, minBound.z}, {maxBound.x, maxBound.y,maxBound.z});
-		emit modelLoaded();
-	}
-	clear();
-}
-void ExampleTriangleGeometry::updateData()
-{
-	reloadSceneIfNecessary();
+	setRectProfile(0.4, 0.2);
+//	setPath();
 
     int stride = 3 * sizeof(float);
     if (m_hasNormals)
@@ -366,7 +305,7 @@ void ExampleTriangleGeometry::updateData()
         stride += 2 * sizeof(float);
     }
 
-	unsigned numMeshFaces = scene->mMeshes[0]->mNumFaces;
+	unsigned numMeshFaces = 0;//scene->mMeshes[0]->mNumFaces;
 
     QByteArray v;
 	v.resize(3 * numMeshFaces * stride);
@@ -403,27 +342,23 @@ void ExampleTriangleGeometry::updateData()
 
 	for (unsigned i = 0; i < numMeshFaces; ++i)
 	{
-		const aiFace& face = scene->mMeshes[0]->mFaces[i];
+//		const aiFace& face = scene->mMeshes[0]->mFaces[i];
 
-		if (face.mNumIndices != 3)
-		{
-			std::cout << "#### WARNING! face.mNumIndices != 3, but " << face.mNumIndices << std::endl;
-		}
 
-		const aiVector3D boundDiff = maxBound-minBound;
+//		const aiVector3D boundDiff = maxBound-minBound;
 
-		auto setTriangleVertex = [this, &p, &pi, &boundDiff](unsigned vertexIndex) {
-			const aiVector3D vertex = scene->mMeshes[0]->mVertices[vertexIndex];
-			*p++ = vertex.x + _warp*boundDiff.x*sin(vertex.z/2);
-			*p++ = vertex.y;
-			*p++ = vertex.z;
-			*pi++ = vertexIndex;
-			updateBounds(p-3);
-		};
+//		auto setTriangleVertex = [this, &p, &pi, &boundDiff](unsigned vertexIndex) {
+//			const aiVector3D vertex;// = scene->mMeshes[0]->mVertices[vertexIndex];
+//			*p++ = vertex.x + _warp*boundDiff.x*sin(vertex.z/2);
+//			*p++ = vertex.y;
+//			*p++ = vertex.z;
+//			*pi++ = vertexIndex;
+//			updateBounds(p-3);
+//		};
 
-		setTriangleVertex(face.mIndices[0]);
-		setTriangleVertex(face.mIndices[1]);
-		setTriangleVertex(face.mIndices[2]);
+//		setTriangleVertex(face.mIndices[0]);
+//		setTriangleVertex(face.mIndices[1]);
+//		setTriangleVertex(face.mIndices[2]);
 	}
 	setBounds({minBound.x, minBound.y, minBound.z}, {maxBound.x, maxBound.y,maxBound.z});
 
@@ -456,40 +391,10 @@ void ExampleTriangleGeometry::updateData()
 	geometryNodeDirty();
 }
 
-ExamplePointGeometry::ExamplePointGeometry()
+void GCodeGeometry::setRectProfile(const Real width, const Real height)
 {
-    updateData();
-}
-
-void ExamplePointGeometry::updateData()
-{
-	clear();
-
-	unsigned numVertices = scene->mMeshes[0]->mNumVertices;
-
-    const int stride = 3 * sizeof(float);
-
-    QByteArray v;
-	v.resize(numVertices * stride);
-    float *p = reinterpret_cast<float *>(v.data());
-
-	for (unsigned i = 0; i < numVertices; ++i)
-	{
-		const aiVector3D& vertex = scene->mMeshes[0]->mVertices[i];
-		*p++ = vertex.x;
-		*p++ = vertex.y;
-		*p++ = vertex.z;
-    }
-
-    setVertexData(v);
-    setStride(stride);
-
-    setPrimitiveType(QQuick3DGeometry::PrimitiveType::Points);
-
-    addAttribute(QQuick3DGeometry::Attribute::PositionSemantic,
-                 0,
-                 QQuick3DGeometry::Attribute::F32Type);
-}
-
+	const aiVector3D start = {-width/Real(2.0), -height/Real(2.0), Real(0.0)};
+//	_profile = {start, start + aiVector3D{0.0, height, 0.0}, start + aiVector3D{width, height, 0.0}, start + aiVector3D{width, 0.0, 0.0}};
+};
 
 QT_END_NAMESPACE
