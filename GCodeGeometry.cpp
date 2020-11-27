@@ -45,22 +45,74 @@ static void logBounds()
 }
 
 
-static bool importGCodeFromFile(const std::string& file)
+static gpr::gcode_program importGCodeFromFile(const std::string& file)
 {
 	std::ifstream t(file);
 	std::string file_contents((std::istreambuf_iterator<char>(t)),
 				  std::istreambuf_iterator<char>());
 
-	gpr::gcode_program p = gpr::parse_gcode(file_contents);
-
-	std::cout << p << std::endl;
-
-	return true;
+	return gpr::parse_gcode(file_contents);
 }
 
 GCodeGeometry::GCodeGeometry()
 {
-	importGCodeFromFile(_inputFile.toStdString());
+	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
+
+	for (const gpr::block& block : gcodeProgram.blocks)
+	{
+		for (const gpr::chunk& chunk : block)
+		{
+			aiVector3D absoluteCoords;
+			aiVector3D relativeCoords;
+
+			aiVector3D& coords = absoluteCoords;
+
+			switch(chunk.tp())
+			{
+				case gpr::CHUNK_TYPE_COMMENT:
+				case gpr::CHUNK_TYPE_PERCENT:
+				case gpr::CHUNK_TYPE_WORD:
+					continue;
+
+				case gpr::CHUNK_TYPE_WORD_ADDRESS:
+					const gpr::addr& ad = chunk.get_address();
+					const char& word = chunk.get_word();
+
+					switch(word)
+					{
+						case 'G':
+							switch (ad.tp())
+							{
+								case gpr::ADDRESS_TYPE_INTEGER:
+									switch (ad.int_value())
+									{
+										case 90:
+											coords = absoluteCoords;
+											break;
+										case 91:
+											coords = relativeCoords;
+											break;
+										default:
+											break;
+									}
+									break;
+
+								case gpr::ADDRESS_TYPE_DOUBLE:
+									assert(false);
+									break;
+							}
+						case 'X':
+						case 'Y':
+						case 'Z':
+
+						break;
+					}
+				}
+			}
+
+		}
+	}
+
 	updateData();
 }
 
