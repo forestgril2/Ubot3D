@@ -13,6 +13,10 @@
 #include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 
 using Real = float;
+namespace gpr
+{
+	class gcode_program;
+};
 
 class GCodeGeometry : public QQuick3DGeometry
 {
@@ -101,6 +105,7 @@ signals:
 private:
     void updateData();
 
+	void createExtruderPaths(const gpr::gcode_program& gcodeProgram);
 	void setRectProfile(const Real width, const Real height);
 
     bool m_hasNormals = false;

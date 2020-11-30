@@ -141,70 +141,90 @@ Window {
         }
 
         Model {
-            id: triangleModel
-            property alias geometry: triangleModel.geometry
+            id: gcodeModel
+//            property alias geometry: triangleModel.geometry
             property bool isPicked: false
-            objectName: "STL geometry"
+            objectName: "gCode geometry"
             pickable: true
             rotation: commonRotationCheckBox.checked ?
                           triangleModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), pointModelRotationSlider.value) :
                           Qt.quaternion(0,0,0,0)
 
-//            ObjectPicker {
-//                id: picker
-
-//                onClicked: {
-//                    console.log("clicked")
-//                }
-
-//            }
-//            source: "#Cube"
-//            source: "node091_W_Aya_100K_01.mesh"
-
-
-            geometry: ExampleTriangleGeometry {
-                warp: triangleModelWarpSlider.value
-
-                onBoundsChanged: {
-                    var modelCenter = triangleModel.geometry.minBounds.plus(triangleModel.geometry.maxBounds).times(0.5)
-                    console.log(" model bounds min: " + triangleModel.geometry.minBounds)
-                    console.log(" model bounds max: " + triangleModel.geometry.maxBounds)
-                    console.log(" modelCenter : " + modelCenter)
-//                    console.log(" triangleModel.geometry. : " + triangleModel.bounds)
-                }
-
-                onModelLoaded: {
-                    console.log(" modelLoaded")
-                    camera.lookAtModel()
-                }
-            }
-
+            geometry: gcodeGeometry
             materials: [
                 DefaultMaterial {
-//                    Texture {
-//                        id: baseColorMap
-//                        source: "Ikona.png"
-//                    }
                     cullMode: DefaultMaterial.NoCulling
-                    diffuseColor: triangleModel.geometry.isPicked ? "lightgreen" : "lightgrey"
+                    diffuseColor: "red"
                     specularAmount: 0.5
                 }
             ]
-
-
-            function snapToFloor()
-            {
-                if (typeof snapToFloor.wasPressed == 'undefined') {
-                        snapToFloor.wasPressed = false;
-
-                    console.log("snapToFloor pressed")
-                    triangleModel.position = triangleModel.position.minus(Qt.vector3d(0,0, triangleModel.geometry.minBounds.z))
-                }
-                else {
-                    console.log("snapToFloor already pressed")
-                }
-            }
         }
+
+//        Model {
+//            id: triangleModel
+//            property alias geometry: triangleModel.geometry
+//            property bool isPicked: false
+//            objectName: "STL geometry"
+//            pickable: true
+//            rotation: commonRotationCheckBox.checked ?
+//                          triangleModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), pointModelRotationSlider.value) :
+//                          Qt.quaternion(0,0,0,0)
+
+////            ObjectPicker {
+////                id: picker
+
+////                onClicked: {
+////                    console.log("clicked")
+////                }
+
+////            }
+////            source: "#Cube"
+////            source: "node091_W_Aya_100K_01.mesh"
+
+
+//            geometry: ExampleTriangleGeometry {
+//                warp: triangleModelWarpSlider.value
+
+//                onBoundsChanged: {
+//                    var modelCenter = triangleModel.geometry.minBounds.plus(triangleModel.geometry.maxBounds).times(0.5)
+//                    console.log(" model bounds min: " + triangleModel.geometry.minBounds)
+//                    console.log(" model bounds max: " + triangleModel.geometry.maxBounds)
+//                    console.log(" modelCenter : " + modelCenter)
+////                    console.log(" triangleModel.geometry. : " + triangleModel.bounds)
+//                }
+
+//                onModelLoaded: {
+//                    console.log(" modelLoaded")
+//                    camera.lookAtModel()
+//                }
+//            }
+
+//            materials: [
+//                DefaultMaterial {
+////                    Texture {
+////                        id: baseColorMap
+////                        source: "Ikona.png"
+////                    }
+//                    cullMode: DefaultMaterial.NoCulling
+//                    diffuseColor: triangleModel.geometry.isPicked ? "lightgreen" : "lightgrey"
+//                    specularAmount: 0.5
+//                }
+//            ]
+
+
+//            function snapToFloor()
+//            {
+//                if (typeof snapToFloor.wasPressed == 'undefined') {
+//                        snapToFloor.wasPressed = false;
+
+//                    console.log("snapToFloor pressed")
+//                    triangleModel.position = triangleModel.position.minus(Qt.vector3d(0,0, triangleModel.geometry.minBounds.z))
+//                }
+//                else {
+//                    console.log("snapToFloor already pressed")
+//                }
+//            }
+//        }
 
 //        PointModel {
 //            id: pointModel

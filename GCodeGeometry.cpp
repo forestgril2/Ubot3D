@@ -12,6 +12,8 @@
 #include <gcode_program.h>
 #include <parser.h>
 
+#include <Eigen/Geometry>
+
 #include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrenderray_p.h>
 #include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 
@@ -54,10 +56,16 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 	return gpr::parse_gcode(file_contents);
 }
 
+
 GCodeGeometry::GCodeGeometry()
 {
 	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
+	createExtruderPaths(gcodeProgram);
+	updateData();
+}
 
+void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
+{
 	std::vector<Vector3f> subPath;
 
 	bool isExtruderOn = false;
@@ -186,7 +194,6 @@ GCodeGeometry::GCodeGeometry()
 	}
 
 	std::cout << " ### created extrusion paths: " << _extruderPaths.size() << std::endl;
-	updateData();
 }
 
 QQuaternion GCodeGeometry::getRotationFromDirection(const QVector3D& direction, const QVector3D& up)
@@ -241,6 +248,8 @@ GCodeGeometry::PickResult GCodeGeometry::getPick(const QVector3D& origin,
 												 const QVector3D& direction,
 												 const QMatrix4x4& globalTransform)
 {
+	return PickResult();
+
 	QSSGRenderRay hitRay(origin, direction);
 
 	qDebug() << " ### globalTransform: " << globalTransform;
@@ -430,64 +439,79 @@ void GCodeGeometry::updateData()
         stride += 2 * sizeof(float);
     }
 
-	unsigned numMeshFaces = 0;//scene->mMeshes[0]->mNumFaces;
+	size_t numPathPoints = 0;
+	for (const auto& path : _extruderPaths)
+	{
+		numPathPoints += path.size();
+	}
 
-    QByteArray v;
-	v.resize(3 * numMeshFaces * stride);
-	float* p = reinterpret_cast<float*>(v.data());
+	QByteArray vertices;
+	vertices.resize(4 * numPathPoints * stride);
+	float* p = reinterpret_cast<float*>(vertices.data());
 
 	QByteArray indices;
-	indices.resize(3 * numMeshFaces * sizeof(uint32_t));
+	indices.resize(6 * numPathPoints * sizeof(uint32_t));
 	uint32_t* pi = reinterpret_cast<uint32_t*>(indices.data());
 
-    // a triangle, front face = counter-clockwise
-//    *p++ = -1.0f; *p++ = -1.0f; *p++ = 0.0f;
-//    if (m_hasNormals) {
-//        *p++ = m_normalXY; *p++ = m_normalXY; *p++ = 1.0f;
-//    }
-//    if (m_hasUV) {
-//        *p++ = 0.0f + m_uvAdjust; *p++ = 0.0f + m_uvAdjust;
-//    }
-//    *p++ = 1.0f; *p++ = -1.0f; *p++ = 0.0f;
-//    if (m_hasNormals) {
-//        *p++ = m_normalXY; *p++ = m_normalXY; *p++ = 1.0f;
-//    }
-//    if (m_hasUV) {
-//        *p++ = 1.0f - m_uvAdjust; *p++ = 0.0f + m_uvAdjust;
-//    }
-//    *p++ = 0.0f; *p++ = 1.0f; *p++ = 0.0f;
-//    if (m_hasNormals) {
-//        *p++ = m_normalXY; *p++ = m_normalXY; *p++ = 1.0f;
-//    }
-//    if (m_hasUV) {
-//        *p++ = 1.0f - m_uvAdjust; *p++ = 1.0f - m_uvAdjust;
-//    }
+	const std::vector<Vector3f> squareVertices = {{-0.5, 0.0, 0.0},
+												  {-0.5, 1.0, 0.0},
+												  { 0.5, 1.0, 0.0},
+												  { 0.5, 0.0, 0.0}};
 
-// a triangle, front face = counter-clockwise
-
-	for (unsigned i = 0; i < numMeshFaces; ++i)
+	for (uint32_t j = 1; j < _extruderPaths.size(); ++j)
 	{
-//		const aiFace& face = scene->mMeshes[0]->mFaces[i];
+		const std::vector<Vector3f>& path = _extruderPaths[j];
 
+		//TODO: fails here.
+//		assert(!path.empty());
 
-//		const Vector3f boundDiff = maxBound-minBound;
+		if (path.empty())
+			continue;
 
-//		auto setTriangleVertex = [this, &p, &pi, &boundDiff](unsigned vertexIndex) {
-//			const Vector3f vertex;// = scene->mMeshes[0]->mVertices[vertexIndex];
-//			*p++ = vertex.x() + _warp*boundDiff.x*sin(vertex.z/2);
-//			*p++ = vertex.y();
-//			*p++ = vertex.z;
-//			*pi++ = vertexIndex;
-//			updateBounds(p-3);
-//		};
+		Vector3f prevPoint = path[0];
+		for (uint32_t i = 1; i < path.size(); ++i)
+		{
+			const Vector3f boundDiff = maxBound-minBound;
+			const Vector3f pathStep = path[i] - prevPoint;
+			const float length = pathStep.norm();
+			assert(length > FLT_MIN);
+			const Matrix3f scale{{_profile[0].x(), 0,      0},
+								 {0,               length, 0},
+								 {0,               0,      1}};
+			Eigen::Quaternionf rotation = Quaternionf::FromTwoVectors(Vector3f{0,1,0}, pathStep);
 
-//		setTriangleVertex(face.mIndices[0]);
-//		setTriangleVertex(face.mIndices[1]);
-//		setTriangleVertex(face.mIndices[2]);
+			std::vector<Vector3f> rectVertices = squareVertices;
+			std::for_each(rectVertices.begin(), rectVertices.end(), [&scale, &rotation, &prevPoint](Vector3f& v){
+				v = rotation*(scale*v) + prevPoint;
+			});
+
+			const uint32_t firstSquareIndex = (i-1)*4;
+			*pi++ = firstSquareIndex + 0;
+			*pi++ = firstSquareIndex + 1;
+			*pi++ = firstSquareIndex + 2;
+			*pi++ = firstSquareIndex + 0;
+			*pi++ = firstSquareIndex + 2;
+			*pi++ = firstSquareIndex + 3;
+
+			auto setTriangleVertex = [&p, &rectVertices](const unsigned index) {
+				const Vector3f vertex = rectVertices[index];
+				*p++ = vertex.x();
+				*p++ = vertex.y();
+				*p++ = vertex.z();
+				updateBounds(p-3);
+			};
+
+			setTriangleVertex(0);
+			setTriangleVertex(1);
+			setTriangleVertex(2);
+			setTriangleVertex(3);
+
+			prevPoint = path[i];
+		}
 	}
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
 
-    setVertexData(v);
+	setVertexData(vertices);
 	setIndexData(indices);
     setStride(stride);
 
@@ -519,7 +543,7 @@ void GCodeGeometry::updateData()
 void GCodeGeometry::setRectProfile(const Real width, const Real height)
 {
 	const Vector3f start = {-width/Real(2.0), -height/Real(2.0), Real(0.0)};
-//	_profile = {start, start + Vector3f{0.0, height, 0.0}, start + Vector3f{width, height, 0.0}, start + Vector3f{width, 0.0, 0.0}};
+	_profile = {start, start + Vector3f{0.0, height, 0.0}, start + Vector3f{width, height, 0.0}, start + Vector3f{width, 0.0, 0.0}};
 };
 
 QT_END_NAMESPACE
