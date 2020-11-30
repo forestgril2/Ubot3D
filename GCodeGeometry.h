@@ -5,7 +5,7 @@
 #include <QMatrix4x4>
 #include <QQuaternion>
 
-#include <assimp/vector3.h>
+#include <Eigen/Core>
 
 #include <qqml.h>
 
@@ -111,8 +111,8 @@ private:
 
 	bool _isPicked = false;
 
-	std::vector<aiVector3D> _path;    /** Set of points along the center of the filament path. */
-	std::vector<aiVector3D> _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
+	std::vector<std::vector<Eigen::Vector3f>> _extruderPaths; /** Vectors of points along the center of the filament path. */
+	std::vector<Eigen::Vector3f> _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
 
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;

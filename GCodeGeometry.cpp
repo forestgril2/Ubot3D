@@ -15,31 +15,33 @@
 #include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrenderray_p.h>
 #include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 
-static aiVector3D maxFloatBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-static aiVector3D minFloatBound(FLT_MAX, FLT_MAX, FLT_MAX);
+using namespace Eigen;
 
-static aiVector3D maxBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-static aiVector3D minBound(FLT_MAX, FLT_MAX, FLT_MAX);
+static Vector3f maxFloatBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+static Vector3f minFloatBound(FLT_MAX, FLT_MAX, FLT_MAX);
+
+static Vector3f maxBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+static Vector3f minBound(FLT_MAX, FLT_MAX, FLT_MAX);
 
 // To have QSG included
 QT_BEGIN_NAMESPACE
 
 static void updateBounds(const float* vertexMatrixXCoord)
 {
-	minBound.x = (std::min(minBound.x, *vertexMatrixXCoord));
-	maxBound.x = (std::max(maxBound.x, *vertexMatrixXCoord));
+	minBound.x() = (std::min(minBound.x(), *vertexMatrixXCoord));
+	maxBound.x() = (std::max(maxBound.x(), *vertexMatrixXCoord));
 	++vertexMatrixXCoord;
-	minBound.y = (std::min(minBound.y, *vertexMatrixXCoord));
-	maxBound.y = (std::max(maxBound.y, *vertexMatrixXCoord));
+	minBound.y() = (std::min(minBound.y(), *vertexMatrixXCoord));
+	maxBound.y() = (std::max(maxBound.y(), *vertexMatrixXCoord));
 	++vertexMatrixXCoord;
-	minBound.z = (std::min(minBound.z, *vertexMatrixXCoord));
-	maxBound.z = (std::max(maxBound.z, *vertexMatrixXCoord));
+	minBound.z() = (std::min(minBound.z(), *vertexMatrixXCoord));
+	maxBound.z() = (std::max(maxBound.z(), *vertexMatrixXCoord));
 }
 
 static void logBounds()
 {
-	std::cout << " ### aiScene minBound(x,y,z): [" << minBound.x << "," << minBound.y << "," << minBound.z << "]" << std::endl;
-	std::cout << " ### aiScene maxBound(x,y,z): [" << maxBound.x << "," << maxBound.y << "," << maxBound.z << "]" << std::endl;
+	std::cout << " ### aiScene minBound(x,y,z): [" << minBound.x() << "," << minBound.y() << "," << minBound.z() << "]" << std::endl;
+	std::cout << " ### aiScene maxBound(x,y,z): [" << maxBound.x() << "," << maxBound.y() << "," << maxBound.z() << "]" << std::endl;
 }
 
 
@@ -56,41 +58,54 @@ GCodeGeometry::GCodeGeometry()
 {
 	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
 
-	std::vector<std::vector<aiVector3D>> allPaths;
-	std::vector<aiVector3D> subPath;
+	std::vector<Vector3f> subPath;
 
-	for (const gpr::block& block : gcodeProgram.blocks)
+	bool isExtruderOn = false;
+	for (auto it = gcodeProgram.begin(); it != gcodeProgram.end(); ++it)
 	{
-		bool isExtruderOn = false;
-		auto setExtrusionOff = [&allPaths, &subPath, &isExtruderOn]()
+		const auto& block = *it;
+//		std::cout << block << std::endl;
+
+		auto setExtrusionOff = [this, &subPath, &isExtruderOn]()
 		{// If we are setting extrusion off, swap created path with the empty one in path vector.
-			if (!isExtruderOn || subPath.empty())
+			if (!isExtruderOn)
 				return;
-			std::swap(allPaths.back(), subPath);
+//			std::cout << " ####### setExtrusionOff : " << std::endl;
+			isExtruderOn = false;
+
+			if (subPath.empty())
+				return;
+
+//			std::cout << " #### adding subpath with: " << subPath.size() << std::endl;
+			std::swap(_extruderPaths.back(), subPath);
 		};
-		auto setExtrusionOn = [&allPaths, &isExtruderOn]()
+		auto setExtrusionOn = [this, &isExtruderOn]()
 		{// If we are setting extrusion on, add new (empty) path to path vector.
-			if (isExtruderOn || allPaths.back().empty())
+			if (isExtruderOn)
 				return;
-			allPaths.push_back(std::vector<aiVector3D>());
+//			std::cout << " ####### setExtrusionOn : " << std::endl;
+
+			isExtruderOn = true;
+//			std::cout << " ####### adding empty subpath with: " << std::endl;
+			_extruderPaths.push_back(std::vector<Vector3f>());
 		};
 
-		aiVector3D absoluteCoords;
+		bool areHeaderCoordsSet = false;
+		Vector3f absoluteCoords(0,0,0);
 
-		aiVector3D currentCoords;
-		aiVector3D relativeCoords;
+		Vector3f currentCoords;
+		Vector3f relativeCoords;
 
-		aiVector3D& newCoords = absoluteCoords;
+		Vector3f& newCoords = absoluteCoords;
 
 		for (const gpr::chunk& chunk : block)
 		{
-
 			switch(chunk.tp())
 			{
 				case gpr::CHUNK_TYPE_COMMENT:
 				case gpr::CHUNK_TYPE_PERCENT:
 				case gpr::CHUNK_TYPE_WORD:
-					continue;
+					break;
 
 				case gpr::CHUNK_TYPE_WORD_ADDRESS:
 				{
@@ -126,21 +141,29 @@ GCodeGeometry::GCodeGeometry()
 									assert(false);
 									break;
 							}
+							break;
 						case 'X':
-							newCoords.x = float(ad.double_value());
+							newCoords.x() = float(ad.double_value());
+							areHeaderCoordsSet = true;
 							break;
 						case 'Y':
-							newCoords.y = float(ad.double_value());
+							newCoords.y() = float(ad.double_value());
+							areHeaderCoordsSet = true;
 							break;
 						case 'Z':
-							newCoords.z = float(ad.double_value());
+							newCoords.z() = float(ad.double_value());
+							areHeaderCoordsSet = true;
 							break;
-						break;
+						default:
+							break;
 					}
 					break;
 				}
 			}
 		}
+
+		if (!areHeaderCoordsSet)
+			continue;
 
 		if (&newCoords != &absoluteCoords)
 		{
@@ -149,11 +172,20 @@ GCodeGeometry::GCodeGeometry()
 
 		if (isExtruderOn)
 		{
+//			std::cout << " ### pushing: " << absoluteCoords.x() << std::endl;
+//			std::cout << " ### pushing: " << absoluteCoords.y() << std::endl;
+//			std::cout << " ### pushing: " << absoluteCoords.z() << std::endl;
 			subPath.push_back(absoluteCoords);
 		}
 	}
 
-	std::cout << " ### created extrusion paths: " << allPaths.size() << std::endl;
+	if (!subPath.empty())
+	{
+//		std::cout << " #### adding subpath with: " << subPath.size() << std::endl;
+		std::swap(_extruderPaths.back(), subPath);
+	}
+
+	std::cout << " ### created extrusion paths: " << _extruderPaths.size() << std::endl;
 	updateData();
 }
 
@@ -370,12 +402,12 @@ void GCodeGeometry::setMaxBounds(const QVector3D& maxBounds)
 
 QVector3D GCodeGeometry::minBounds() const
 {
-	return QVector3D(minBound.x, minBound.y, minBound.z);
+	return QVector3D(minBound.x(), minBound.y(), minBound.z());
 }
 
 QVector3D GCodeGeometry::maxBounds() const
 {
-	return QVector3D(maxBound.x, maxBound.y, maxBound.z);
+	return QVector3D(maxBound.x(), maxBound.y(), maxBound.z());
 }
 
 bool GCodeGeometry::isPicked() const
@@ -438,12 +470,12 @@ void GCodeGeometry::updateData()
 //		const aiFace& face = scene->mMeshes[0]->mFaces[i];
 
 
-//		const aiVector3D boundDiff = maxBound-minBound;
+//		const Vector3f boundDiff = maxBound-minBound;
 
 //		auto setTriangleVertex = [this, &p, &pi, &boundDiff](unsigned vertexIndex) {
-//			const aiVector3D vertex;// = scene->mMeshes[0]->mVertices[vertexIndex];
-//			*p++ = vertex.x + _warp*boundDiff.x*sin(vertex.z/2);
-//			*p++ = vertex.y;
+//			const Vector3f vertex;// = scene->mMeshes[0]->mVertices[vertexIndex];
+//			*p++ = vertex.x() + _warp*boundDiff.x*sin(vertex.z/2);
+//			*p++ = vertex.y();
 //			*p++ = vertex.z;
 //			*pi++ = vertexIndex;
 //			updateBounds(p-3);
@@ -453,7 +485,7 @@ void GCodeGeometry::updateData()
 //		setTriangleVertex(face.mIndices[1]);
 //		setTriangleVertex(face.mIndices[2]);
 	}
-	setBounds({minBound.x, minBound.y, minBound.z}, {maxBound.x, maxBound.y,maxBound.z});
+	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
 
     setVertexData(v);
 	setIndexData(indices);
@@ -486,8 +518,8 @@ void GCodeGeometry::updateData()
 
 void GCodeGeometry::setRectProfile(const Real width, const Real height)
 {
-	const aiVector3D start = {-width/Real(2.0), -height/Real(2.0), Real(0.0)};
-//	_profile = {start, start + aiVector3D{0.0, height, 0.0}, start + aiVector3D{width, height, 0.0}, start + aiVector3D{width, 0.0, 0.0}};
+	const Vector3f start = {-width/Real(2.0), -height/Real(2.0), Real(0.0)};
+//	_profile = {start, start + Vector3f{0.0, height, 0.0}, start + Vector3f{width, height, 0.0}, start + Vector3f{width, 0.0, 0.0}};
 };
 
 QT_END_NAMESPACE

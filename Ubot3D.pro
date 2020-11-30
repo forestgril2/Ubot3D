@@ -1,7 +1,7 @@
 #QT += quick3d-private quick3druntimerender-private gui quick3dassetimport-private gui-private quick core quick3d quick3dutils-private qml core-private quick3dassetimport
 QT += quick3d qml
 
-CONFIG += c++17
+CONFIG += c++20
 
 #QTPLUGIN += assetimporters
 
@@ -72,6 +72,7 @@ win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/Debug/ -lassimp-vc142-mtd# -L$$PWD/../gpr/build/ -lmsys-gpr
 else:unix: LIBS += -L$$PWD/../assimp-5.0.1/build/code/ -lassimp-vc142-mtd
 
+INCLUDEPATH += $$PWD/../eigen
 INCLUDEPATH += $$PWD/../gpr/src
 DEPENDPATH += $$PWD/../gpr/src
 INCLUDEPATH += $$PWD/../assimp-5.0.1/include
