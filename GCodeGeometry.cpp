@@ -9,10 +9,8 @@
 #include <fstream>
 #include <string>
 
-
 #include <gcode_program.h>
 #include <parser.h>
-
 
 #include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrenderray_p.h>
 #include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
@@ -58,14 +56,34 @@ GCodeGeometry::GCodeGeometry()
 {
 	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
 
+	std::vector<std::vector<aiVector3D>> allPaths;
+	std::vector<aiVector3D> subPath;
+
 	for (const gpr::block& block : gcodeProgram.blocks)
 	{
+		bool isExtruderOn = false;
+		auto setExtrusionOff = [&allPaths, &subPath, &isExtruderOn]()
+		{// If we are setting extrusion off, swap created path with the empty one in path vector.
+			if (!isExtruderOn || subPath.empty())
+				return;
+			std::swap(allPaths.back(), subPath);
+		};
+		auto setExtrusionOn = [&allPaths, &isExtruderOn]()
+		{// If we are setting extrusion on, add new (empty) path to path vector.
+			if (isExtruderOn || allPaths.back().empty())
+				return;
+			allPaths.push_back(std::vector<aiVector3D>());
+		};
+
+		aiVector3D absoluteCoords;
+
+		aiVector3D currentCoords;
+		aiVector3D relativeCoords;
+
+		aiVector3D& newCoords = absoluteCoords;
+
 		for (const gpr::chunk& chunk : block)
 		{
-			aiVector3D absoluteCoords;
-			aiVector3D relativeCoords;
-
-			aiVector3D& coords = absoluteCoords;
 
 			switch(chunk.tp())
 			{
@@ -75,6 +93,7 @@ GCodeGeometry::GCodeGeometry()
 					continue;
 
 				case gpr::CHUNK_TYPE_WORD_ADDRESS:
+				{
 					const gpr::addr& ad = chunk.get_address();
 					const char& word = chunk.get_word();
 
@@ -86,11 +105,17 @@ GCodeGeometry::GCodeGeometry()
 								case gpr::ADDRESS_TYPE_INTEGER:
 									switch (ad.int_value())
 									{
+										case 0:
+											setExtrusionOff();
+											break;
+										case 1:
+											setExtrusionOn();
+											break;
 										case 90:
-											coords = absoluteCoords;
+											newCoords = absoluteCoords;
 											break;
 										case 91:
-											coords = relativeCoords;
+											newCoords = relativeCoords;
 											break;
 										default:
 											break;
@@ -102,17 +127,33 @@ GCodeGeometry::GCodeGeometry()
 									break;
 							}
 						case 'X':
+							newCoords.x = float(ad.double_value());
+							break;
 						case 'Y':
+							newCoords.y = float(ad.double_value());
+							break;
 						case 'Z':
-
+							newCoords.z = float(ad.double_value());
+							break;
 						break;
 					}
+					break;
 				}
 			}
+		}
 
+		if (&newCoords != &absoluteCoords)
+		{
+			absoluteCoords = (currentCoords += newCoords);
+		}
+
+		if (isExtruderOn)
+		{
+			subPath.push_back(absoluteCoords);
 		}
 	}
 
+	std::cout << " ### created extrusion paths: " << allPaths.size() << std::endl;
 	updateData();
 }
 
