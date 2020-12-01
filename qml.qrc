@@ -6,5 +6,9 @@
         <file>Ikona.png</file>
         <file>Node091_W_Aya_100K.qml</file>
         <file>PointModel.qml</file>
+        <file>StlModel.qml</file>
+        <file>PickDebugs.qml</file>
+        <file>ModelControls.qml</file>
+        <file>PickArea.qml</file>
     </qresource>
 </RCC>

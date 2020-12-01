@@ -56,7 +56,6 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 	return gpr::parse_gcode(file_contents);
 }
 
-
 GCodeGeometry::GCodeGeometry()
 {
 	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
@@ -180,9 +179,7 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 
 		if (isExtruderOn)
 		{
-//			std::cout << " ### pushing: " << absoluteCoords.x() << std::endl;
-//			std::cout << " ### pushing: " << absoluteCoords.y() << std::endl;
-//			std::cout << " ### pushing: " << absoluteCoords.z() << std::endl;
+//			std::cout << " ### pushing path point: [" << absoluteCoords.x() << "," << absoluteCoords.y() << "," << absoluteCoords.z() << "]" << std::endl;
 			subPath.push_back(absoluteCoords);
 		}
 	}
@@ -466,7 +463,10 @@ void GCodeGeometry::updateData()
 //		assert(!path.empty());
 
 		if (path.empty())
+		{
+//			std::cout << " ### empty path " << std::endl;
 			continue;
+		}
 
 		Vector3f prevPoint = path[0];
 		for (uint32_t i = 1; i < path.size(); ++i)
@@ -509,6 +509,9 @@ void GCodeGeometry::updateData()
 			prevPoint = path[i];
 		}
 	}
+	std::cout << " ######### bounds x : " << minBound.x() << "," << maxBound.x() << std::endl;
+	std::cout << " ######### bounds y : " << minBound.y() << "," << maxBound.y() << std::endl;
+	std::cout << " ######### bounds z : " << minBound.z() << "," << maxBound.z() << std::endl;
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
 
 	setVertexData(vertices);
@@ -538,6 +541,7 @@ void GCodeGeometry::updateData()
 //    }
 
 	geometryNodeDirty();
+	emit modelLoaded();
 }
 
 void GCodeGeometry::setRectProfile(const Real width, const Real height)

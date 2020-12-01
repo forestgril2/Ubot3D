@@ -8,9 +8,9 @@ Model {
     objectName: "STL points"
     pickable: true
     scale: Qt.vector3d(1, 1, 1)
-    rotation: triangleModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), pointModelRotationSlider.value)
+    rotation: triangleModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value)
     geometry: ExamplePointGeometry {}
-    position: Qt.vector3d(pointModelWarpSlider.value, 0, 0)
+    position: Qt.vector3d(modelControls.posXSlider.value, 0, 0)
     materials: [
         DefaultMaterial {
             lighting: DefaultMaterial.NoLighting
