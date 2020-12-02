@@ -122,5 +122,6 @@ private:
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
-	QString _inputFile = "C:/ProjectsData/stl_files/CE3_mandoblasterlow.gcode";
+//	QString _inputFile = "C:/Projects/Ubot3D/CE3_mandoblasterlow.gcode";
+	QString _inputFile = "C:/Projects/Ubot3D/TEST.gcode";
 };

@@ -66,14 +66,18 @@ GCodeGeometry::GCodeGeometry()
 void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 {
 	std::vector<Vector3f> subPath;
+	_extruderPaths.push_back(std::vector<Vector3f>());
 
 	bool isExtruderOn = false;
-	for (auto it = gcodeProgram.begin(); it != gcodeProgram.end(); ++it)
+	unsigned blockCount = 0;
+	const unsigned blockCountLimit = 500000;
+	for (auto it = gcodeProgram.begin(); it != gcodeProgram.end() && blockCount < blockCountLimit; ++it, ++blockCount)
 	{
 		const auto& block = *it;
-//		std::cout << block << std::endl;
+		const std::string blockString = block.to_string();
+//		std::cout << blockString << std::endl;
 
-		auto setExtrusionOff = [this, &subPath, &isExtruderOn]()
+		auto setExtrusionOff = [this, &blockString, &blockCount, &subPath, &isExtruderOn]()
 		{// If we are setting extrusion off, swap created path with the empty one in path vector.
 			if (!isExtruderOn)
 				return;
@@ -85,25 +89,24 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 
 //			std::cout << " #### adding subpath with: " << subPath.size() << std::endl;
 			std::swap(_extruderPaths.back(), subPath);
+			_extruderPaths.push_back(std::vector<Vector3f>());
 		};
-		auto setExtrusionOn = [this, &isExtruderOn]()
+		auto setExtrusionOn = [&isExtruderOn]()
 		{// If we are setting extrusion on, add new (empty) path to path vector.
 			if (isExtruderOn)
 				return;
 //			std::cout << " ####### setExtrusionOn : " << std::endl;
-
 			isExtruderOn = true;
 //			std::cout << " ####### adding empty subpath with: " << std::endl;
-			_extruderPaths.push_back(std::vector<Vector3f>());
 		};
 
-		bool areHeaderCoordsSet = false;
+		Vector3i coordsSet(0,0,0);
 		Vector3f absoluteCoords(0,0,0);
 
-		Vector3f currentCoords;
-		Vector3f relativeCoords;
+		Vector3f currentCoords(0,0,0);
+		Vector3f relativeCoords(0,0,0);
 
-		Vector3f& newCoords = absoluteCoords;
+		Vector3f* newCoordsPtr = &absoluteCoords;
 
 		for (const gpr::chunk& chunk : block)
 		{
@@ -134,10 +137,10 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 											setExtrusionOn();
 											break;
 										case 90:
-											newCoords = absoluteCoords;
+											newCoordsPtr = &absoluteCoords;
 											break;
 										case 91:
-											newCoords = relativeCoords;
+											newCoordsPtr = &relativeCoords;
 											break;
 										default:
 											break;
@@ -150,16 +153,16 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 							}
 							break;
 						case 'X':
-							newCoords.x() = float(ad.double_value());
-							areHeaderCoordsSet = true;
+							newCoordsPtr->x() = float(ad.double_value());
+							coordsSet.x() = true;
 							break;
 						case 'Y':
-							newCoords.y() = float(ad.double_value());
-							areHeaderCoordsSet = true;
+							newCoordsPtr->y() = float(ad.double_value());
+							coordsSet.y() = true;
 							break;
 						case 'Z':
-							newCoords.z() = float(ad.double_value());
-							areHeaderCoordsSet = true;
+							newCoordsPtr->z() = float(ad.double_value());
+							coordsSet.z() = true;
 							break;
 						default:
 							break;
@@ -169,12 +172,24 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 			}
 		}
 
-		if (!areHeaderCoordsSet)
+		if (coordsSet.isZero())
 			continue;
 
-		if (&newCoords != &absoluteCoords)
+		for (unsigned short i = 0; i < coordsSet.size(); ++i)
+		{// If this coord is not set in this block, use the most recent.
+			if (coordsSet[i] != 0)
+				continue;
+			(*newCoordsPtr)[i] = currentCoords[i];
+		}
+
+		if (newCoordsPtr != &absoluteCoords)
 		{
-			absoluteCoords = (currentCoords += newCoords);
+			currentCoords += *newCoordsPtr;
+			absoluteCoords = currentCoords;
+		}
+		else
+		{
+			currentCoords = absoluteCoords;
 		}
 
 		if (isExtruderOn)
@@ -441,6 +456,7 @@ void GCodeGeometry::updateData()
 	{
 		numPathPoints += path.size();
 	}
+	std::cout << " ### GCodeGeometry::updateData() numPathPoints=" << numPathPoints << std::endl;
 
 	QByteArray vertices;
 	vertices.resize(4 * numPathPoints * stride);
@@ -455,7 +471,7 @@ void GCodeGeometry::updateData()
 												  { 0.5, 1.0, 0.0},
 												  { 0.5, 0.0, 0.0}};
 
-	for (uint32_t j = 1; j < _extruderPaths.size(); ++j)
+	for (uint32_t j = 0; j < _extruderPaths.size(); ++j)
 	{
 		const std::vector<Vector3f>& path = _extruderPaths[j];
 

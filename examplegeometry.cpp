@@ -164,9 +164,11 @@ ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVect
 																	 const QVector3D& direction,
 																	 const QMatrix4x4& globalTransform)
 {
+	return PickResult();
+
 	QSSGRenderRay hitRay(origin, direction);
 
-	qDebug() << " ### globalTransform: " << globalTransform;
+//	qDebug() << " ### globalTransform: " << globalTransform;
 
 	// From tst_picking.cpp: void picking::test_picking()
 //	QSSGRenderLayer dummyLayer;
@@ -189,10 +191,10 @@ ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVect
 
 //	meshData.m_vertexBuffer = vertexBufferCopy;
 //	meshData.m_indexBuffer = indexBuffer();
-	qDebug() << " ### indexBuffer().size():" << indexData().size();
-	qDebug() << " ### vertexBuffer().size():" << vertexData().size();
-	qDebug() << " ### attributeCount():" << attributeCount();
-	qDebug() << " ### stride():" << stride();
+//	qDebug() << " ### indexBuffer().size():" << indexData().size();
+//	qDebug() << " ### vertexBuffer().size():" << vertexData().size();
+//	qDebug() << " ### attributeCount():" << attributeCount();
+//	qDebug() << " ### stride():" << stride();
 	meshData.m_stride = stride();
 	meshData.m_attributeCount = attributeCount();
 	// TODO: Hacking... do it properly.... if needed :)
@@ -214,7 +216,10 @@ ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVect
 //    // due to any further function calls.
 //    Mesh &getMesh() override
 
-	qDebug() << " ### error:" << error;
+	if (!error.isEmpty())
+	{
+		qDebug() << " ### error:" << error;
+	}
 //	mesh->m_subsets = m_subsets;
 //	mesh->m_joints = m_joints;
 

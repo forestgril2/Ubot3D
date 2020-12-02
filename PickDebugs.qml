@@ -3,6 +3,11 @@ import QtQuick.Controls 2.15
 
 Row {
     property alias pickPosition: pickPosition
+    property alias pickName: pickName
+    property alias scenePosition: scenePosition
+    property alias uvPosition: uvPosition
+    property alias distance: distance
+
     anchors.top: parent.top
     anchors.horizontalCenter: parent.horizontalCenter
     spacing: 20

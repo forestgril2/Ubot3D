@@ -26,6 +26,10 @@ Row {
         from: -15
         to: 15
         width: 50
+
+        onMoved: {
+            controller.focus = true
+        }
     }
 
     Slider {
@@ -61,8 +65,9 @@ Row {
 
         CheckBox {
             id: mouseInvertCheckBox
-            text: qsTr("Invert mouse drag")
-            checkState: Qt.Unchecked
+            text: qsTr("
+            Invert mouse drag")
+            checkState: Qt.Checked
         }
     }
 }

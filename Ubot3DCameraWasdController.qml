@@ -172,29 +172,36 @@ Item {
         switch (event.key) {
         case Qt.Key_W:
         case Qt.Key_Up:
+            focus = true
             forwardPressed();
             break;
         case Qt.Key_S:
         case Qt.Key_Down:
+            focus = true
             backPressed();
             break;
         case Qt.Key_A:
         case Qt.Key_Left:
+            focus = true
             leftPressed();
             break;
         case Qt.Key_D:
         case Qt.Key_Right:
+            focus = true
             rightPressed();
             break;
         case Qt.Key_R:
         case Qt.Key_PageUp:
+            focus = true
             upPressed();
             break;
         case Qt.Key_F:
         case Qt.Key_PageDown:
+            focus = true
             downPressed();
             break;
         case Qt.Key_Shift:
+            focus = true
             shiftPressed();
             break;
         }

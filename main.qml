@@ -68,11 +68,10 @@ Window {
             function lookAtModel(model)
             {
                 var modelCenter = getModelCenter(model)
-                console.log(" ### modelCenter: " + modelCenter);
+                console.log(" ### lookAtModel: " + model.objectName + ", modelCenter: " + modelCenter);
                 var direction = modelCenter.minus(camera.position)
                 var upDirection = Qt.vector3d(0,0,1)
                 var lookAtModelCenterRotation = model.geometry.getRotationFromDirection(direction, upDirection)
-                console.log("camera.rotation: " + lookAtModelCenterRotation);
                 camera.rotation = lookAtModelCenterRotation
             }
         }
@@ -110,7 +109,7 @@ Window {
             objectName: "gCode geometry"
             pickable: true
             rotation: modelControls.commonRotationCheckBox.checked ?
-                          stlModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), pointModelRotationSlider.value) :
+                          stlModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
                           Qt.quaternion(0,0,0,0)
 
             geometry: GCodeGeometry {
@@ -131,15 +130,16 @@ Window {
             ]
         }
 
-
         StlModel {
             id: stlModel
+        }
+
+        PickArea {
+
         }
     }
 
 
-    PickArea {
-    }
 
     ModelControls {
         id: modelControls
