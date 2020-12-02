@@ -69,9 +69,10 @@ Window {
             {
                 var modelCenter = getModelCenter(model)
                 console.log(" ### lookAtModel: " + model.objectName + ", modelCenter: " + modelCenter);
+                console.log(" ### " + gcodeModel.objectName + " modelLoaded with paths: " + gcodeGeometry.numSubpaths + ", max points in subpath: " + gcodeGeometry.numPointsInSubpath)
                 var direction = modelCenter.minus(camera.position)
                 var upDirection = Qt.vector3d(0,0,1)
-                var lookAtModelCenterRotation = model.geometry.getRotationFromDirection(direction, upDirection)
+                var lookAtModelCenterRotation = stlModel.geometry.getRotationFromDirection(direction, upDirection)
                 camera.rotation = lookAtModelCenterRotation
             }
         }
@@ -116,7 +117,6 @@ Window {
                 id: gcodeGeometry
 
                 onModelLoaded: {
-                    console.log(" ### " + gcodeModel.objectName + " modelLoaded")
                     camera.lookAtModel(gcodeModel)
                     view3d.gcodeModelCenter = getModelCenter(gcodeModel)
                 }

@@ -8,14 +8,13 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <algorithm>
 
 #include <gcode_program.h>
 #include <parser.h>
 
 #include <Eigen/Geometry>
 
-#include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrenderray_p.h>
-#include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 
 using namespace Eigen;
 
@@ -68,6 +67,8 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 	std::vector<Vector3f> subPath;
 	_extruderPaths.push_back(std::vector<Vector3f>());
 
+	unsigned maxPointsInSubPath = 0;
+
 	bool isExtruderOn = false;
 	unsigned blockCount = 0;
 	const unsigned blockCountLimit = 500000;
@@ -77,7 +78,7 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 		const std::string blockString = block.to_string();
 //		std::cout << blockString << std::endl;
 
-		auto setExtrusionOff = [this, &blockString, &blockCount, &subPath, &isExtruderOn]()
+		auto setExtrusionOff = [this, &maxPointsInSubPath, &blockString, &blockCount, &subPath, &isExtruderOn]()
 		{// If we are setting extrusion off, swap created path with the empty one in path vector.
 			if (!isExtruderOn)
 				return;
@@ -88,6 +89,7 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 				return;
 
 //			std::cout << " #### adding subpath with: " << subPath.size() << std::endl;
+			maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPath.size());
 			std::swap(_extruderPaths.back(), subPath);
 			_extruderPaths.push_back(std::vector<Vector3f>());
 		};
@@ -205,130 +207,8 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 		std::swap(_extruderPaths.back(), subPath);
 	}
 
-	std::cout << " ### created extrusion paths: " << _extruderPaths.size() << std::endl;
-}
-
-QQuaternion GCodeGeometry::getRotationFromDirection(const QVector3D& direction, const QVector3D& up)
-{
-	return QQuaternion::fromDirection(-direction, up);
-}
-
-QQuaternion GCodeGeometry::getRotationFromAxes(const QVector3D& axisFrom, const QVector3D& axisTo)
-{
-	QVector3D axis = getRotationAxis(axisFrom, axisTo);
-	float angle = getSmallRotationAngle(axisFrom, axisTo);
-	return getRotationFromAxisAndAngle(axis, angle);
-}
-
-QQuaternion GCodeGeometry::getRotationFromAxisAndAngle(const QVector3D& axis, const float angle)
-{
-	return QQuaternion::fromAxisAndAngle(axis, angle);
-}
-
-QQuaternion GCodeGeometry::getRotationFromQuaternions(const QQuaternion& current, const QQuaternion& additional)
-{
-	return current*additional;
-}
-
-float GCodeGeometry::getSmallRotationAngle(const QVector3D& from, const QVector3D& to)
-{
-	return 180.0f/(float)M_PI*acos(QVector3D::dotProduct(from.normalized(), to.normalized()));
-}
-
-QVector3D GCodeGeometry::getRotationAxis(const QVector3D& from, const QVector3D& to)
-{
-	return QVector3D::crossProduct(from, to).normalized();
-}
-
-QVector3D GCodeGeometry::getRotationAxis(const QQuaternion& rotation)
-{
-	float angle;
-	QVector3D vector;
-	rotation.getAxisAndAngle(&vector, &angle);
-	return vector;
-}
-
-float GCodeGeometry::getRotationAngle(const QQuaternion& rotation)
-{
-	float angle;
-	QVector3D vector;
-	rotation.getAxisAndAngle(&vector, &angle);
-	return angle;
-}
-
-GCodeGeometry::PickResult GCodeGeometry::getPick(const QVector3D& origin,
-												 const QVector3D& direction,
-												 const QMatrix4x4& globalTransform)
-{
-	return PickResult();
-
-	QSSGRenderRay hitRay(origin, direction);
-
-	qDebug() << " ### globalTransform: " << globalTransform;
-
-	// From tst_picking.cpp: void picking::test_picking()
-//	QSSGRenderLayer dummyLayer;
-//	const QSSGRenderNode* node === ???;
-//	const QSSGRenderModel &model = static_cast<const QSSGRenderModel &>(node);
-//	const auto &globalTransform = model.globalTransform;
-
-	QSSGRenderRay::RayData rayData = QSSGRenderRay::createRayData(globalTransform, hitRay);
-
-	QSSGRef<QSSGMeshUtilities::QSSGMeshBuilder> meshBuilder = QSSGMeshUtilities::QSSGMeshBuilder::createMeshBuilder();
-	QSSGMeshUtilities::MeshData meshData;
-
-	QByteArray vertexBufferCopy;
-	meshData.m_vertexBuffer.resize(vertexData().size());
-	memcpy(meshData.m_vertexBuffer.data(), vertexData().data(), vertexData().size());
-
-	QByteArray indexBufferCopy;
-	meshData.m_indexBuffer.resize(indexData().size());
-	memcpy(meshData.m_indexBuffer.data(), indexData().data(), indexData().size());
-
-//	meshData.m_vertexBuffer = vertexBufferCopy;
-//	meshData.m_indexBuffer = indexBuffer();
-	qDebug() << " ### indexBuffer().size():" << indexData().size();
-	qDebug() << " ### vertexBuffer().size():" << vertexData().size();
-	qDebug() << " ### attributeCount():" << attributeCount();
-	qDebug() << " ### stride():" << stride();
-	meshData.m_stride = stride();
-	meshData.m_attributeCount = attributeCount();
-	// TODO: Hacking... do it properly.... if needed :)
-	meshData.m_attributes[1].semantic = QSSGMeshUtilities::MeshData::Attribute::IndexSemantic;
-	meshData.m_attributes[1].offset = 0;
-	meshData.m_attributes[1].componentType = QSSGMeshUtilities::MeshData::Attribute::U32Type;
-
-//	for (unsigned i = 0; i < meshData.m_attributeCount; ++i)
-//	{
-//		meshData.m_attributes[i].semantic = QSSGMeshUtilities::MeshData::Attribute::PositionSemantic;
-//		meshData.m_attributes[i].offset = 0;
-//		meshData.m_attributes[i].componentType = QSSGMeshUtilities::MeshData::Attribute::F32Type;
-//	}
-	QString error;
-	QSSGMeshUtilities::Mesh* mesh = meshBuilder->buildMesh(meshData, error, QSSGBounds3(minBounds(), maxBounds()));
-
-//	// Return the current mesh.  This is only good for this function call, item may change or be
-//    // released
-//    // due to any further function calls.
-//    Mesh &getMesh() override
-
-	qDebug() << " ### error:" << error;
-//	mesh->m_subsets = m_subsets;
-//	mesh->m_joints = m_joints;
-
-	auto &outputMesh = meshBuilder->getMesh();
-	QSSGMeshBVHBuilder meshBVHBuilder(mesh);
-	static const QSSGMeshBVH* bvh = meshBVHBuilder.buildTree();
-
-	QVector<QSSGRenderRay::IntersectionResult> intersections =
-		QSSGRenderRay::intersectWithBVHTriangles(rayData, bvh->triangles, 0, bvh->triangles.size());
-
-	if (intersections.size() > 0)
-	{
-		setPicked(!_isPicked);
-	}
-
-	return PickResult();
+	setNumPointsInSubpath(maxPointsInSubPath);
+	setNumSubpaths(_extruderPaths.size());
 }
 
 QString GCodeGeometry::getInputFile() const
@@ -346,6 +226,8 @@ void GCodeGeometry::setInputFile(const QString& url)
 	update();
 }
 
+bool GCodeGeometry::normals() const { return m_hasNormals; }
+
 void GCodeGeometry::setNormals(bool enable)
 {
 	if (m_hasNormals == enable)
@@ -357,9 +239,11 @@ void GCodeGeometry::setNormals(bool enable)
     update();
 }
 
+float GCodeGeometry::normalXY() const { return m_normalXY; }
+
 void GCodeGeometry::setNormalXY(float xy)
 {
-    if (m_normalXY == xy)
+	if (m_normalXY == xy)
         return;
 
     m_normalXY = xy;
@@ -368,9 +252,11 @@ void GCodeGeometry::setNormalXY(float xy)
     update();
 }
 
+bool GCodeGeometry::uv() const { return m_hasUV; }
+
 void GCodeGeometry::setUV(bool enable)
 {
-    if (m_hasUV == enable)
+	if (m_hasUV == enable)
         return;
 
     m_hasUV = enable;
@@ -379,25 +265,16 @@ void GCodeGeometry::setUV(bool enable)
     update();
 }
 
+float GCodeGeometry::uvAdjust() const { return m_uvAdjust; }
+
 void GCodeGeometry::setUVAdjust(float f)
 {
-    if (m_uvAdjust == f)
+	if (m_uvAdjust == f)
         return;
 
     m_uvAdjust = f;
     emit uvAdjustChanged();
     updateData();
-    update();
-}
-
-void GCodeGeometry::setWarp(float warp)
-{
-	if (qFuzzyCompare(_warp, warp))
-		return;
-
-	_warp = warp;
-	emit warpChanged();
-	updateData();
     update();
 }
 
@@ -436,15 +313,54 @@ bool GCodeGeometry::isPicked() const
 	return _isPicked;
 }
 
+void GCodeGeometry::setPicked(const bool isPicked)
+{
+	if (_isPicked == isPicked)
+		return;
+
+	_isPicked = isPicked;
+	isPickedChanged();
+}
+
+void GCodeGeometry::setNumSubpaths(const unsigned num)
+{
+	if (_numSubpaths == num)
+		return;
+
+	_numSubpaths = num;
+
+	emit numSubpathsChanged();
+}
+
+unsigned GCodeGeometry::getNumSubpaths() const
+{
+	return _numSubpaths;
+}
+
+void GCodeGeometry::setNumPointsInSubpath(const unsigned num)
+{
+	if (_numPointsInSubpath == num)
+		return;
+
+	_numPointsInSubpath = num;
+
+	emit numPointsInSubpathChanged();
+}
+
+unsigned GCodeGeometry::getNumPointsInSubpath() const
+{
+	return _numPointsInSubpath;
+}
+
 void GCodeGeometry::updateData()
 {
 	setRectProfile(0.4, 0.2);
-//	setPath();
+	//	setPath();
 
-    int stride = 3 * sizeof(float);
-    if (m_hasNormals)
-    {
-        stride += 3 * sizeof(float);
+	int stride = 3 * sizeof(float);
+	if (m_hasNormals)
+	{
+		stride += 3 * sizeof(float);
     }
     if (m_hasUV)
     {
