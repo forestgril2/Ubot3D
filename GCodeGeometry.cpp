@@ -59,7 +59,11 @@ GCodeGeometry::GCodeGeometry()
 {
 	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
 	createExtruderPaths(gcodeProgram);
+
 	updateData();
+
+	connect(this, &GCodeGeometry::numSubpathsChanged, this, &GCodeGeometry::updateData);
+	connect(this, &GCodeGeometry::numPointsInSubpathChanged, this, &GCodeGeometry::updateData);
 }
 
 void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
@@ -203,7 +207,8 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 
 	if (!subPath.empty())
 	{
-//		std::cout << " #### adding subpath with: " << subPath.size() << std::endl;
+		maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPath.size());
+		std::cout << " #### adding subpath with: " << subPath.size() << ", max points: " << maxPointsInSubPath << std::endl;
 		std::swap(_extruderPaths.back(), subPath);
 	}
 
@@ -372,7 +377,6 @@ void GCodeGeometry::updateData()
 	{
 		numPathPoints += path.size();
 	}
-	std::cout << " ### GCodeGeometry::updateData() numPathPoints=" << numPathPoints << std::endl;
 
 	QByteArray vertices;
 	vertices.resize(4 * numPathPoints * stride);
@@ -387,7 +391,7 @@ void GCodeGeometry::updateData()
 												  { 0.5, 1.0, 0.0},
 												  { 0.5, 0.0, 0.0}};
 
-	for (uint32_t j = 0; j < _extruderPaths.size(); ++j)
+	for (uint32_t j = 0; j < std::min<uint32_t>(_extruderPaths.size(), _numSubpaths); ++j)
 	{
 		const std::vector<Vector3f>& path = _extruderPaths[j];
 
@@ -401,7 +405,7 @@ void GCodeGeometry::updateData()
 		}
 
 		Vector3f prevPoint = path[0];
-		for (uint32_t i = 1; i < path.size(); ++i)
+		for (uint32_t i = 1; i < std::min<uint32_t>(_numPointsInSubpath, path.size()); ++i)
 		{
 			const Vector3f boundDiff = maxBound-minBound;
 			const Vector3f pathStep = path[i] - prevPoint;

@@ -92,8 +92,8 @@ private:
     float m_uvAdjust = 0.0f;
 
 	bool _isPicked = false;
-	unsigned _numSubpaths = false;
-	unsigned _numPointsInSubpath = false;
+	unsigned _numSubpaths = 0;
+	unsigned _numPointsInSubpath = 0;
 
 	std::vector<std::vector<Eigen::Vector3f>> _extruderPaths; /** Vectors of points along the center of the filament path. */
 	std::vector<Eigen::Vector3f> _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
