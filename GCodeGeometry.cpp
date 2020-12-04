@@ -55,6 +55,21 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 	return gpr::parse_gcode(file_contents);
 }
 
+void GCodeGeometry::updateWait()
+{
+//	static bool isUpdating = false;
+
+//	if (isUpdating)
+//		return;
+
+//	isUpdating = true;
+	updateData();
+	update();
+//	isUpdating = false;
+
+//	markAllDirty();
+}
+
 GCodeGeometry::GCodeGeometry()
 {
 	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
@@ -63,12 +78,10 @@ GCodeGeometry::GCodeGeometry()
 	updateData();
 
 	connect(this, &GCodeGeometry::numSubpathsChanged, this, [this](){
-		updateData();
-		update();
+		updateWait();
 	});
 	connect(this, &GCodeGeometry::numPointsInSubpathChanged, this,  [this](){
-		updateData();
-		update();
+		updateWait();
 	});
 }
 
@@ -365,6 +378,8 @@ unsigned GCodeGeometry::getNumPointsInSubpath() const
 
 void GCodeGeometry::updateData()
 {
+	clear();
+
 	setRectProfile(0.4, 0.2);
 	//	setPath();
 
@@ -410,7 +425,7 @@ void GCodeGeometry::updateData()
 
 		if (path.empty())
 		{
-//			std::cout << " ### empty path " << std::endl;
+			std::cout << " ### empty path " << std::endl;
 			continue;
 		}
 
@@ -486,7 +501,7 @@ void GCodeGeometry::updateData()
 //                     QQuick3DGeometry::Attribute::F32Type);
 //    }
 
-	geometryNodeDirty();
+//	geometryNodeDirty();
 	emit modelLoaded();
 	std::cout << __FUNCTION__ << std::endl;
 }
