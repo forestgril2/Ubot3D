@@ -57,17 +57,8 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 
 void GCodeGeometry::updateWait()
 {
-//	static bool isUpdating = false;
-
-//	if (isUpdating)
-//		return;
-
-//	isUpdating = true;
 	updateData();
 	update();
-//	isUpdating = false;
-
-//	markAllDirty();
 }
 
 GCodeGeometry::GCodeGeometry()
@@ -378,8 +369,8 @@ unsigned GCodeGeometry::getNumPointsInSubpath() const
 
 void GCodeGeometry::updateData()
 {
-	clear();
 
+	clear();
 	setRectProfile(0.4, 0.2);
 	//	setPath();
 
@@ -395,12 +386,16 @@ void GCodeGeometry::updateData()
 
 	size_t numPathPoints = 0;
 	size_t numSubpathUsed = std::min<uint32_t>(_extruderPaths.size(), _numSubpaths);
+
+	if (numSubpathUsed == 0)
+		return;
+
 	for (uint32_t j = 0; j < numSubpathUsed; ++j)
 	{
 		numPathPoints += std::min<uint32_t>(_numPointsInSubpath, _extruderPaths[j].size());
 	}
 
-	std::cout << "### updateData() _numSubpaths:" << _numSubpaths << std::endl;
+	std::cout << "### updateData() numSubpathUsed:" << numSubpathUsed << std::endl;
 	std::cout << "### updateData() numPathPoints:" << numPathPoints << std::endl;
 
 	QByteArray vertices;
@@ -425,7 +420,7 @@ void GCodeGeometry::updateData()
 
 		if (path.empty())
 		{
-			std::cout << " ### empty path " << std::endl;
+			std::cout << " ### WARNING empty path " << std::endl;
 			continue;
 		}
 

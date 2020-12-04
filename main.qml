@@ -154,8 +154,8 @@ Window {
             anchors {
                 left: parent.left
                 top: parent.top
-                bottom: parent.bottom
             }
+            height: 500
 
             numSubpathsSlider.onValueChanged: {
                 gcodeGeometry.numSubpaths = numSubpathsSlider.value

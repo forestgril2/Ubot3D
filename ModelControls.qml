@@ -17,6 +17,11 @@ Row {
         from: -0.1
         to: 0.1
         width: 50
+
+        anchors {
+            top: parent.top
+            bottom: parent.bottom
+        }
     }
 
     Column {
@@ -25,8 +30,19 @@ Row {
             bottom: parent.bottom
         }
 
-        TextEdit {
+        TextField {
+            id: numSubpathsSliderTextField
+            overwriteMode: true
+
             text: Math.round(numSubpathsSlider.value)
+
+            onEditingFinished: {
+//                if (parseInt(text))
+//                {
+                    console.log(" ### parseInt(text):" + parseInt(text))
+//                }
+
+            }
         }
 
         Slider {
@@ -35,6 +51,11 @@ Row {
             from: 0
             to: numSubpaths
             width: 50
+
+            anchors {
+                top: numSubpathsSliderTextField.bottom
+                bottom: parent.bottom
+            }
         }
     }
 
@@ -44,7 +65,8 @@ Row {
             bottom: parent.bottom
         }
 
-        TextEdit {
+        TextField {
+            id: numPointsInSubpathSliderTextField
             text: Math.round(numPointsInSubpathSlider.value)
         }
 
@@ -54,6 +76,11 @@ Row {
             from: 0
             to: numPointsInSubpaths
             width: 50
+
+             anchors {
+                top: numPointsInSubpathSliderTextField.bottom
+                bottom: parent.bottom
+            }
         }
     }
 
