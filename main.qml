@@ -44,7 +44,12 @@ Window {
 
         Component.onCompleted: {
             console.log(" ### ComponentComplete")
+            view3d.gcodeModelCenter = getModelCenter(gcodeModel)
+            console.log(" ### view3d.gcodeModelCenter :" + view3d.gcodeModelCenter)
+            gcodeModel.position = Qt.vector3d(0, 0, 0).minus(view3d.gcodeModelCenter)
             camera.lookAtModel(gcodeModel)
+            modelControls.numSubpaths = gcodeGeometry.numSubpaths
+            modelControls.numPointsInSubpaths = gcodeGeometry.numPointsInSubpath
         }
 
         Ubot3DCameraWasdController {
@@ -106,7 +111,7 @@ Window {
         Model {
             id: gcodeModel
             property bool isPicked: false
-            position: Qt.vector3d(0, 0, 0).minus(view3d.gcodeModelCenter)
+            position: Qt.vector3d(0, 0, 0)
             objectName: "gCode geometry"
             pickable: true
             rotation: modelControls.commonRotationCheckBox.checked ?
@@ -117,8 +122,12 @@ Window {
                 id: gcodeGeometry
 
                 onModelLoaded: {
-                    camera.lookAtModel(gcodeModel)
-                    view3d.gcodeModelCenter = getModelCenter(gcodeModel)
+//                    view3d.gcodeModelCenter = getModelCenter(gcodeModel)
+//                    console.log(" ### view3d.gcodeModelCenter :" + view3d.gcodeModelCenter)
+//                    gcodeModel.position = Qt.vector3d(0, 0, 0).minus(view3d.gcodeModelCenter)
+//                    camera.lookAtModel(gcodeModel)
+//                    modelControls.numSubpaths = gcodeGeometry.numSubpaths
+//                    modelControls.numPointsInSubpaths = gcodeGeometry.numPointsInSubpath
                 }
             }
             materials: [
@@ -132,18 +141,32 @@ Window {
 
         StlModel {
             id: stlModel
+
         }
 
         PickArea {
 
         }
+
+        ModelControls {
+            id: modelControls
+
+            anchors {
+                left: parent.left
+                top: parent.top
+                bottom: parent.bottom
+            }
+
+            numSubpathsSlider.onValueChanged: {
+                gcodeGeometry.numSubpaths = numSubpathsSlider.value
+            }
+
+            numPointsInSubpathSlider.onValueChanged: {
+                gcodeGeometry.numPointsInSubpath = numPointsInSubpathSlider.value
+            }
+        }
     }
 
-
-
-    ModelControls {
-        id: modelControls
-    }
 
     function getModelCenter(model) {
         return model.geometry.minBounds.plus(model.geometry.maxBounds).times(0.5)

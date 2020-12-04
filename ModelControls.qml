@@ -1,16 +1,15 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 Row {
-    property alias posXSlider: pointModelPosXSlider
+    property alias numSubpathsSlider: numSubpathsSlider
+    property alias numPointsInSubpathSlider: numPointsInSubpathSlider
+
     property alias mouseInvertCheckBox: mouseInvertCheckBox
     property alias commonRotationCheckBox: commonRotationCheckBox
-    property alias pointModelRotationSlider: pointModelRotationSlider
     property alias triangleModelWarpSlider: triangleModelWarpSlider
 
-    anchors {
-        top: parent.top
-        left: parent.left
-    }
+    property int numSubpaths: 1
+    property int numPointsInSubpaths: 1
 
     Slider {
         id: triangleModelWarpSlider
@@ -20,24 +19,42 @@ Row {
         width: 50
     }
 
-    Slider {
-        id: pointModelPosXSlider
-        orientation: Qt.Vertical
-        from: -15
-        to: 15
-        width: 50
+    Column {
+        anchors {
+            top: parent.top
+            bottom: parent.bottom
+        }
 
-        onMoved: {
-            controller.focus = true
+        TextEdit {
+            text: Math.round(numSubpathsSlider.value)
+        }
+
+        Slider {
+            id: numSubpathsSlider
+            orientation: Qt.Vertical
+            from: 0
+            to: numSubpaths
+            width: 50
         }
     }
 
-    Slider {
-        id: pointModelRotationSlider
-        orientation: Qt.Vertical
-        from: -180
-        to: 180
-        width: 50
+    Column {
+        anchors {
+            top: parent.top
+            bottom: parent.bottom
+        }
+
+        TextEdit {
+            text: Math.round(numPointsInSubpathSlider.value)
+        }
+
+        Slider {
+            id: numPointsInSubpathSlider
+            orientation: Qt.Vertical
+            from: 0
+            to: numPointsInSubpaths
+            width: 50
+        }
     }
 
     Column {

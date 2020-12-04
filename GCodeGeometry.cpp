@@ -62,8 +62,14 @@ GCodeGeometry::GCodeGeometry()
 
 	updateData();
 
-	connect(this, &GCodeGeometry::numSubpathsChanged, this, &GCodeGeometry::updateData);
-	connect(this, &GCodeGeometry::numPointsInSubpathChanged, this, &GCodeGeometry::updateData);
+	connect(this, &GCodeGeometry::numSubpathsChanged, this, [this](){
+		updateData();
+		update();
+	});
+	connect(this, &GCodeGeometry::numPointsInSubpathChanged, this,  [this](){
+		updateData();
+		update();
+	});
 }
 
 void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
@@ -208,7 +214,7 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 	if (!subPath.empty())
 	{
 		maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPath.size());
-		std::cout << " #### adding subpath with: " << subPath.size() << ", max points: " << maxPointsInSubPath << std::endl;
+		std::cout << " #### adding subpath no. " << _extruderPaths.size()+1 << ", maxPointsInSubPath: " << maxPointsInSubPath << std::endl;
 		std::swap(_extruderPaths.back(), subPath);
 	}
 
@@ -373,10 +379,14 @@ void GCodeGeometry::updateData()
     }
 
 	size_t numPathPoints = 0;
-	for (const auto& path : _extruderPaths)
+	size_t numSubpathUsed = std::min<uint32_t>(_extruderPaths.size(), _numSubpaths);
+	for (uint32_t j = 0; j < numSubpathUsed; ++j)
 	{
-		numPathPoints += path.size();
+		numPathPoints += std::min<uint32_t>(_numPointsInSubpath, _extruderPaths[j].size());
 	}
+
+	std::cout << "### updateData() _numSubpaths:" << _numSubpaths << std::endl;
+	std::cout << "### updateData() numPathPoints:" << numPathPoints << std::endl;
 
 	QByteArray vertices;
 	vertices.resize(4 * numPathPoints * stride);
@@ -391,7 +401,7 @@ void GCodeGeometry::updateData()
 												  { 0.5, 1.0, 0.0},
 												  { 0.5, 0.0, 0.0}};
 
-	for (uint32_t j = 0; j < std::min<uint32_t>(_extruderPaths.size(), _numSubpaths); ++j)
+	for (uint32_t j = 0; j < numSubpathUsed; ++j)
 	{
 		const std::vector<Vector3f>& path = _extruderPaths[j];
 
@@ -445,9 +455,9 @@ void GCodeGeometry::updateData()
 			prevPoint = path[i];
 		}
 	}
-	std::cout << " ######### bounds x : " << minBound.x() << "," << maxBound.x() << std::endl;
-	std::cout << " ######### bounds y : " << minBound.y() << "," << maxBound.y() << std::endl;
-	std::cout << " ######### bounds z : " << minBound.z() << "," << maxBound.z() << std::endl;
+//	std::cout << " ######### bounds x : " << minBound.x() << "," << maxBound.x() << std::endl;
+//	std::cout << " ######### bounds y : " << minBound.y() << "," << maxBound.y() << std::endl;
+//	std::cout << " ######### bounds z : " << minBound.z() << "," << maxBound.z() << std::endl;
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
 
 	setVertexData(vertices);
@@ -478,6 +488,7 @@ void GCodeGeometry::updateData()
 
 	geometryNodeDirty();
 	emit modelLoaded();
+	std::cout << __FUNCTION__ << std::endl;
 }
 
 void GCodeGeometry::setRectProfile(const Real width, const Real height)
