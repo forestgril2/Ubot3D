@@ -48,10 +48,10 @@ Window {
             console.log(" ### view3d.gcodeModelCenter :" + view3d.gcodeModelCenter)
             gcodeModel.position = Qt.vector3d(0, 0, 0).minus(view3d.gcodeModelCenter)
             camera.lookAtModel(gcodeModel)
-            modelControls.numSubpaths = gcodeGeometry.numSubpaths
-            modelControls.numSubpathsSlider.value = gcodeGeometry.numSubpaths
-            modelControls.numPointsInSubpath = gcodeGeometry.numPointsInSubpath
-            modelControls.numPointsInSubpathSlider.value = gcodeGeometry.numPointsInSubpath
+            modelControls.numSubPaths = gcodeGeometry.numSubPaths
+            modelControls.numSubPathsSlider.value = gcodeGeometry.numSubPaths
+            modelControls.numPointsInSubPath = gcodeGeometry.numPointsInSubPath
+            modelControls.numPointsInSubPathSlider.value = gcodeGeometry.numPointsInSubPath
         }
 
         Ubot3DCameraWasdController {
@@ -76,7 +76,7 @@ Window {
             {
                 var modelCenter = getModelCenter(model)
                 console.log(" ### lookAtModel: " + model.objectName + ", modelCenter: " + modelCenter);
-                console.log(" ### " + gcodeModel.objectName + " modelLoaded with paths: " + gcodeGeometry.numSubpaths + ", max points in subpath: " + gcodeGeometry.numPointsInSubpath)
+                console.log(" ### " + gcodeModel.objectName + " modelLoaded with paths: " + gcodeGeometry.numSubPaths + ", max points in subPath: " + gcodeGeometry.numPointsInSubPath)
                 var direction = modelCenter.minus(camera.position)
                 var upDirection = Qt.vector3d(0,0,1)
                 var lookAtModelCenterRotation = stlModel.geometry.getRotationFromDirection(direction, upDirection)
@@ -128,8 +128,8 @@ Window {
 //                    console.log(" ### view3d.gcodeModelCenter :" + view3d.gcodeModelCenter)
 //                    gcodeModel.position = Qt.vector3d(0, 0, 0).minus(view3d.gcodeModelCenter)
 //                    camera.lookAtModel(gcodeModel)
-//                    modelControls.numSubpaths = gcodeGeometry.numSubpaths
-//                    modelControls.numPointsInSubpaths = gcodeGeometry.numPointsInSubpath
+//                    modelControls.numSubPaths = gcodeGeometry.numSubPaths
+//                    modelControls.numPointsInSubPaths = gcodeGeometry.numPointsInSubPath
                 }
             }
             materials: [
@@ -163,12 +163,12 @@ Window {
                 leftMargin: 10
             }
 
-            numSubpathsSlider.onValueChanged: {
-                gcodeGeometry.numSubpaths = numSubpathsSlider.value
+            numSubPathsSlider.onValueChanged: {
+                gcodeGeometry.numSubPaths = numSubPathsSlider.value
             }
 
-            numPointsInSubpathSlider.onValueChanged: {
-                gcodeGeometry.numPointsInSubpath = numPointsInSubpathSlider.value
+            numPointsInSubPathSlider.onValueChanged: {
+                gcodeGeometry.numPointsInSubPath = numPointsInSubPathSlider.value
             }
         }
     }

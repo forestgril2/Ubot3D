@@ -1,15 +1,15 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 Row {
-    property alias numSubpathsSlider: numSubpathsSlider
-    property alias numPointsInSubpathSlider: numPointsInSubpathSlider
+    property alias numSubPathsSlider: numSubPathsSlider
+    property alias numPointsInSubPathSlider: numPointsInSubPathSlider
 
     property alias mouseInvertCheckBox: mouseInvertCheckBox
     property alias commonRotationCheckBox: commonRotationCheckBox
     property alias triangleModelWarpSlider: triangleModelWarpSlider
 
-    property int numSubpaths
-    property int numPointsInSubpath
+    property int numSubPaths
+    property int numPointsInSubPath
 
     Slider {
         id: triangleModelWarpSlider
@@ -26,7 +26,7 @@ Row {
     }
 
     Column {
-        id: numSubpathsSliderColumn
+        id: numSubPathsSliderColumn
         anchors {
             top: parent.top
             bottom: parent.bottom
@@ -34,69 +34,69 @@ Row {
         }
 
         TextField {
-            id: numSubpathsSliderTextField
+            id: numSubPathsSliderTextField
             overwriteMode: true
-            width: numSubpathsSlider.width
+            width: numSubPathsSlider.width
 
-            text: Math.round(numSubpathsSlider.value)
+            text: Math.round(numSubPathsSlider.value)
 
             onEditingFinished: {
                 if (parseInt(text) !== NaN)
                 {
-                    numSubpathsSlider.value = parseInt(text)
+                    numSubPathsSlider.value = parseInt(text)
                 }
 
             }
         }
 
         Slider {
-            id: numSubpathsSlider
+            id: numSubPathsSlider
             orientation: Qt.Vertical
             from: 0
-            to: numSubpaths
+            to: numSubPaths
             value: to
             width: 50
-            height: parent.height - numSubpathsSliderTextField.height
+            height: parent.height - numSubPathsSliderTextField.height
 
 //            anchors {
-//                top: numSubpathsSliderTextField.bottom
+//                top: numSubPathsSliderTextField.bottom
 //                bottom: parent.bottom
 //            }
         }
     }
 
     Column {
-        id: numPointsInSubpathSliderColumn
+        id: numPointsInSubPathSliderColumn
         anchors {
             top: parent.top
             bottom: parent.bottom
-//            left: numSubpathsSliderColumn.right
+//            left: numSubPathsSliderColumn.right
         }
 
         TextField {
-            id: numPointsInSubpathSliderTextField
-            text: Math.round(numPointsInSubpathSlider.value)
-            width: numPointsInSubpathSlider.width
+            id: numPointsInSubPathSliderTextField
+            text: Math.round(numPointsInSubPathSlider.value)
+            width: numPointsInSubPathSlider.width
 
             onEditingFinished: {
                 if (parseInt(text) !== NaN)
                 {
-                    numPointsInSubpathSlider.value = parseInt(text)
+                    numPointsInSubPathSlider.value = parseInt(text)
                 }
 
             }
         }
 
         Slider {
-            id: numPointsInSubpathSlider
+            id: numPointsInSubPathSlider
             orientation: Qt.Vertical
             from: 0
-            to: numPointsInSubpath
+            to: numPointsInSubPath
             width: 50
-            height: parent.height - numPointsInSubpathSliderTextField.height
+            height: parent.height - numPointsInSubPathSliderTextField.height
 
 //             anchors {
-//                top: numPointsInSubpathSliderTextField.bottom
+//                top: numPointsInSubPathSliderTextField.bottom
 //                bottom: parent.bottom
 //            }
         }
@@ -105,7 +105,7 @@ Row {
     Column {
         anchors {
             bottom: parent.bottom
-//            left: numPointsInSubpathSliderColumn.right
+//            left: numPointsInSubPathSliderColumn.right
         }
 
         Button {

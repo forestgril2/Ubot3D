@@ -40,12 +40,12 @@ Item {
     property real speed: 1
     property real shiftSpeed: 3
 
-    property real forwardSpeed: 5
-    property real backSpeed: 5
-    property real rightSpeed: 5
-    property real leftSpeed: 5
-    property real upSpeed: 5
-    property real downSpeed: 5
+    property real forwardSpeed: 2
+    property real backSpeed: 2
+    property real rightSpeed: 2
+    property real leftSpeed: 2
+    property real upSpeed: 2
+    property real downSpeed: 2
     property real xSpeed: 0.1
     property real ySpeed: 0.1
 

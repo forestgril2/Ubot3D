@@ -29,8 +29,8 @@ class GCodeGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
-	Q_PROPERTY(unsigned numSubpaths READ getNumSubpaths WRITE setNumSubpaths NOTIFY numSubpathsChanged)
-	Q_PROPERTY(unsigned numPointsInSubpath READ getNumPointsInSubpath WRITE setNumPointsInSubpath NOTIFY numPointsInSubpathChanged)
+	Q_PROPERTY(unsigned numSubPaths READ getNumSubPaths WRITE setNumSubPaths NOTIFY numSubPathsChanged)
+	Q_PROPERTY(unsigned numPointsInSubPath READ getNumPointsInSubPath WRITE setNumPointsInSubPath NOTIFY numPointsInSubPathChanged)
 	QML_NAMED_ELEMENT(GCodeGeometry)
 
 public:
@@ -58,11 +58,11 @@ public:
 	bool isPicked() const;
 	void setPicked(const bool isPicked);
 
-	void setNumSubpaths(const unsigned num);
-	unsigned getNumSubpaths() const;
+	void setNumSubPaths(const unsigned num);
+	unsigned getNumSubPaths() const;
 
-	void setNumPointsInSubpath(const unsigned num);
-	unsigned getNumPointsInSubpath() const;
+	void setNumPointsInSubPath(const unsigned num);
+	unsigned getNumPointsInSubPath() const;
 
 public slots:
     void setMinBounds(const QVector3D& minBounds);
@@ -76,8 +76,8 @@ signals:
 	void boundsChanged();
 	void modelLoaded();
 	void isPickedChanged();
-	void numPointsInSubpathChanged();
-	void numSubpathsChanged();
+	void numPointsInSubPathChanged();
+	void numSubPathsChanged();
 
 
 private:
@@ -92,8 +92,8 @@ private:
     float m_uvAdjust = 0.0f;
 
 	bool _isPicked = false;
-	unsigned _numSubpaths = 0;
-	unsigned _numPointsInSubpath = 0;
+	unsigned _numSubPaths = 0;
+	unsigned _numPointsInSubPath = 0;
 
 	std::vector<std::vector<Eigen::Vector3f>> _extruderPaths; /** Vectors of points along the center of the filament path. */
 	std::vector<Eigen::Vector3f> _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
@@ -104,4 +104,5 @@ private:
 	QString _inputFile = "C:/Projects/Ubot3D/CE3_mandoblasterlow.gcode";
 //	QString _inputFile = "C:/Projects/Ubot3D/TEST.gcode";
         void updateWait();
+		void dumpSubPath(const std::string& blockString, const std::vector<Eigen::Vector3f>& subPath);
 };
