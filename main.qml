@@ -50,8 +50,8 @@ Window {
             camera.lookAtModel(gcodeModel)
             modelControls.numSubpaths = gcodeGeometry.numSubpaths
             modelControls.numSubpathsSlider.value = gcodeGeometry.numSubpaths
-            modelControls.numPointsInSubpaths = gcodeGeometry.numPointsInSubpath
-            modelControls.numPointsInSubpathSlider.value = gcodeGeometry.numPointsInSubpaths
+            modelControls.numPointsInSubpath = gcodeGeometry.numPointsInSubpath
+            modelControls.numPointsInSubpathSlider.value = gcodeGeometry.numPointsInSubpath
         }
 
         Ubot3DCameraWasdController {

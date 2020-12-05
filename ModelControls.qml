@@ -9,7 +9,7 @@ Row {
     property alias triangleModelWarpSlider: triangleModelWarpSlider
 
     property int numSubpaths
-    property int numPointsInSubpaths
+    property int numPointsInSubpath
 
     Slider {
         id: triangleModelWarpSlider
@@ -91,7 +91,7 @@ Row {
             id: numPointsInSubpathSlider
             orientation: Qt.Vertical
             from: 0
-            to: numPointsInSubpaths
+            to: numPointsInSubpath
             width: 50
             height: parent.height - numPointsInSubpathSliderTextField.height
 

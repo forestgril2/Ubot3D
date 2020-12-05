@@ -411,6 +411,7 @@ void GCodeGeometry::updateData()
 												  { 0.5, 1.0, 0.0},
 												  { 0.5, 0.0, 0.0}};
 
+	Vector3f prevPoint = _extruderPaths[0][0];
 	for (uint32_t j = 0; j < numSubpathUsed; ++j)
 	{
 		const std::vector<Vector3f>& path = _extruderPaths[j];
@@ -424,8 +425,8 @@ void GCodeGeometry::updateData()
 			continue;
 		}
 
-		Vector3f prevPoint = path[0];
-		for (uint32_t i = 1; i < std::min<uint32_t>(_numPointsInSubpath, path.size()); ++i)
+		uint32_t i = ((j == 0) ? 1 : 0);
+		for (; i < std::min<uint32_t>(_numPointsInSubpath, path.size()); ++i)
 		{
 			const Vector3f boundDiff = maxBound-minBound;
 			const Vector3f pathStep = path[i] - prevPoint;
