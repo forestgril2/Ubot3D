@@ -38,10 +38,10 @@ Item {
     property bool isMouseDragInverted: false
 
     property real speed: 1
-    property real shiftSpeed: 3
+    property real shiftSpeed: 5
 
-    property real forwardSpeed: 2
-    property real backSpeed: 2
+    property real forwardSpeed: 1
+    property real backSpeed: 1
     property real rightSpeed: 2
     property real leftSpeed: 2
     property real upSpeed: 2

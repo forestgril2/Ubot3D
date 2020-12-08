@@ -433,19 +433,19 @@ void GCodeGeometry::updateData()
 														 { 0.5, 1.0, 0.0},
 														 { 0.5, 0.0, 0.0}};
 
-	static const std::vector<Vector3f> cubeVertices = {{-0.5, 0.0, -0.5},
+	static const bool isUsingCubeStruct = true;
+	static const std::vector<Vector3f> cubeVertices = {//bottom
+													   {-0.5, 0.0, -0.5},
 													   {-0.5, 1.0, -0.5},
 													   { 0.5, 1.0, -0.5},
 													   { 0.5, 0.0, -0.5},
-													   //----------------
+													   //top
 													   {-0.5, 0.0, 0.5},
 													   {-0.5, 1.0, 0.5},
 													   { 0.5, 1.0, 0.5},
 													   { 0.5, 0.0, 0.5}};
 
-	const std::vector<Vector3f>& usedStructVertices = cubeVertices;
-//	const std::vector<Vector3f>& usedStructVertices = squareVertices;
-	const bool isUsingCubeStruct = (&usedStructVertices == &cubeVertices);
+	const std::vector<Vector3f>& usedStructVertices = isUsingCubeStruct ? cubeVertices : squareVertices;
 
 	static const ushort verticesPerPathPoint = static_cast<ushort>(usedStructVertices.size());
 	vertices.resize(static_cast<int64_t>(verticesPerPathPoint * numPathPoints * stride));
@@ -496,7 +496,7 @@ void GCodeGeometry::updateData()
 			// Set vertex indices as in a rectangle.
 			assert(std::numeric_limits<uint32_t>::max() >= static_cast<uint64_t>(totalPrevPointCount + subPathPointIndex -1) * static_cast<uint64_t>(usedVertices.size()));
 			const uint32_t firstStructIndexInPathStep = (totalPrevPointCount + subPathPointIndex -1) * static_cast<uint32_t>(usedVertices.size());
-			auto setTriangleVertexCoords = [&coordsPtr, usedVertices](const unsigned index) {
+			auto setTriangleVertexCoords = [&coordsPtr, &usedVertices](const unsigned index) {
 				const Vector3f vertex = usedVertices[index];
 				*coordsPtr++ = vertex.x();
 				*coordsPtr++ = vertex.y();
@@ -508,71 +508,30 @@ void GCodeGeometry::updateData()
 				*indicesPtr++ = firstStructIndexInPathStep + structIndex;
 			};
 
-			{// For a rectangle 4 vertices and 6 indexes (1 quad) are enough
-				// VERTICES
-				setTriangleVertexCoords(0);
-				setTriangleVertexCoords(1);
-				setTriangleVertexCoords(2);
-				setTriangleVertexCoords(3);
+			auto setQuadVertexCoords = [setTriangleVertexCoords](const std::vector<ushort>&& indices) {
+				std::for_each(indices.begin(), indices.end(), setTriangleVertexCoords);
+			};
 
-				// top QUAD
-				setTriangleVertexIndex(0);
-				setTriangleVertexIndex(1);
-				setTriangleVertexIndex(2);
-				setTriangleVertexIndex(0);
-				setTriangleVertexIndex(2);
-				setTriangleVertexIndex(3);
+			auto setQuadTriangleIndices = [setTriangleVertexIndex](const std::vector<ushort>&& indices) {
+				std::for_each(indices.begin(), indices.end(), setTriangleVertexIndex);
+			};
+
+			{// bottom quad - 4 vertices and 6 indices are enough
+				setQuadVertexCoords({0,1,2,3});
+				setQuadTriangleIndices({0,1,2,0,2,3});
 			}
 
 			if (isUsingCubeStruct)
 			{// For a cuboid we need 4 more vertices and 5 more quads
 				// VERTICES
-				setTriangleVertexCoords(4);
-				setTriangleVertexCoords(5);
-				setTriangleVertexCoords(6);
-				setTriangleVertexCoords(7);
+				setQuadVertexCoords({4,5,6,7});
 
 				// QUADS
-				// bottom
-				setTriangleVertexIndex(4);
-				setTriangleVertexIndex(5);
-				setTriangleVertexIndex(6);
-				setTriangleVertexIndex(4);
-				setTriangleVertexIndex(6);
-				setTriangleVertexIndex(7);
-
-				// left
-				setTriangleVertexIndex(0);
-				setTriangleVertexIndex(1);
-				setTriangleVertexIndex(5);
-				setTriangleVertexIndex(5);
-				setTriangleVertexIndex(4);
-				setTriangleVertexIndex(0);
-
-				// right
-				setTriangleVertexIndex(3);
-				setTriangleVertexIndex(2);
-				setTriangleVertexIndex(6);
-				setTriangleVertexIndex(6);
-				setTriangleVertexIndex(7);
-				setTriangleVertexIndex(3);
-
-				// back
-				setTriangleVertexIndex(0);
-				setTriangleVertexIndex(3);
-				setTriangleVertexIndex(7);
-				setTriangleVertexIndex(7);
-				setTriangleVertexIndex(4);
-				setTriangleVertexIndex(0);
-
-				// front
-				setTriangleVertexIndex(1);
-				setTriangleVertexIndex(2);
-				setTriangleVertexIndex(6);
-				setTriangleVertexIndex(6);
-				setTriangleVertexIndex(5);
-				setTriangleVertexIndex(1);
-
+				setQuadTriangleIndices({4,5,6,6,7,4}); // top
+				setQuadTriangleIndices({0,1,5,5,4,0}); // left
+				setQuadTriangleIndices({3,2,6,6,7,3}); // right
+				setQuadTriangleIndices({0,3,7,7,4,0}); // back
+				setQuadTriangleIndices({1,2,6,6,5,1}); // front
 			}
 
 			prevPoint = path[subPathPointIndex];
