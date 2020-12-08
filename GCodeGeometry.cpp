@@ -56,12 +56,6 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 	return gpr::parse_gcode(file_contents);
 }
 
-void GCodeGeometry::updateWait()
-{
-	updateData();
-	update();
-}
-
 GCodeGeometry::GCodeGeometry()
 {
 	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
@@ -70,10 +64,12 @@ GCodeGeometry::GCodeGeometry()
 	updateData();
 
 	connect(this, &GCodeGeometry::numSubPathsChanged, this, [this](){
-		updateWait();
+			updateData();
+			update();
 	});
 	connect(this, &GCodeGeometry::numPointsInSubPathChanged, this,  [this](){
-		updateWait();
+			updateData();
+			update();
 	});
 }
 
@@ -393,22 +389,33 @@ unsigned GCodeGeometry::getNumPointsInSubPath() const
 	return _numPointsInSubPath;
 }
 
-void GCodeGeometry::updateData()
+void GCodeGeometry::setNumPathPointsUsed(const uint32_t num)
 {
+	if (_numPathPointsUsed == num)
+		return;
 
-	clear();
-	setRectProfile(0.4f, 0.28f);
-	//	setPath();
+	_numPathPointsUsed = num;
 
+	emit numPathPointsUsedChanged();
+
+}
+
+uint32_t GCodeGeometry::getNumPathPointsUsed() const
+{
+	return _numPathPointsUsed;
+}
+
+void GCodeGeometry::generateTriangles()
+{
 	uint32_t stride = 3 * sizeof(float);
 	if (m_hasNormals)
 	{
 		stride += 3 * sizeof(float);
-    }
-    if (m_hasUV)
-    {
-        stride += 2 * sizeof(float);
-    }
+	}
+	if (m_hasUV)
+	{
+		stride += 2 * sizeof(float);
+	}
 
 	size_t numPathPoints = 0;
 	size_t numSubPathUsed = std::min<uint32_t>(static_cast<uint32_t>(_extruderSubPaths.size()), _numSubPaths);
@@ -427,7 +434,6 @@ void GCodeGeometry::updateData()
 	std::cout << "### updateData() numSubPathUsed:" << numSubPathUsed << std::endl;
 	std::cout << "### updateData() numPathPoints:" << numPathPoints << std::endl;
 
-	QByteArray vertices;
 	static const std::vector<Vector3f> squareVertices = {{-0.5, 0.0, 0.0},
 														 {-0.5, 1.0, 0.0},
 														 { 0.5, 1.0, 0.0},
@@ -448,15 +454,14 @@ void GCodeGeometry::updateData()
 	const std::vector<Vector3f>& usedStructVertices = isUsingCubeStruct ? cubeVertices : squareVertices;
 
 	static const ushort verticesPerPathPoint = static_cast<ushort>(usedStructVertices.size());
-	vertices.resize(static_cast<int64_t>(verticesPerPathPoint * numPathPoints * stride));
-	float* coordsPtr = reinterpret_cast<float*>(vertices.data());
+	_allModelVertices.resize(static_cast<int64_t>(verticesPerPathPoint * numPathPoints * stride));
+	float* coordsPtr = reinterpret_cast<float*>(_allModelVertices.data());
 
-	QByteArray indices;
 	// One rectangle or 6 for cube.
 	const ushort numRect = (isUsingCubeStruct) ? 6u : 1u;
 	const ushort numIndexPerRect = 6u;
-	indices.resize(static_cast<int64_t>(numPathPoints * numRect * numIndexPerRect * sizeof(uint32_t)));
-	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(indices.data());
+	_allIndices.resize(static_cast<int64_t>(numPathPoints * numRect * numIndexPerRect * sizeof(uint32_t)));
+	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(_allIndices.data());
 	uint32_t totalPrevPointCount = 0;
 
 	static const Vector3f profDiag = _profile[2] - _profile[0];
@@ -544,9 +549,24 @@ void GCodeGeometry::updateData()
 //	std::cout << " ######### bounds z : " << minBound.z() << "," << maxBound.z() << std::endl;
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
 
-	setVertexData(vertices);
-	setIndexData(indices);
 	setStride(static_cast<int32_t>(stride));
+
+	_areTrianglesReady = true;
+}
+
+void GCodeGeometry::updateData()
+{
+
+	clear();
+	setRectProfile(0.4f, 0.28f);
+
+	if (!_areTrianglesReady)
+	{
+		generateTriangles();
+	}
+
+	setVertexData(_allModelVertices);
+	setIndexData(_allIndices);
 
     setPrimitiveType(QQuick3DGeometry::PrimitiveType::Triangles);
 

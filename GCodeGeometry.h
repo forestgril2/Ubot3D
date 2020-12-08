@@ -29,8 +29,9 @@ class GCodeGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
-	Q_PROPERTY(unsigned numSubPaths READ getNumSubPaths WRITE setNumSubPaths NOTIFY numSubPathsChanged)
-	Q_PROPERTY(unsigned numPointsInSubPath READ getNumPointsInSubPath WRITE setNumPointsInSubPath NOTIFY numPointsInSubPathChanged)
+	Q_PROPERTY(uint32_t numSubPaths READ getNumSubPaths WRITE setNumSubPaths NOTIFY numSubPathsChanged)
+	Q_PROPERTY(uint32_t numPointsInSubPath READ getNumPointsInSubPath WRITE setNumPointsInSubPath NOTIFY numPointsInSubPathChanged)
+	Q_PROPERTY(uint32_t numPathPointsUsed READ getNumPathPointsUsed WRITE setNumPathPointsUsed NOTIFY numPathPointsUsedChanged)
 	QML_NAMED_ELEMENT(GCodeGeometry)
 
 public:
@@ -58,11 +59,14 @@ public:
 	bool isPicked() const;
 	void setPicked(const bool isPicked);
 
-	void setNumSubPaths(const unsigned num);
-	unsigned getNumSubPaths() const;
+	void setNumSubPaths(const uint32_t num);
+	uint32_t getNumSubPaths() const;
 
-	void setNumPointsInSubPath(const unsigned num);
+	void setNumPointsInSubPath(const uint32_t num);
 	unsigned getNumPointsInSubPath() const;
+
+	void setNumPathPointsUsed(const uint32_t num);
+	uint32_t getNumPathPointsUsed() const;
 
 public slots:
     void setMinBounds(const QVector3D& minBounds);
@@ -77,33 +81,36 @@ signals:
 	void modelLoaded();
 	void isPickedChanged();
 	void numPointsInSubPathChanged();
+	void numPathPointsUsedChanged();
 	void numSubPathsChanged();
-
 
 private:
     void updateData();
-
+	void generateTriangles();
 	void createExtruderPaths(const gpr::gcode_program& gcodeProgram);
 	void setRectProfile(const Real width, const Real height);
+	void dumpSubPath(const std::string& blockString, const std::vector<Eigen::Vector3f>& subPath);
+
+	QByteArray _allIndices;
+	QByteArray _allModelVertices;
+	std::vector<std::vector<Eigen::Vector3f>> _extruderSubPaths; /** Vectors of points along the center of the filament path. */
+	std::vector<Eigen::Vector3f> _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
+	uint32_t _numPathPointsUsed = 0;
 
     bool m_hasNormals = false;
     float m_normalXY = 0.0f;
     bool m_hasUV = false;
     float m_uvAdjust = 0.0f;
 
-	bool _isPicked = false;
 	unsigned _numSubPaths = 0;
 	unsigned _numPointsInSubPath = 0;
-
-	std::vector<std::vector<Eigen::Vector3f>> _extruderSubPaths; /** Vectors of points along the center of the filament path. */
-	std::vector<Eigen::Vector3f> _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
+	bool _isPicked = false;
+	bool _areTrianglesReady = false;
 
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
 	QString _inputFile = "C:/Projects/Ubot3D/CE3_mandoblasterlow.gcode";
 //	QString _inputFile = "C:/Projects/Ubot3D/TEST.gcode";
-//	QString _inputFile = "C:/ProjectsData/stl_files/CE3_mandoblaster.gcode";
-        void updateWait();
-		void dumpSubPath(const std::string& blockString, const std::vector<Eigen::Vector3f>& subPath);
+	//	QString _inputFile = "C:/ProjectsData/stl_files/CE3_mandoblaster.gcode";
 };
