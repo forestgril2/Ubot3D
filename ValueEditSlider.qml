@@ -7,6 +7,11 @@ Column {
     property alias from: slider.from
     property alias value: slider.value
 
+    anchors {
+        top: parent.top
+        bottom: parent.bottom
+    }
+
     TextField {
         id: textField
         text: Math.round(root.value)

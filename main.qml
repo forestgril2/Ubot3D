@@ -176,6 +176,10 @@ Window {
             numPointsInSubPathSlider.onValueChanged: {
                 gcodeGeometry.numPointsInSubPath = numPointsInSubPathSlider.value
             }
+
+            numPathPointsUsedSlider.onValueChanged: {
+                gcodeGeometry.numPathPointsUsed = numPathPointsUsedSlider.value
+            }
         }
     }
 

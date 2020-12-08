@@ -26,77 +26,21 @@ Row {
         }
     }
 
-    Column {
-        id: numSubPathsSliderColumn
-        anchors {
-            top: parent.top
-            bottom: parent.bottom
-        }
-
-        TextField {
-            id: numSubPathsSliderTextField
-            overwriteMode: true
-            width: numSubPathsSlider.width
-
-            text: Math.round(numSubPathsSlider.value)
-
-            onEditingFinished: {
-                if (parseInt(text) !== NaN)
-                {
-                    numSubPathsSlider.value = parseInt(text)
-                }
-
-            }
-        }
-
-        Slider {
-            id: numSubPathsSlider
-            orientation: Qt.Vertical
-            from: 0
-            to: numSubPaths
-            value: to
-            width: 50
-            height: parent.height - numSubPathsSliderTextField.height
-        }
+    ValueEditSlider {
+        id: numSubPathsSlider
+        from: 0
+        to: numSubPaths
     }
 
-    Column {
-        id: numPointsInSubPathSliderColumn
-        anchors {
-            top: parent.top
-            bottom: parent.bottom
-        }
+    ValueEditSlider {
+        id: numPointsInSubPathSlider
 
-        TextField {
-            id: numPointsInSubPathSliderTextField
-            text: Math.round(numPointsInSubPathSlider.value)
-            width: numPointsInSubPathSlider.width
-
-            onEditingFinished: {
-                if (parseInt(text) !== NaN)
-                {
-                    numPointsInSubPathSlider.value = parseInt(text)
-                }
-
-            }
-        }
-
-        Slider {
-            id: numPointsInSubPathSlider
-            orientation: Qt.Vertical
-            from: 0
-            to: numPointsInSubPath
-            width: 50
-            height: parent.height - numPointsInSubPathSliderTextField.height
-        }
+        from: 0
+        to: numPointsInSubPath
     }
 
     ValueEditSlider {
         id: numPathPointsUsedSlider
-        anchors {
-            top: parent.top
-            bottom: parent.bottom
-        }
 
         from: 0
         to: numPathPointsUsed

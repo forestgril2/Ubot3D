@@ -63,14 +63,14 @@ GCodeGeometry::GCodeGeometry()
 
 	updateData();
 
-	connect(this, &GCodeGeometry::numSubPathsChanged, this, [this](){
-			updateData();
-			update();
-	});
-	connect(this, &GCodeGeometry::numPointsInSubPathChanged, this,  [this](){
-			updateData();
-			update();
-	});
+	static auto updateDataAndUpdate = [this](){
+		updateData();
+		update();
+	};
+
+	connect(this, &GCodeGeometry::numSubPathsChanged, this, updateDataAndUpdate);
+	connect(this, &GCodeGeometry::numPointsInSubPathChanged, this, updateDataAndUpdate);
+	connect(this, &GCodeGeometry::numPathPointsUsedChanged, this, updateDataAndUpdate);
 }
 
 void GCodeGeometry::dumpSubPath(const std::string& blockString, const std::vector<Vector3f>& subPath)
