@@ -104,6 +104,7 @@ private:
 
 	unsigned _numSubPaths = 0;
 	unsigned _numPointsInSubPath = 0;
+	static const bool _isUsingCubeStruct = true;
 	bool _isPicked = false;
 	bool _areTrianglesReady = false;
 

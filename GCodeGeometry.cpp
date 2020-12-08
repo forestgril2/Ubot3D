@@ -28,6 +28,22 @@ static Vector3f minBound(FLT_MAX, FLT_MAX, FLT_MAX);
 // To have QSG included
 QT_BEGIN_NAMESPACE
 
+static const std::vector<Vector3f> squareVertices = {{-0.5, 0.0, 0.0},
+													 {-0.5, 1.0, 0.0},
+													 { 0.5, 1.0, 0.0},
+													 { 0.5, 0.0, 0.0}};
+
+static const std::vector<Vector3f> cubeVertices = {//bottom
+												   {-0.5, 0.0, -0.5},
+												   {-0.5, 1.0, -0.5},
+												   { 0.5, 1.0, -0.5},
+												   { 0.5, 0.0, -0.5},
+												   //top
+												   {-0.5, 0.0, 0.5},
+												   {-0.5, 1.0, 0.5},
+												   { 0.5, 1.0, 0.5},
+												   { 0.5, 0.0, 0.5}};
+
 static void updateBounds(const float* vertexMatrixXCoord)
 {
 	minBound.x() = (std::min(minBound.x(), *vertexMatrixXCoord));
@@ -434,31 +450,14 @@ void GCodeGeometry::generateTriangles()
 	std::cout << "### updateData() numSubPathUsed:" << numSubPathUsed << std::endl;
 	std::cout << "### updateData() numPathPoints:" << numPathPoints << std::endl;
 
-	static const std::vector<Vector3f> squareVertices = {{-0.5, 0.0, 0.0},
-														 {-0.5, 1.0, 0.0},
-														 { 0.5, 1.0, 0.0},
-														 { 0.5, 0.0, 0.0}};
 
-	static const bool isUsingCubeStruct = true;
-	static const std::vector<Vector3f> cubeVertices = {//bottom
-													   {-0.5, 0.0, -0.5},
-													   {-0.5, 1.0, -0.5},
-													   { 0.5, 1.0, -0.5},
-													   { 0.5, 0.0, -0.5},
-													   //top
-													   {-0.5, 0.0, 0.5},
-													   {-0.5, 1.0, 0.5},
-													   { 0.5, 1.0, 0.5},
-													   { 0.5, 0.0, 0.5}};
-
-	const std::vector<Vector3f>& usedStructVertices = isUsingCubeStruct ? cubeVertices : squareVertices;
-
+	const std::vector<Vector3f>& usedStructVertices = _isUsingCubeStruct ? cubeVertices : squareVertices;
 	static const ushort verticesPerPathPoint = static_cast<ushort>(usedStructVertices.size());
 	_allModelVertices.resize(static_cast<int64_t>(verticesPerPathPoint * numPathPoints * stride));
 	float* coordsPtr = reinterpret_cast<float*>(_allModelVertices.data());
 
 	// One rectangle or 6 for cube.
-	const ushort numRect = (isUsingCubeStruct) ? 6u : 1u;
+	const ushort numRect = (_isUsingCubeStruct) ? 6u : 1u;
 	const ushort numIndexPerRect = 6u;
 	_allIndices.resize(static_cast<int64_t>(numPathPoints * numRect * numIndexPerRect * sizeof(uint32_t)));
 	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(_allIndices.data());
@@ -526,7 +525,7 @@ void GCodeGeometry::generateTriangles()
 				setQuadTriangleIndices({0,1,2,0,2,3});
 			}
 
-			if (isUsingCubeStruct)
+			if (_isUsingCubeStruct)
 			{// For a cuboid we need 4 more vertices and 5 more quads
 				// VERTICES
 				setQuadVertexCoords({4,5,6,7});
@@ -566,8 +565,19 @@ void GCodeGeometry::updateData()
 		generateTriangles();
 	}
 
-	setVertexData(_allModelVertices);
-	setIndexData(_allIndices);
+	QByteArray usedVertices(_allModelVertices);
+	QByteArray usedIndices(_allIndices);
+
+	// TODO: Refactor - use things initialized previously in generateTriangles().
+	const std::vector<Vector3f>& usedStructVertices = _isUsingCubeStruct ? cubeVertices : squareVertices;
+	static const ushort verticesPerPathPoint = static_cast<ushort>(usedStructVertices.size());
+	usedVertices.resize(static_cast<int64_t>(verticesPerPathPoint * _numPathPointsUsed * uint32_t(stride())));
+	const ushort numRect = (_isUsingCubeStruct) ? 6u : 1u;
+	const ushort numIndexPerRect = 6u;
+	usedIndices.resize(static_cast<int64_t>(_numPathPointsUsed * numRect * numIndexPerRect * sizeof(uint32_t)));
+
+	setVertexData(usedVertices);
+	setIndexData(usedIndices);
 
     setPrimitiveType(QQuick3DGeometry::PrimitiveType::Triangles);
 
