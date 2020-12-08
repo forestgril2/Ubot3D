@@ -4,6 +4,7 @@
 #include <QVector3D>
 #include <QQuaternion>
 
+#include <assert.h>
 #include <cstdio>
 #include <iostream>
 #include <fstream>
@@ -78,25 +79,26 @@ GCodeGeometry::GCodeGeometry()
 
 void GCodeGeometry::dumpSubPath(const std::string& blockString, const std::vector<Vector3f>& subPath)
 {
-	std::ofstream pathFile("path" + std::to_string(_extruderPaths.size()) + ".txt");
-	for (const Vector3f& point : subPath)
-	{
-		pathFile << "[" << point.x() << "," << point.y() << "," << point.z() << "]" << std::endl;
-	}
-	pathFile << blockString << std::endl;
-	pathFile.close();
+//	std::ofstream pathFile("path" + std::to_string(_extruderPaths.size()) + ".txt");
+//	for (const Vector3f& point : subPath)
+//	{
+//		pathFile << "[" << point.x() << "," << point.y() << "," << point.z() << "]" << std::endl;
+//	}
+//	pathFile << blockString << std::endl;
+//	pathFile.close();
 }
 
 void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 {
 	std::vector<Vector3f> subPath;
-	_extruderPaths.push_back(std::vector<Vector3f>());
+	_extruderSubPaths.push_back(std::vector<Vector3f>());
 
 	unsigned maxPointsInSubPath = 0;
 
 	bool isExtruderOn = false;
 	unsigned blockCount = 0;
-	const unsigned blockCountLimit = 52208;
+	const unsigned blockCountLimit = 5220800;
+//	const unsigned blockCountLimit = 52208;
 //	const unsigned blockCountLimit = 255;
 	Vector3f currentCoords(0,0,0);
 	std::string blockString;
@@ -121,8 +123,8 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 
 			dumpSubPath(blockString, subPath);
 
-			std::swap(_extruderPaths.back(), subPath);
-			_extruderPaths.push_back(std::vector<Vector3f>());
+			std::swap(_extruderSubPaths.back(), subPath);
+			_extruderSubPaths.push_back(std::vector<Vector3f>());
 		};
 		auto setExtrusionOn = [&isExtruderOn]()
 		{// If we are setting extrusion on, add new (empty) path to path vector.
@@ -239,15 +241,15 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 	if (!subPath.empty())
 	{
 		maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPath.size());
-		std::cout << " #### adding subPath no. " << _extruderPaths.size() -1<< ", maxPointsInSubPath: " << maxPointsInSubPath << std::endl;
+		std::cout << " #### adding subPath no. " << _extruderSubPaths.size() -1<< ", maxPointsInSubPath: " << maxPointsInSubPath << std::endl;
 
 		dumpSubPath(blockString, subPath);
 
-		std::swap(_extruderPaths.back(), subPath);
+		std::swap(_extruderSubPaths.back(), subPath);
 	}
 
 	setNumPointsInSubPath(maxPointsInSubPath);
-	setNumSubPaths(_extruderPaths.size());
+	setNumSubPaths(_extruderSubPaths.size());
 }
 
 QString GCodeGeometry::getInputFile() const
@@ -395,10 +397,10 @@ void GCodeGeometry::updateData()
 {
 
 	clear();
-	setRectProfile(0.4, 0.2);
+	setRectProfile(0.4f, 0.28f);
 	//	setPath();
 
-	int stride = 3 * sizeof(float);
+	uint32_t stride = 3 * sizeof(float);
 	if (m_hasNormals)
 	{
 		stride += 3 * sizeof(float);
@@ -409,14 +411,14 @@ void GCodeGeometry::updateData()
     }
 
 	size_t numPathPoints = 0;
-	size_t numSubPathUsed = std::min<uint32_t>(_extruderPaths.size(), _numSubPaths);
+	size_t numSubPathUsed = std::min<uint32_t>(static_cast<uint32_t>(_extruderSubPaths.size()), _numSubPaths);
 
 	if (numSubPathUsed == 0)
 		return;
 
 	for (uint32_t j = 0; j < numSubPathUsed; ++j)
 	{
-		numPathPoints += std::min<uint32_t>(_numPointsInSubPath, _extruderPaths[j].size());
+		numPathPoints += std::min<uint32_t>(_numPointsInSubPath, static_cast<uint32_t>(_extruderSubPaths[j].size()));
 	}
 
 	if (numPathPoints == 0)
@@ -430,21 +432,38 @@ void GCodeGeometry::updateData()
 														 {-0.5, 1.0, 0.0},
 														 { 0.5, 1.0, 0.0},
 														 { 0.5, 0.0, 0.0}};
-	static const unsigned short verticesPerPathPoint = (unsigned short)squareVertices.size();
-	vertices.resize(verticesPerPathPoint * numPathPoints * stride);
+
+	static const std::vector<Vector3f> cubeVertices = {{-0.5, 0.0, -0.5},
+													   {-0.5, 1.0, -0.5},
+													   { 0.5, 1.0, -0.5},
+													   { 0.5, 0.0, -0.5},
+													   //----------------
+													   {-0.5, 0.0, 0.5},
+													   {-0.5, 1.0, 0.5},
+													   { 0.5, 1.0, 0.5},
+													   { 0.5, 0.0, 0.5}};
+
+	const std::vector<Vector3f>& usedStructVertices = cubeVertices;
+//	const std::vector<Vector3f>& usedStructVertices = squareVertices;
+	const bool isUsingCubeStruct = (&usedStructVertices == &cubeVertices);
+
+	static const ushort verticesPerPathPoint = static_cast<ushort>(usedStructVertices.size());
+	vertices.resize(static_cast<int64_t>(verticesPerPathPoint * numPathPoints * stride));
 	float* coordsPtr = reinterpret_cast<float*>(vertices.data());
 
 	QByteArray indices;
-	const unsigned short verticesPerRectangle = 6u;
-	indices.resize(verticesPerRectangle * numPathPoints * sizeof(uint32_t));
+	// One rectangle or 6 for cube.
+	const ushort numRect = (isUsingCubeStruct) ? 6u : 1u;
+	const ushort numIndexPerRect = 6u;
+	indices.resize(static_cast<int64_t>(numPathPoints * numRect * numIndexPerRect * sizeof(uint32_t)));
 	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(indices.data());
 	uint32_t totalPrevPointCount = 0;
 
-
-	Vector3f prevPoint = _extruderPaths[0][0];
-	for (uint32_t j = 0; j < numSubPathUsed; ++j)
+	static const Vector3f profDiag = _profile[2] - _profile[0];
+	Vector3f prevPoint = _extruderSubPaths[0][0];
+	for (uint32_t subPathIndex = 0; subPathIndex < numSubPathUsed; ++subPathIndex)
 	{
-		const std::vector<Vector3f>& path = _extruderPaths[j];
+		const std::vector<Vector3f>& path = _extruderSubPaths[subPathIndex];
 
 		if (path.empty())
 		{
@@ -456,46 +475,107 @@ void GCodeGeometry::updateData()
 		// To get a path rectangle with known length we need the first point of subPath defined.
 		// So we also start iterating from the second point.
 		prevPoint = path[0];
-		for (uint32_t subPathPointCount = 1; subPathPointCount < std::min<uint32_t>(_numPointsInSubPath, path.size()); ++subPathPointCount)
+		for (uint32_t subPathPointIndex = 1; subPathPointIndex < std::min<uint32_t>(_numPointsInSubPath, uint32_t(path.size())); ++subPathPointIndex)
 		{
 //			const Vector3f boundDiff = maxBound-minBound;
-			const Vector3f currPoint = path[subPathPointCount];
+			const Vector3f currPoint = path[subPathPointIndex];
 			const Vector3f pathStep = currPoint - prevPoint;
 			const float length = pathStep.norm();
 			assert(length > FLT_MIN);
-			const Matrix3f scale{{_profile[0].x(), 0,      0},
-								 {0,               length, 0},
-								 {0,               0,      1}};
+			const Matrix3f scale{{profDiag.x(), 0,                 0},
+								 {0,            length,            0},
+								 {0,            0,      profDiag.y()}};
 			Eigen::Quaternionf rotation = Quaternionf::FromTwoVectors(Vector3f{0,1,0}, pathStep);
 
-			std::vector<Vector3f> rectVertices = squareVertices;
-			std::for_each(rectVertices.begin(), rectVertices.end(), [&scale, &rotation, &prevPoint](Vector3f& v){
+			std::vector<Vector3f> usedVertices = usedStructVertices;
+
+			std::for_each(usedVertices.begin(), usedVertices.end(), [&scale, &rotation, &prevPoint](Vector3f& v){
 				v = rotation*(scale*v) + prevPoint;
 			});
 
 			// Set vertex indices as in a rectangle.
-			const uint32_t firstRectIndexInPathStep = (totalPrevPointCount + subPathPointCount -1)*4;
-			*indicesPtr++ = firstRectIndexInPathStep + 0;
-			*indicesPtr++ = firstRectIndexInPathStep + 1;
-			*indicesPtr++ = firstRectIndexInPathStep + 2;
-			*indicesPtr++ = firstRectIndexInPathStep + 0;
-			*indicesPtr++ = firstRectIndexInPathStep + 2;
-			*indicesPtr++ = firstRectIndexInPathStep + 3;
-
-			auto setTriangleVertexCoords = [&coordsPtr, &rectVertices](const unsigned index) {
-				const Vector3f vertex = rectVertices[index];
+			assert(std::numeric_limits<uint32_t>::max() >= static_cast<uint64_t>(totalPrevPointCount + subPathPointIndex -1) * static_cast<uint64_t>(usedVertices.size()));
+			const uint32_t firstStructIndexInPathStep = (totalPrevPointCount + subPathPointIndex -1) * static_cast<uint32_t>(usedVertices.size());
+			auto setTriangleVertexCoords = [&coordsPtr, usedVertices](const unsigned index) {
+				const Vector3f vertex = usedVertices[index];
 				*coordsPtr++ = vertex.x();
 				*coordsPtr++ = vertex.y();
 				*coordsPtr++ = vertex.z();
 				updateBounds(coordsPtr-3);
 			};
 
-			setTriangleVertexCoords(0);
-			setTriangleVertexCoords(1);
-			setTriangleVertexCoords(2);
-			setTriangleVertexCoords(3);
+			auto setTriangleVertexIndex = [&indicesPtr, firstStructIndexInPathStep](const unsigned structIndex) {
+				*indicesPtr++ = firstStructIndexInPathStep + structIndex;
+			};
 
-			prevPoint = path[subPathPointCount];
+			{// For a rectangle 4 vertices and 6 indexes (1 quad) are enough
+				// VERTICES
+				setTriangleVertexCoords(0);
+				setTriangleVertexCoords(1);
+				setTriangleVertexCoords(2);
+				setTriangleVertexCoords(3);
+
+				// top QUAD
+				setTriangleVertexIndex(0);
+				setTriangleVertexIndex(1);
+				setTriangleVertexIndex(2);
+				setTriangleVertexIndex(0);
+				setTriangleVertexIndex(2);
+				setTriangleVertexIndex(3);
+			}
+
+			if (isUsingCubeStruct)
+			{// For a cuboid we need 4 more vertices and 5 more quads
+				// VERTICES
+				setTriangleVertexCoords(4);
+				setTriangleVertexCoords(5);
+				setTriangleVertexCoords(6);
+				setTriangleVertexCoords(7);
+
+				// QUADS
+				// bottom
+				setTriangleVertexIndex(4);
+				setTriangleVertexIndex(5);
+				setTriangleVertexIndex(6);
+				setTriangleVertexIndex(4);
+				setTriangleVertexIndex(6);
+				setTriangleVertexIndex(7);
+
+				// left
+				setTriangleVertexIndex(0);
+				setTriangleVertexIndex(1);
+				setTriangleVertexIndex(5);
+				setTriangleVertexIndex(5);
+				setTriangleVertexIndex(4);
+				setTriangleVertexIndex(0);
+
+				// right
+				setTriangleVertexIndex(3);
+				setTriangleVertexIndex(2);
+				setTriangleVertexIndex(6);
+				setTriangleVertexIndex(6);
+				setTriangleVertexIndex(7);
+				setTriangleVertexIndex(3);
+
+				// back
+				setTriangleVertexIndex(0);
+				setTriangleVertexIndex(3);
+				setTriangleVertexIndex(7);
+				setTriangleVertexIndex(7);
+				setTriangleVertexIndex(4);
+				setTriangleVertexIndex(0);
+
+				// front
+				setTriangleVertexIndex(1);
+				setTriangleVertexIndex(2);
+				setTriangleVertexIndex(6);
+				setTriangleVertexIndex(6);
+				setTriangleVertexIndex(5);
+				setTriangleVertexIndex(1);
+
+			}
+
+			prevPoint = path[subPathPointIndex];
 		}
 
 		totalPrevPointCount += path.size();
@@ -507,7 +587,7 @@ void GCodeGeometry::updateData()
 
 	setVertexData(vertices);
 	setIndexData(indices);
-    setStride(stride);
+	setStride(static_cast<int32_t>(stride));
 
     setPrimitiveType(QQuick3DGeometry::PrimitiveType::Triangles);
 

@@ -8,6 +8,9 @@ import customgeometry 1.0
 
 Window {
     id: window
+
+    property vector3d sceneCenter: Qt.vector3d(100, 100, 0)
+
     width: 1280
     height: 720
     visible: true
@@ -46,7 +49,7 @@ Window {
             console.log(" ### ComponentComplete")
             view3d.gcodeModelCenter = getModelCenter(gcodeModel)
             console.log(" ### view3d.gcodeModelCenter :" + view3d.gcodeModelCenter)
-            gcodeModel.position = Qt.vector3d(0, 0, 0).minus(view3d.gcodeModelCenter)
+//            gcodeModel.position = Qt.vector3d(0, 0, 0).minus(view3d.gcodeModelCenter)
             camera.lookAtModel(gcodeModel)
             modelControls.numSubPaths = gcodeGeometry.numSubPaths
             modelControls.numSubPathsSlider.value = gcodeGeometry.numSubPaths
@@ -69,7 +72,7 @@ Window {
             fieldOfView: 45
             clipNear: 0.1
             clipFar: 1000.0
-            position: initDistToModel
+            position: sceneCenter.plus(initDistToModel)
 
 
             function lookAtModel(model)
@@ -85,13 +88,13 @@ Window {
         }
 
         DirectionalLight {
-            position: Qt.vector3d(-500, 500, -100)
+            position: sceneCenter.plus(Qt.vector3d(-500, 500, -100))
             color: Qt.rgba(0.4, 0.2, 0.6, 1.0)
             ambientColor: Qt.rgba(0.1, 0.1, 0.1, 1.0)
         }
 
         PointLight {
-            position: Qt.vector3d(0, 0, 100)
+            position: sceneCenter.plus(Qt.vector3d(0, 0, 100))
             color: Qt.rgba(0.1, 1.0, 0.1, 1.0)
             ambientColor: Qt.rgba(0.2, 0.2, 0.2, 1.0)
         }
@@ -99,6 +102,7 @@ Window {
 
         Model {
             scale: Qt.vector3d(100, 100, 100)
+            position: sceneCenter
             geometry: GridGeometry {
                 id: grid
                 horizontalLines: 20

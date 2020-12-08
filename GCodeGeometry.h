@@ -95,7 +95,7 @@ private:
 	unsigned _numSubPaths = 0;
 	unsigned _numPointsInSubPath = 0;
 
-	std::vector<std::vector<Eigen::Vector3f>> _extruderPaths; /** Vectors of points along the center of the filament path. */
+	std::vector<std::vector<Eigen::Vector3f>> _extruderSubPaths; /** Vectors of points along the center of the filament path. */
 	std::vector<Eigen::Vector3f> _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
 
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
@@ -103,6 +103,7 @@ private:
 
 	QString _inputFile = "C:/Projects/Ubot3D/CE3_mandoblasterlow.gcode";
 //	QString _inputFile = "C:/Projects/Ubot3D/TEST.gcode";
+//	QString _inputFile = "C:/ProjectsData/stl_files/CE3_mandoblaster.gcode";
         void updateWait();
 		void dumpSubPath(const std::string& blockString, const std::vector<Eigen::Vector3f>& subPath);
 };
