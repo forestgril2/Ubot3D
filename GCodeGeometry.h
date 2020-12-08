@@ -81,8 +81,8 @@ signals:
 	void modelLoaded();
 	void isPickedChanged();
 	void numPointsInSubPathChanged();
-	void numPathPointsUsedChanged();
 	void numSubPathsChanged();
+	void numPathPointsUsedChanged();
 
 private:
     void updateData();

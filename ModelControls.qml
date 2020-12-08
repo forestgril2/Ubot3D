@@ -10,6 +10,7 @@ Row {
 
     property int numSubPaths
     property int numPointsInSubPath
+    property int numPathPointsUsed
 
     Slider {
         id: triangleModelWarpSlider
@@ -21,7 +22,6 @@ Row {
         anchors {
             top: parent.top
             bottom: parent.bottom
-//            left: parent.left
         }
     }
 
@@ -30,7 +30,6 @@ Row {
         anchors {
             top: parent.top
             bottom: parent.bottom
-//            left: triangleModelWarpSlider.right
         }
 
         TextField {
@@ -57,11 +56,6 @@ Row {
             value: to
             width: 50
             height: parent.height - numSubPathsSliderTextField.height
-
-//            anchors {
-//                top: numSubPathsSliderTextField.bottom
-//                bottom: parent.bottom
-//            }
         }
     }
 
@@ -70,7 +64,6 @@ Row {
         anchors {
             top: parent.top
             bottom: parent.bottom
-//            left: numSubPathsSliderColumn.right
         }
 
         TextField {
@@ -94,18 +87,43 @@ Row {
             to: numPointsInSubPath
             width: 50
             height: parent.height - numPointsInSubPathSliderTextField.height
+        }
+    }
 
-//             anchors {
-//                top: numPointsInSubPathSliderTextField.bottom
-//                bottom: parent.bottom
-//            }
+    Column {
+        id: numPathPointsUsedSliderColumn
+        anchors {
+            top: parent.top
+            bottom: parent.bottom
+        }
+
+        TextField {
+            id: numnumPathPointsUsedSliderTextField
+            text: Math.round(numPathPointsUsedSlider.value)
+            width: numPathPointsUsedSlider.width
+
+            onEditingFinished: {
+                if (parseInt(text) !== NaN)
+                {
+                    numPathPointsUsedSlider.value = parseInt(text)
+                }
+
+            }
+        }
+
+        Slider {
+            id: numPathPointsUsedSlider
+            orientation: Qt.Vertical
+            from: 0
+            to: numPathPointsUsed
+            width: 50
+            height: parent.height - numnumPathPointsUsedSliderTextField.height
         }
     }
 
     Column {
         anchors {
             bottom: parent.bottom
-//            left: numPointsInSubPathSliderColumn.right
         }
 
         Button {
