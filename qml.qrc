@@ -10,5 +10,6 @@
         <file>PickDebugs.qml</file>
         <file>ModelControls.qml</file>
         <file>PickArea.qml</file>
+        <file>ValueEditSlider.qml</file>
     </qresource>
 </RCC>

@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 Row {
     property alias numSubPathsSlider: numSubPathsSlider
     property alias numPointsInSubPathSlider: numPointsInSubPathSlider
+    property alias numPathPointsUsedSlider: numPathPointsUsedSlider
 
     property alias mouseInvertCheckBox: mouseInvertCheckBox
     property alias commonRotationCheckBox: commonRotationCheckBox
@@ -90,35 +91,15 @@ Row {
         }
     }
 
-    Column {
-        id: numPathPointsUsedSliderColumn
+    ValueEditSlider {
+        id: numPathPointsUsedSlider
         anchors {
             top: parent.top
             bottom: parent.bottom
         }
 
-        TextField {
-            id: numnumPathPointsUsedSliderTextField
-            text: Math.round(numPathPointsUsedSlider.value)
-            width: numPathPointsUsedSlider.width
-
-            onEditingFinished: {
-                if (parseInt(text) !== NaN)
-                {
-                    numPathPointsUsedSlider.value = parseInt(text)
-                }
-
-            }
-        }
-
-        Slider {
-            id: numPathPointsUsedSlider
-            orientation: Qt.Vertical
-            from: 0
-            to: numPathPointsUsed
-            width: 50
-            height: parent.height - numnumPathPointsUsedSliderTextField.height
-        }
+        from: 0
+        to: numPathPointsUsed
     }
 
     Column {

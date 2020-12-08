@@ -51,10 +51,14 @@ Window {
             console.log(" ### view3d.gcodeModelCenter :" + view3d.gcodeModelCenter)
 //            gcodeModel.position = Qt.vector3d(0, 0, 0).minus(view3d.gcodeModelCenter)
             camera.lookAtModel(gcodeModel)
+
             modelControls.numSubPaths = gcodeGeometry.numSubPaths
             modelControls.numSubPathsSlider.value = gcodeGeometry.numSubPaths
             modelControls.numPointsInSubPath = gcodeGeometry.numPointsInSubPath
             modelControls.numPointsInSubPathSlider.value = gcodeGeometry.numPointsInSubPath
+            modelControls.numSubPaths = gcodeGeometry.numSubPaths
+            modelControls.numPathPointsUsed = gcodeGeometry.numPathPointsUsed
+            modelControls.numPathPointsUsedSlider.value = gcodeGeometry.numPathPointsUsed
         }
 
         Ubot3DCameraWasdController {
@@ -156,8 +160,6 @@ Window {
 
         ModelControls {
             id: modelControls
-            z:1
-
             anchors {
                 left: parent.left
                 top: parent.top

@@ -550,6 +550,7 @@ void GCodeGeometry::generateTriangles()
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
 
 	setStride(static_cast<int32_t>(stride));
+	setNumPathPointsUsed(totalPrevPointCount);
 
 	_areTrianglesReady = true;
 }
