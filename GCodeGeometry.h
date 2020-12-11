@@ -113,5 +113,5 @@ private:
 
 	QString _inputFile = "C:/Projects/Ubot3D/CE3_mandoblasterlow.gcode";
 //	QString _inputFile = "C:/Projects/Ubot3D/TEST.gcode";
-	//	QString _inputFile = "C:/ProjectsData/stl_files/CE3_mandoblaster.gcode";
+//		QString _inputFile = "C:/ProjectsData/stl_files/CE3_mandoblaster.gcode";
 };

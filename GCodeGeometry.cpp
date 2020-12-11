@@ -10,6 +10,7 @@
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <chrono>
 
 #include <gcode_program.h>
 #include <parser.h>
@@ -74,8 +75,11 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 
 GCodeGeometry::GCodeGeometry()
 {
+	std::cout << "### START reading gcode file" << "" << std::endl;
 	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
+	std::cout << "### START creating paths" << "" << std::endl;
 	createExtruderPaths(gcodeProgram);
+	std::cout << "### START data update" << "" << std::endl;
 
 	updateData();
 
@@ -108,29 +112,30 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 	unsigned maxPointsInSubPath = 0;
 
 	bool isExtruderOn = false;
+	bool isAbsoluteMode = true;
 	unsigned blockCount = 0;
 	const unsigned blockCountLimit = 5220800;
 //	const unsigned blockCountLimit = 52208;
 //	const unsigned blockCountLimit = 255;
-	Vector3f currentCoords(0,0,0);
 	std::string blockString;
+
+	Vector3f lastAbsCoords(0,0,0);
+	Vector3f blockAbsCoords(0,0,0);
+	Vector3f* newCoordsPtr = &blockAbsCoords;
 	for (auto it = gcodeProgram.begin(); it != gcodeProgram.end() && blockCount < blockCountLimit; ++it, ++blockCount)
 	{
 		const auto& block = *it;
 		blockString = block.to_string();
-//		std::cout << blockString << std::endl;
+		Vector3f blockRelativeCoords(0,0,0);
 
-		auto setExtrusionOff = [this, &maxPointsInSubPath, &blockString, &blockCount, &subPath, &isExtruderOn]()
+		auto setExtrusionOff = [this, &maxPointsInSubPath, &blockString, &subPath, &isExtruderOn]()
 		{// If we are setting extrusion off, swap created path with the empty one in path vector.
 			if (!isExtruderOn)
 				return;
-//			std::cout << " ####### setExtrusionOff : " << std::endl;
 			isExtruderOn = false;
 
 			if (subPath.empty())
 				return;
-
-//			std::cout << " #### adding subPath with: " << subPath.size() << std::endl;
 			maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPath.size());
 
 			dumpSubPath(blockString, subPath);
@@ -138,26 +143,31 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 			std::swap(_extruderSubPaths.back(), subPath);
 			_extruderSubPaths.push_back(std::vector<Vector3f>());
 		};
-		auto setExtrusionOn = [&isExtruderOn]()
+
+		auto setExtrusionOn = [&subPath, &isExtruderOn](const Vector3f& lastAbsCoords)
 		{// If we are setting extrusion on, add new (empty) path to path vector.
 			if (isExtruderOn)
 				return;
-//			std::cout << " ####### setExtrusionOn : " << std::endl;
 			isExtruderOn = true;
-//			std::cout << " ####### adding empty subPath with: " << std::endl;
+			subPath.push_back(lastAbsCoords);
 		};
 
-		Vector3i coordsSet(0,0,0);
-		Vector3f absoluteCoords(0,0,0);
+		auto setAbsoluteModeOn = [&isAbsoluteMode, &newCoordsPtr, &blockAbsCoords]() {
+			if (isAbsoluteMode)
+				return;
+			isAbsoluteMode = true;
+			newCoordsPtr = &blockAbsCoords;
+		};
 
-		Vector3f relativeCoords(0,0,0);
+		auto setAbsoluteModeOff = [&isAbsoluteMode, &newCoordsPtr, &blockRelativeCoords]() {
+			if (!isAbsoluteMode)
+				return;
 
-		Vector3f* newCoordsPtr = &absoluteCoords;
+			isAbsoluteMode = false;
+			newCoordsPtr = &blockRelativeCoords;
+		};
 
-		if (blockCount > 160)
-		{
-//			std::cout << "### :" << "" << std::endl;
-		}
+		Vector3i wichCoordsSetInBlock(0,0,0);
 
 		for (const gpr::chunk& chunk : block)
 		{
@@ -185,13 +195,16 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 											setExtrusionOff();
 											break;
 										case 1:
-											setExtrusionOn();
+											setExtrusionOn(lastAbsCoords);
 											break;
 										case 90:
-											newCoordsPtr = &absoluteCoords;
+											setAbsoluteModeOn();
 											break;
 										case 91:
-											newCoordsPtr = &relativeCoords;
+											setAbsoluteModeOff();
+											break;
+										case 92:
+											//TODO: IMPLEMENT.
 											break;
 										default:
 											break;
@@ -205,15 +218,15 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 							break;
 						case 'X':
 							newCoordsPtr->x() = float(ad.double_value());
-							coordsSet.x() = true;
+							wichCoordsSetInBlock.x() = true;
 							break;
 						case 'Y':
 							newCoordsPtr->y() = float(ad.double_value());
-							coordsSet.y() = true;
+							wichCoordsSetInBlock.y() = true;
 							break;
 						case 'Z':
 							newCoordsPtr->z() = float(ad.double_value());
-							coordsSet.z() = true;
+							wichCoordsSetInBlock.z() = true;
 							break;
 						default:
 							break;
@@ -223,30 +236,28 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 			}
 		}
 
-		if (coordsSet.isZero())
+		if (wichCoordsSetInBlock.isZero())
 			continue;
 
-		for (unsigned short i = 0; i < coordsSet.size(); ++i)
-		{// If this coord is not set in this block, use the most recent.
-			if (coordsSet[i] != 0)
+		for (unsigned short i = 0; i < wichCoordsSetInBlock.size(); ++i)
+		{// If this coord is not set in this block, use the most recent for absolute coordinates.
+			if (wichCoordsSetInBlock[i] != 0 || !isAbsoluteMode)
 				continue;
-			(*newCoordsPtr)[i] = currentCoords[i];
+			blockAbsCoords[i] = lastAbsCoords[i];
 		}
 
-		if (newCoordsPtr != &absoluteCoords)
+		if (!isAbsoluteMode)
 		{
-			currentCoords += *newCoordsPtr;
-			absoluteCoords = currentCoords;
+			lastAbsCoords += blockRelativeCoords;
 		}
 		else
 		{
-			currentCoords = absoluteCoords;
+			lastAbsCoords = blockAbsCoords;
 		}
 
 		if (isExtruderOn)
 		{
-//			std::cout << " ### pushing path point: [" << absoluteCoords.x() << "," << absoluteCoords.y() << "," << absoluteCoords.z() << "]" << std::endl;
-			subPath.push_back(absoluteCoords);
+			subPath.push_back(lastAbsCoords);
 		}
 	}
 
@@ -475,7 +486,6 @@ void GCodeGeometry::generateTriangles()
 			continue;
 		}
 
-//		uint32_t i = ((j == 0) ? 1 : 0);
 		// To get a path rectangle with known length we need the first point of subPath defined.
 		// So we also start iterating from the second point.
 		prevPoint = path[0];
@@ -543,9 +553,6 @@ void GCodeGeometry::generateTriangles()
 
 		totalPrevPointCount += path.size();
 	}
-//	std::cout << " ######### bounds x : " << minBound.x() << "," << maxBound.x() << std::endl;
-//	std::cout << " ######### bounds y : " << minBound.y() << "," << maxBound.y() << std::endl;
-//	std::cout << " ######### bounds z : " << minBound.z() << "," << maxBound.z() << std::endl;
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
 
 	setStride(static_cast<int32_t>(stride));
