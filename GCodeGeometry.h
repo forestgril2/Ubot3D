@@ -31,7 +31,7 @@ class GCodeGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
 	Q_PROPERTY(uint32_t numSubPaths READ getNumSubPaths WRITE setNumSubPaths NOTIFY numSubPathsChanged)
 	Q_PROPERTY(uint32_t numPointsInSubPath READ getNumPointsInSubPath WRITE setNumPointsInSubPath NOTIFY numPointsInSubPathChanged)
-	Q_PROPERTY(uint32_t numPathPointsUsed READ getNumPathPointsUsed WRITE setNumPathPointsUsed NOTIFY numPathPointsUsedChanged)
+	Q_PROPERTY(uint32_t numPathPointsUsed READ getNumPathPointsUsed WRITE setNumPathStrokesUsed NOTIFY numPathPointsUsedChanged)
 	QML_NAMED_ELEMENT(GCodeGeometry)
 
 public:
@@ -65,7 +65,7 @@ public:
 	void setNumPointsInSubPath(const uint32_t num);
 	unsigned getNumPointsInSubPath() const;
 
-	void setNumPathPointsUsed(const uint32_t num);
+	void setNumPathStrokesUsed(const uint32_t num);
 	uint32_t getNumPathPointsUsed() const;
 
 public slots:

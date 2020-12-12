@@ -140,6 +140,13 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 
 			dumpSubPath(blockString, subPath);
 
+			if (subPath.size() < 2)
+			{
+				std::cout << "### WARNING: subpath of size: " << subPath.size() << std::endl;
+				subPath.clear();
+				return;
+			}
+
 			std::swap(_extruderSubPaths.back(), subPath);
 			_extruderSubPaths.push_back(std::vector<Vector3f>());
 		};
@@ -416,7 +423,7 @@ unsigned GCodeGeometry::getNumPointsInSubPath() const
 	return _numPointsInSubPath;
 }
 
-void GCodeGeometry::setNumPathPointsUsed(const uint32_t num)
+void GCodeGeometry::setNumPathStrokesUsed(const uint32_t num)
 {
 	if (_numPathPointsUsed == num)
 		return;
@@ -472,15 +479,15 @@ void GCodeGeometry::generateTriangles()
 	const ushort numIndexPerRect = 6u;
 	_allIndices.resize(static_cast<int64_t>(numPathPoints * numRect * numIndexPerRect * sizeof(uint32_t)));
 	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(_allIndices.data());
-	uint32_t totalPrevPointCount = 0;
+	uint32_t totalPrevPathStrokesCount = 0;
 
-	static const Vector3f profDiag = _profile[2] - _profile[0];
-	Vector3f prevPoint = _extruderSubPaths[0][0];
+	static const Vector3f profileDiag = _profile[2] - _profile[0];
+	Vector3f prevPoint;
 	for (uint32_t subPathIndex = 0; subPathIndex < numSubPathUsed; ++subPathIndex)
 	{
-		const std::vector<Vector3f>& path = _extruderSubPaths[subPathIndex];
+		const std::vector<Vector3f>& subPath = _extruderSubPaths[subPathIndex];
 
-		if (path.empty())
+		if (subPath.empty())
 		{
 			std::cout << " ### WARNING empty path " << std::endl;
 			continue;
@@ -488,17 +495,17 @@ void GCodeGeometry::generateTriangles()
 
 		// To get a path rectangle with known length we need the first point of subPath defined.
 		// So we also start iterating from the second point.
-		prevPoint = path[0];
-		for (uint32_t subPathPointIndex = 1; subPathPointIndex < std::min<uint32_t>(_numPointsInSubPath, uint32_t(path.size())); ++subPathPointIndex)
+		prevPoint = subPath[0];
+		for (uint32_t subPathPointIndex = 1; subPathPointIndex < std::min<uint32_t>(_numPointsInSubPath, uint32_t(subPath.size())); ++subPathPointIndex)
 		{
 //			const Vector3f boundDiff = maxBound-minBound;
-			const Vector3f currPoint = path[subPathPointIndex];
+			const Vector3f currPoint = subPath[subPathPointIndex];
 			const Vector3f pathStep = currPoint - prevPoint;
 			const float length = pathStep.norm();
 			assert(length > FLT_MIN);
-			const Matrix3f scale{{profDiag.x(), 0,                 0},
-								 {0,            length,            0},
-								 {0,            0,      profDiag.y()}};
+			const Matrix3f scale{{profileDiag.x(), 0,      0              },
+								 {0,               length, 0              },
+								 {0,               0,      profileDiag.y()}};
 			Eigen::Quaternionf rotation = Quaternionf::FromTwoVectors(Vector3f{0,1,0}, pathStep);
 
 			std::vector<Vector3f> usedVertices = usedStructVertices;
@@ -508,8 +515,8 @@ void GCodeGeometry::generateTriangles()
 			});
 
 			// Set vertex indices as in a rectangle.
-			assert(std::numeric_limits<uint32_t>::max() >= static_cast<uint64_t>(totalPrevPointCount + subPathPointIndex -1) * static_cast<uint64_t>(usedVertices.size()));
-			const uint32_t firstStructIndexInPathStep = (totalPrevPointCount + subPathPointIndex -1) * static_cast<uint32_t>(usedVertices.size());
+			assert(std::numeric_limits<uint32_t>::max() >= static_cast<uint64_t>(totalPrevPathStrokesCount + subPathPointIndex -1) * static_cast<uint64_t>(usedVertices.size()));
+			const uint32_t firstStructIndexInPathStep = (totalPrevPathStrokesCount + subPathPointIndex -1) * static_cast<uint32_t>(usedVertices.size());
 			auto setTriangleVertexCoords = [&coordsPtr, &usedVertices](const unsigned index) {
 				const Vector3f vertex = usedVertices[index];
 				*coordsPtr++ = vertex.x();
@@ -548,15 +555,15 @@ void GCodeGeometry::generateTriangles()
 				setQuadTriangleIndices({1,2,6,6,5,1}); // front
 			}
 
-			prevPoint = path[subPathPointIndex];
+			prevPoint = currPoint;
 		}
-
-		totalPrevPointCount += path.size();
+		// TODO: WATCH OUT FOR THIS -1 here!!!
+		totalPrevPathStrokesCount += subPath.size() -1;
 	}
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
 
 	setStride(static_cast<int32_t>(stride));
-	setNumPathPointsUsed(totalPrevPointCount);
+	setNumPathStrokesUsed(totalPrevPathStrokesCount);
 
 	_areTrianglesReady = true;
 }
