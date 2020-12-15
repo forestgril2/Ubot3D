@@ -21,12 +21,15 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += ordered
 SUBDIRS += src/cpp src/qml
 
-SOURCES += src/cpp/*.cpp \
+SOURCES += src/cpp/main.cpp \
+    src/cpp/examplegeometry.cpp \
+    src/cpp/GCodeGeometry.cpp \
     $$PWD/../gpr/src/gcode_program.cpp \
     $$PWD/../gpr/src/parser.cpp
 
 
-HEADERS += src/cpp/*.h \
+HEADERS +=  src/cpp/examplegeometry.h \
+        src/cpp/GCodeGeometry.h \
         $$PWD/../gpr/src/gcode_program.h \
         $$PWD/../gpr/src/parser.h
 
@@ -73,6 +76,7 @@ else:unix: LIBS += -L$$PWD/../assimp-5.0.1/build/code/ -lassimp-vc142-mtd
 
 INCLUDEPATH += $$PWD/../eigen
 INCLUDEPATH += $$PWD/../gpr/src
+INCLUDEPATH += $$PWD/src/cpp
 DEPENDPATH += $$PWD/../gpr/src
 INCLUDEPATH += $$PWD/../assimp-5.0.1/include
 INCLUDEPATH += $$PWD/../assimp-5.0.1/build/include

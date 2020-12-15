@@ -140,11 +140,9 @@ Window {
 
         StlModel {
             id: stlModel
-
         }
 
         PickArea {
-
         }
 
         ModelControls {

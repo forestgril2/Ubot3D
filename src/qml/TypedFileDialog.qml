@@ -21,15 +21,17 @@ FileDialog {
         var fullSystemFilePath = filePath.toString()
         var pos = fullSystemFilePath.search("file:///");
         fullSystemFilePath = fullSystemFilePath.substring(pos+8)
-        console.log(fullSystemFilePath)
 
         switch(fileType)
         {
         case TypedFileDialog.Stl:
             stlModel.geometry.inputFile = fullSystemFilePath
+            console.log(" ### stlModel.geometry.inputFile: " + stlModel.geometry.inputFile)
             break
         case TypedFileDialog.Gcode:
-            gcodeGeometry.inputFile = fullSystemFilePath
+            gcodeModel.geometry.inputFile = fullSystemFilePath
+            console.log(" ### gcodeModel.geometry.inputFile: " + gcodeModel.geometry.inputFile)
+            break
 
         }
     }
