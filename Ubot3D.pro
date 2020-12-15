@@ -17,22 +17,21 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-SOURCES += \
-    main.cpp \
-    examplegeometry.cpp \
-    GCodeGeometry.cpp \
+@TEMPLATE = subdirs
+CONFIG += ordered
+SUBDIRS += src/cpp src/qml
+
+SOURCES += src/cpp/*.cpp \
     $$PWD/../gpr/src/gcode_program.cpp \
     $$PWD/../gpr/src/parser.cpp
 
 
-HEADERS += \
-        examplegeometry.h \
-        GCodeGeometry.h \
+HEADERS += src/cpp/*.h \
         $$PWD/../gpr/src/gcode_program.h \
         $$PWD/../gpr/src/parser.h
 
 RESOURCES += \
-    qml.qrc \
+    src/qml/qml.qrc \
     Ubot3D_en_150.ts
 
 OTHER_FILES += \

@@ -22,11 +22,18 @@ MenuBar {
 				
                 onTriggered:
                 {
+                    fileDialog.fileType = TypedFileDialog.Stl
                     fileDialog.open()
                 }
 			}
 			MenuItem{
 				text: qsTr("Open GCode")
+
+                onTriggered:
+                {
+                    fileDialog.fileType = TypedFileDialog.Gcode
+                    fileDialog.open()
+                }
 			}
 			MenuItem {
 				text: qsTr("Recently Opened...")

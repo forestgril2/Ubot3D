@@ -66,21 +66,28 @@ static void logBounds()
 
 static gpr::gcode_program importGCodeFromFile(const std::string& file)
 {
+	std::cout << "### START reading gcode file" << "" << std::endl;
 	std::ifstream t(file);
 	std::string file_contents((std::istreambuf_iterator<char>(t)),
 				  std::istreambuf_iterator<char>());
+	std::cout << "### FINISHED reading gcode file" << "" << std::endl;
 
+	std::cout << "### START parsing gcode file" << "" << std::endl;
 	return gpr::parse_gcode(file_contents);
+	std::cout << "### FINISHED parsing gcode file" << "" << std::endl;
+}
+
+void GCodeGeometry::loadGCodeProgram()
+{
+	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
+	std::cout << "### START creating paths" << "" << std::endl;
+	createExtruderPaths(gcodeProgram);
+	std::cout << "### FINISHED creating paths" << "" << std::endl;
 }
 
 GCodeGeometry::GCodeGeometry()
 {
-	std::cout << "### START reading gcode file" << "" << std::endl;
-	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
-	std::cout << "### START creating paths" << "" << std::endl;
-	createExtruderPaths(gcodeProgram);
-	std::cout << "### START data update" << "" << std::endl;
-
+	loadGCodeProgram();
 	updateData();
 
 	static auto updateDataAndUpdate = [this](){
@@ -107,6 +114,7 @@ void GCodeGeometry::dumpSubPath(const std::string& blockString, const std::vecto
 void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 {
 	std::vector<Vector3f> subPath;
+	_extruderSubPaths.clear();
 	_extruderSubPaths.push_back(std::vector<Vector3f>());
 
 	unsigned maxPointsInSubPath = 0;
@@ -280,6 +288,8 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 
 	setNumPointsInSubPath(maxPointsInSubPath);
 	setNumSubPaths(_extruderSubPaths.size());
+
+	_arePathsGenerated = true;
 }
 
 QString GCodeGeometry::getInputFile() const
@@ -289,10 +299,14 @@ QString GCodeGeometry::getInputFile() const
 
 void GCodeGeometry::setInputFile(const QString& url)
 {
+	std::cout << "### setInputFile:" << url.toStdString() << std::endl;
 	if (url == _inputFile)
 		return;
 
 	_inputFile = url;
+	_arePathsGenerated = false;
+	_areTrianglesReady = false;
+	loadGCodeProgram();
 	updateData();
 	update();
 }
@@ -474,7 +488,7 @@ void GCodeGeometry::generateTriangles()
 	_allModelVertices.resize(static_cast<int64_t>(verticesPerPathPoint * numPathPoints * stride));
 	float* coordsPtr = reinterpret_cast<float*>(_allModelVertices.data());
 
-	// One rectangle or 6 for cube.
+	// One rectangle or 6 rects for cube.
 	const ushort numRect = (_isUsingCubeStruct) ? 6u : 1u;
 	const ushort numIndexPerRect = 6u;
 	_allIndices.resize(static_cast<int64_t>(numPathPoints * numRect * numIndexPerRect * sizeof(uint32_t)));
@@ -493,10 +507,11 @@ void GCodeGeometry::generateTriangles()
 			continue;
 		}
 
-		// To get a path rectangle with known length we need the first point of subPath defined.
-		// So we also start iterating from the second point.
+		// To get a path rectangle with known length we need the first point of subPath defined and start iterating from the second point.
 		prevPoint = subPath[0];
-		for (uint32_t subPathPointIndex = 1; subPathPointIndex < std::min<uint32_t>(_numPointsInSubPath, uint32_t(subPath.size())); ++subPathPointIndex)
+		for (uint32_t subPathPointIndex = 1;
+			 subPathPointIndex < std::min<uint32_t>(_numPointsInSubPath, uint32_t(subPath.size()));
+			 ++subPathPointIndex)
 		{
 //			const Vector3f boundDiff = maxBound-minBound;
 			const Vector3f currPoint = subPath[subPathPointIndex];
