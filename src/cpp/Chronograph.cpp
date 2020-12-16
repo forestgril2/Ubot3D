@@ -10,6 +10,9 @@
 #include <tuple>
 #include <assert.h>
 
+#include <intrin.h>
+#pragma intrinsic(__rdtsc)
+
 using rep = unsigned long long;
 using period =  std::ratio<1, 190000000u>; // My machine is 1.6-1.9 GHz
 
@@ -25,7 +28,8 @@ using TimePoint = std::chrono::time_point<Chronograph>;
 using ActionTime = std::tuple<std::string, TimePoint, microseconds>;
 
 unsigned Chronograph::_runningChronographsCount = 0;
-static std::ofstream outputFile;
+static std::ofstream outputFileStream;
+static std::ostream* outputStream = &std::cout;
 
 Chronograph::~Chronograph()
 {// This will allow not to have remember to call log(), when getting out of a scope.
@@ -34,7 +38,7 @@ Chronograph::~Chronograph()
     --_runningChronographsCount;
 }
 
-Chronograph::Chronograph(const std::string&& measuredTimeAction, const bool isLoggingEnabled) : _isLoggingEnabled(isLoggingEnabled && outputFile.is_open())
+Chronograph::Chronograph(const std::string&& measuredTimeAction, const bool isLoggingEnabled) : _isLoggingEnabled(isLoggingEnabled)
 {
     ++_runningChronographsCount;
     start(measuredTimeAction);
@@ -47,25 +51,26 @@ void Chronograph::setLoggingEnabled(bool isEnabled)
 
 void Chronograph::setOutputFile(std::string filePath)
 {
-    if (outputFile.is_open())
+	if (outputFileStream.is_open())
     {
-        outputFile.close();
+		outputFileStream.close();
     }
 
-    outputFile.open(filePath);
-    if (!outputFile.is_open())
+	outputFileStream.open(filePath);
+	if (!outputFileStream.is_open())
     {
         std::cout << " ### ERROR Chronograph:cannot open: " << filePath << std::endl;
         exit(-1);
     }
-    std::cout << " ### INFO Chronograph: output file set: " << filePath << std::endl;
+	outputStream = &outputFileStream;
+	std::cout << " ### INFO Chronograph: output file set: " << filePath << std::endl;
 }
 
 Chronograph::TimePoint Chronograph::now() noexcept
 {
-    unsigned lo, hi;
-    asm volatile("rdtsc" : "=a" (lo), "=d" (hi));
-    return TimePoint(duration(static_cast<rep>(hi) << 32 | lo));
+//    unsigned lo, hi;
+//	__asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+	return TimePoint(duration(__rdtsc()));
 }
 
 void Chronograph::start(const std::string& measuredTimeAction)
@@ -76,12 +81,12 @@ void Chronograph::start(const std::string& measuredTimeAction)
     ++_nesting;
     microseconds msStart = std::chrono::duration_cast<microseconds>(std::chrono::steady_clock::now().time_since_epoch());
     _measuredTimeActions.push_back({measuredTimeAction, Chronograph::now(), msStart});
-    outputFile << " ### Chronograph::start() for action: ";
+	*outputStream << " ### Chronograph::start() for action: ";
     for (unsigned i = 0; i < _nesting + _runningChronographsCount -1; i++)
     {
-        outputFile << "    ";
+		*outputStream << "    ";
     }
-    outputFile << measuredTimeAction << std::endl;
+	*outputStream << measuredTimeAction << std::endl;
 }
 
 void Chronograph::log(const std::string& measuredTimeAction)
@@ -125,12 +130,12 @@ void Chronograph::log(const std::string& measuredTimeAction)
 
     // Get the clock ticks since restart for given action.
     auto ticks = Chronograph::Cycle(t1 - t0);
-    outputFile << "     Chronoraph::log(), time for:     ";
+	*outputStream << "     Chronoraph::log(), time for:     ";
     for (unsigned i = 0; i < _nesting + _runningChronographsCount -1; i++)
     {
-        outputFile << "    ";
+		*outputStream << "    ";
     }
-    outputFile << measuredTimeActionFetched << " # ms/ms(Chrono)/Mticks: "
+	*outputStream << measuredTimeActionFetched << " # ms/ms(Chrono)/Mticks: "
                << double((msT1-msT0).count())/1000 << " / "
                << std::chrono::duration_cast<milliseconds>(ticks).count() << " / " << ticks.count()/1000000
                << std::endl;

@@ -37,17 +37,9 @@ Window {
         Component.onCompleted: {
             console.log(" ### ComponentComplete")
             view3d.gcodeModelCenter = getModelCenter(gcodeModel)
-            console.log(" ### view3d.gcodeModelCenter :" + view3d.gcodeModelCenter)
-//            gcodeModel.position = Qt.vector3d(0, 0, 0).minus(view3d.gcodeModelCenter)
             camera.lookAtModel(gcodeModel)
 
-            modelControls.numSubPaths = gcodeGeometry.numSubPaths
-            modelControls.numSubPathsSlider.value = gcodeGeometry.numSubPaths
-            modelControls.numPointsInSubPath = gcodeGeometry.numPointsInSubPath
-            modelControls.numPointsInSubPathSlider.value = gcodeGeometry.numPointsInSubPath
-            modelControls.numSubPaths = gcodeGeometry.numSubPaths
-            modelControls.numPathPointsUsed = gcodeGeometry.numPathPointsUsed
-            modelControls.numPathPointsUsedSlider.value = gcodeGeometry.numPathPointsUsed
+            modelControls.resetSliders()
         }
 
         Ubot3DCameraWasdController {
@@ -121,12 +113,7 @@ Window {
                 id: gcodeGeometry
 
                 onModelLoaded: {
-//                    view3d.gcodeModelCenter = getModelCenter(gcodeModel)
-//                    console.log(" ### view3d.gcodeModelCenter :" + view3d.gcodeModelCenter)
-//                    gcodeModel.position = Qt.vector3d(0, 0, 0).minus(view3d.gcodeModelCenter)
-//                    camera.lookAtModel(gcodeModel)
-//                    modelControls.numSubPaths = gcodeGeometry.numSubPaths
-//                    modelControls.numPointsInSubPaths = gcodeGeometry.numPointsInSubPath
+                    modelControls.resetSliders()
                 }
             }
             materials: [
@@ -166,6 +153,16 @@ Window {
 
             numPathPointsUsedSlider.onValueChanged: {
                 gcodeGeometry.numPathPointsUsed = numPathPointsUsedSlider.value
+            }
+
+            function resetSliders() {
+                numSubPaths = gcodeGeometry.numSubPaths
+                numSubPathsSlider.value = gcodeGeometry.numSubPaths
+                numPointsInSubPath = gcodeGeometry.numPointsInSubPath
+                numPointsInSubPathSlider.value = gcodeGeometry.numPointsInSubPath
+                numSubPaths = gcodeGeometry.numSubPaths
+                numPathPointsUsed = gcodeGeometry.numPathPointsUsed
+                numPathPointsUsedSlider.value = gcodeGeometry.numPathPointsUsed
             }
         }
     }

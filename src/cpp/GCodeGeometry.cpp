@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <chrono>
 
+#include <Chronograph.h>
+
 #include <gcode_program.h>
 #include <parser.h>
 
@@ -66,29 +68,28 @@ static void logBounds()
 
 static gpr::gcode_program importGCodeFromFile(const std::string& file)
 {
-	std::cout << "### START reading gcode file" << "" << std::endl;
+	Chronograph chronograph("Read gcode file contents", true);
 	std::ifstream t(file);
 	std::string file_contents((std::istreambuf_iterator<char>(t)),
 				  std::istreambuf_iterator<char>());
-	std::cout << "### FINISHED reading gcode file" << "" << std::endl;
+	chronograph.log();
 
-	std::cout << "### START parsing gcode file" << "" << std::endl;
+	chronograph.start("Parse gcode");
 	return gpr::parse_gcode(file_contents);
-	std::cout << "### FINISHED parsing gcode file" << "" << std::endl;
 }
 
 void GCodeGeometry::loadGCodeProgram()
 {
 	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
-	std::cout << "### START creating paths" << "" << std::endl;
 	createExtruderPaths(gcodeProgram);
-	std::cout << "### FINISHED creating paths" << "" << std::endl;
 }
 
 GCodeGeometry::GCodeGeometry()
 {
 	loadGCodeProgram();
 	updateData();
+	update();
+	emit modelLoaded();
 
 	static auto updateDataAndUpdate = [this](){
 		updateData();
@@ -113,6 +114,8 @@ void GCodeGeometry::dumpSubPath(const std::string& blockString, const std::vecto
 
 void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 {
+	Chronograph chronograph(__FUNCTION__, true);
+
 	std::vector<Vector3f> subPath;
 	_extruderSubPaths.clear();
 	_extruderSubPaths.push_back(std::vector<Vector3f>());
@@ -150,7 +153,13 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 
 			if (subPath.size() < 2)
 			{
-				std::cout << "### WARNING: subpath of size: " << subPath.size() << std::endl;
+				static bool wasSubpathOfSmallSizeAnounced = false;
+				if (!wasSubpathOfSmallSizeAnounced)
+				{
+					std::cout << "### WARNING: subpath of size: " << subPath.size() << std::endl;
+					wasSubpathOfSmallSizeAnounced = true;
+				}
+
 				subPath.clear();
 				return;
 			}
@@ -299,7 +308,6 @@ QString GCodeGeometry::getInputFile() const
 
 void GCodeGeometry::setInputFile(const QString& url)
 {
-	std::cout << "### setInputFile:" << url.toStdString() << std::endl;
 	if (url == _inputFile)
 		return;
 
@@ -309,6 +317,8 @@ void GCodeGeometry::setInputFile(const QString& url)
 	loadGCodeProgram();
 	updateData();
 	update();
+
+	emit modelLoaded();
 }
 
 bool GCodeGeometry::normals() const { return m_hasNormals; }
@@ -455,6 +465,8 @@ uint32_t GCodeGeometry::getNumPathPointsUsed() const
 
 void GCodeGeometry::generateTriangles()
 {
+	Chronograph chronograph(__FUNCTION__, true);
+
 	uint32_t stride = 3 * sizeof(float);
 	if (m_hasNormals)
 	{
@@ -617,22 +629,6 @@ void GCodeGeometry::updateData()
 	addAttribute(QQuick3DGeometry::Attribute::IndexSemantic,
 				 0,
 				 QQuick3DGeometry::Attribute::U32Type);
-
-//    if (m_hasNormals) {
-//        addAttribute(QQuick3DGeometry::Attribute::NormalSemantic,
-//                     3 * sizeof(float),
-//                     QQuick3DGeometry::Attribute::F32Type);
-//    }
-
-//    if (m_hasUV) {
-//        addAttribute(QQuick3DGeometry::Attribute::TexCoordSemantic,
-//                     m_hasNormals ? 6 * sizeof(float) : 3 * sizeof(float),
-//                     QQuick3DGeometry::Attribute::F32Type);
-//    }
-
-//	geometryNodeDirty();
-	emit modelLoaded();
-	std::cout << __FUNCTION__ << std::endl;
 }
 
 void GCodeGeometry::setRectProfile(const Real width, const Real height)

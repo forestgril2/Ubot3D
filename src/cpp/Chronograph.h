@@ -12,7 +12,7 @@
 
 struct Chronograph
 {
-    using rep = unsigned long long;
+	using ulonglong = unsigned long long;
     using period =  std::ratio<1, 190000000u>; // My machine is 1.6-1.9 GHz
 
     // Define real time units
@@ -20,7 +20,7 @@ struct Chronograph
     using nanoseconds = std::chrono::nanoseconds;
     using microseconds = std::chrono::microseconds;
     using milliseconds =  std::chrono::milliseconds;
-    using duration = std::chrono::duration<rep, period>;
+	using duration = std::chrono::duration<ulonglong, period>;
     using Cycle = std::chrono::duration<double, period>;
     // Define double-based unit of clock tick
     using TimePoint = std::chrono::time_point<Chronograph>;
@@ -30,7 +30,7 @@ struct Chronograph
     Chronograph(const std::string&& measuredTimeAction, const bool isLoggingEnabled = true);
     ~Chronograph();
 
-    static void setOutputFile(std::string filePath);;
+	static void setOutputFile(std::string filePath);
     static TimePoint now() noexcept;
 
     void setLoggingEnabled(bool isEnabled);

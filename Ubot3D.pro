@@ -24,12 +24,14 @@ SUBDIRS += src/cpp src/qml
 SOURCES += src/cpp/main.cpp \
     src/cpp/examplegeometry.cpp \
     src/cpp/GCodeGeometry.cpp \
+    src/cpp/Chronograph.cpp \
     $$PWD/../gpr/src/gcode_program.cpp \
     $$PWD/../gpr/src/parser.cpp
 
 
 HEADERS +=  src/cpp/examplegeometry.h \
         src/cpp/GCodeGeometry.h \
+        src/cpp/Chronograph.h \
         $$PWD/../gpr/src/gcode_program.h \
         $$PWD/../gpr/src/parser.h
 

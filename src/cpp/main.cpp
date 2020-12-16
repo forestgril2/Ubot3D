@@ -9,6 +9,8 @@
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QVector>
 
+#include <Chronograph.h>
+
 int main(int argc, char *argv[])
 {
 	QGuiApplication app(argc, argv);
