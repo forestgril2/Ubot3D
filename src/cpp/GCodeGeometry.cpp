@@ -295,10 +295,8 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 		std::swap(_extruderSubPaths.back(), subPath);
 	}
 
-	setNumPointsInSubPath(maxPointsInSubPath);
-	setNumSubPaths(_extruderSubPaths.size());
-
-	_arePathsGenerated = true;
+	_numPointsInSubPath = maxPointsInSubPath;
+	_numSubPaths = _extruderSubPaths.size();
 }
 
 QString GCodeGeometry::getInputFile() const
@@ -308,14 +306,15 @@ QString GCodeGeometry::getInputFile() const
 
 void GCodeGeometry::setInputFile(const QString& url)
 {
+	std::cout << "### " << __FUNCTION__ << std::endl;
 	if (url == _inputFile)
 		return;
 
 	_inputFile = url;
-	_arePathsGenerated = false;
 	_areTrianglesReady = false;
 	loadGCodeProgram();
 	updateData();
+	std::cout << "### isComponentComplete:" << isComponentComplete() << std::endl;
 	update();
 
 	emit modelLoaded();
@@ -481,7 +480,10 @@ void GCodeGeometry::generateTriangles()
 	size_t numSubPathUsed = std::min<uint32_t>(static_cast<uint32_t>(_extruderSubPaths.size()), _numSubPaths);
 
 	if (numSubPathUsed == 0)
+	{
+		std::cout << "### " << __FUNCTION__ << ": numSubPathUsed == 0, return" << std::endl;
 		return;
+	}
 
 	for (uint32_t j = 0; j < numSubPathUsed; ++j)
 	{
@@ -489,7 +491,10 @@ void GCodeGeometry::generateTriangles()
 	}
 
 	if (numPathPoints == 0)
+	{
+		std::cout << "### " << __FUNCTION__ << ": numPathPoints == 0, return" << std::endl;
 		return;
+	}
 
 	std::cout << "### updateData() numSubPathUsed:" << numSubPathUsed << std::endl;
 	std::cout << "### updateData() numPathPoints:" << numPathPoints << std::endl;
@@ -584,13 +589,13 @@ void GCodeGeometry::generateTriangles()
 
 			prevPoint = currPoint;
 		}
-		// TODO: WATCH OUT FOR THIS -1 here!!!
+		// TODO: WATCH OUT FOR THIS -1 here!!! (It is necessary.)
 		totalPrevPathStrokesCount += subPath.size() -1;
 	}
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
 
 	setStride(static_cast<int32_t>(stride));
-	setNumPathStrokesUsed(totalPrevPathStrokesCount);
+	_numPathPointsUsed = totalPrevPathStrokesCount;
 
 	_areTrianglesReady = true;
 }
@@ -603,7 +608,9 @@ void GCodeGeometry::updateData()
 
 	if (!_areTrianglesReady)
 	{
+		std::cout << "### TRIANGLES NOT READY" << "" << std::endl;
 		generateTriangles();
+//		_areTrianglesReady = true;
 	}
 
 	QByteArray usedVertices(_allModelVertices);

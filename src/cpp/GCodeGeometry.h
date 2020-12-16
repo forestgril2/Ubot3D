@@ -107,7 +107,6 @@ private:
 	static const bool _isUsingCubeStruct = true;
 	bool _isPicked = false;
 	bool _areTrianglesReady = false;
-	bool _arePathsGenerated = false;
 
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
