@@ -31,12 +31,12 @@ static Vector3f minBound(FLT_MAX, FLT_MAX, FLT_MAX);
 // To have QSG included
 QT_BEGIN_NAMESPACE
 
-static const std::vector<Vector3f> squareVertices = {{-0.5, 0.0, 0.0},
+static const std::vector<Vector3f> _squareVertices = {{-0.5, 0.0, 0.0},
 													 {-0.5, 1.0, 0.0},
 													 { 0.5, 1.0, 0.0},
 													 { 0.5, 0.0, 0.0}};
 
-static const std::vector<Vector3f> cubeVertices = {//bottom
+static const std::vector<Vector3f> _cubeVertices = {//bottom
 												   {-0.5, 0.0, -0.5},
 												   {-0.5, 1.0, -0.5},
 												   { 0.5, 1.0, -0.5},
@@ -46,6 +46,9 @@ static const std::vector<Vector3f> cubeVertices = {//bottom
 												   {-0.5, 1.0, 0.5},
 												   { 0.5, 1.0, 0.5},
 												   { 0.5, 0.0, 0.5}};
+static const bool _isUsingCubeStruct = true;
+static const std::vector<Vector3f>& usedStructVertices = _isUsingCubeStruct ? _cubeVertices : _squareVertices;
+
 
 static void updateBounds(const float* vertexMatrixXCoord)
 {
@@ -409,6 +412,62 @@ uint32_t GCodeGeometry::getNumPathPointsUsed() const
 	return _numPathPointsUsed;
 }
 
+void GCodeGeometry::generateSubPathTriangles(const Vector3f& prevPoint, const Vector3f& pathStep, const uint32_t firstStructIndexInPathStep, float*& coordsPtr, uint32_t*& indicesPtr)
+{
+	const float length = pathStep.norm();
+	assert(length > FLT_MIN);
+	static const Vector3f profileDiag = _profile[2] - _profile[0];
+	const Matrix3f scale{{profileDiag.x(), 0,      0              },
+						 {0,               length, 0              },
+						 {0,               0,      profileDiag.y()}};
+	const Eigen::Quaternionf rotation = Quaternionf::FromTwoVectors(Vector3f{0,1,0}, pathStep);
+
+	std::vector<Vector3f> vertices = usedStructVertices;
+
+	std::for_each(vertices.begin(), vertices.end(), [&scale, &rotation, &prevPoint](Vector3f& v){
+		v = rotation*(scale*v) + prevPoint;
+	});
+
+	// Set vertex indices as in a rectangle.
+	auto setTriangleVertexCoords = [&coordsPtr, &vertices](const unsigned index) {
+		const Vector3f vertex = vertices[index];
+		*coordsPtr++ = vertex.x();
+		*coordsPtr++ = vertex.y();
+		*coordsPtr++ = vertex.z();
+		updateBounds(coordsPtr-3);
+	};
+
+	auto setTriangleVertexIndex = [&indicesPtr, firstStructIndexInPathStep](const unsigned structIndex) {
+		*indicesPtr++ = firstStructIndexInPathStep + structIndex;
+	};
+
+	auto setQuadVertexCoords = [setTriangleVertexCoords](const std::vector<ushort>&& indices) {
+		std::for_each(indices.begin(), indices.end(), setTriangleVertexCoords);
+	};
+
+	auto setQuadTriangleIndices = [setTriangleVertexIndex](const std::vector<ushort>&& indices) {
+		std::for_each(indices.begin(), indices.end(), setTriangleVertexIndex);
+	};
+
+	{// bottom quad - 4 vertices and 6 indices are enough
+		setQuadVertexCoords({0,1,2,3});
+		setQuadTriangleIndices({0,1,2,0,2,3});
+	}
+
+	if (_isUsingCubeStruct)
+	{// For a cuboid we need 4 more vertices and 5 more quads
+		// VERTICES
+		setQuadVertexCoords({4,5,6,7});
+
+		// QUADS
+		setQuadTriangleIndices({4,5,6,6,7,4}); // top
+		setQuadTriangleIndices({0,1,5,5,4,0}); // left
+		setQuadTriangleIndices({3,2,6,6,7,3}); // right
+		setQuadTriangleIndices({0,3,7,7,4,0}); // back
+		setQuadTriangleIndices({1,2,6,6,5,1}); // front
+	}
+}
+
 void GCodeGeometry::generateTriangles()
 {
 	if (_areTrianglesReady)
@@ -418,31 +477,26 @@ void GCodeGeometry::generateTriangles()
 
 	Chronograph chronograph(__FUNCTION__, true);
 
-	size_t numPathPoints = 0;
-	size_t numSubPathUsed = std::min<uint32_t>(static_cast<uint32_t>(_extruderSubPaths.size()), _numSubPaths);
-
-	if (numSubPathUsed == 0)
+	size_t numSubPathsUsed = std::min<uint32_t>(static_cast<uint32_t>(_extruderSubPaths.size()), _numSubPaths);
+	if (numSubPathsUsed == 0)
 	{
 		std::cout << "### " << __FUNCTION__ << ": numSubPathUsed == 0, return" << std::endl;
 		return;
 	}
+	std::cout << "### updateData() numSubPathUsed:" << numSubPathsUsed << std::endl;
 
-	for (uint32_t j = 0; j < numSubPathUsed; ++j)
+	size_t numPathPoints = 0;
+	for (uint32_t j = 0; j < numSubPathsUsed; ++j)
 	{
 		numPathPoints += std::min<uint32_t>(_numPointsInSubPath, static_cast<uint32_t>(_extruderSubPaths[j].size()));
 	}
-
 	if (numPathPoints == 0)
 	{
 		std::cout << "### " << __FUNCTION__ << ": numPathPoints == 0, return" << std::endl;
 		return;
 	}
-
-	std::cout << "### updateData() numSubPathUsed:" << numSubPathUsed << std::endl;
 	std::cout << "### updateData() numPathPoints:" << numPathPoints << std::endl;
 
-
-	const std::vector<Vector3f>& usedStructVertices = _isUsingCubeStruct ? cubeVertices : squareVertices;
 	static const ushort verticesPerPathPoint = static_cast<ushort>(usedStructVertices.size());
 	setStride(static_cast<int32_t>(3 * sizeof(float)));
 	_allModelVertices.resize(static_cast<int64_t>(verticesPerPathPoint * numPathPoints * static_cast<uint64_t>(stride())));
@@ -455,9 +509,8 @@ void GCodeGeometry::generateTriangles()
 	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(_allIndices.data());
 	uint32_t totalPrevPathStrokesCount = 0;
 
-	static const Vector3f profileDiag = _profile[2] - _profile[0];
 	Vector3f prevPoint;
-	for (uint32_t subPathIndex = 0; subPathIndex < numSubPathUsed; ++subPathIndex)
+	for (uint32_t subPathIndex = 0; subPathIndex < numSubPathsUsed; ++subPathIndex)
 	{
 		const std::vector<Vector3f>& subPath = _extruderSubPaths[subPathIndex];
 
@@ -476,60 +529,9 @@ void GCodeGeometry::generateTriangles()
 //			const Vector3f boundDiff = maxBound-minBound;
 			const Vector3f currPoint = subPath[subPathPointIndex];
 			const Vector3f pathStep = currPoint - prevPoint;
-			const float length = pathStep.norm();
-			assert(length > FLT_MIN);
-			const Matrix3f scale{{profileDiag.x(), 0,      0              },
-								 {0,               length, 0              },
-								 {0,               0,      profileDiag.y()}};
-			Eigen::Quaternionf rotation = Quaternionf::FromTwoVectors(Vector3f{0,1,0}, pathStep);
-
-			std::vector<Vector3f> usedVertices = usedStructVertices;
-
-			std::for_each(usedVertices.begin(), usedVertices.end(), [&scale, &rotation, &prevPoint](Vector3f& v){
-				v = rotation*(scale*v) + prevPoint;
-			});
-
-			// Set vertex indices as in a rectangle.
-			assert(std::numeric_limits<uint32_t>::max() >= static_cast<uint64_t>(totalPrevPathStrokesCount + subPathPointIndex -1) * static_cast<uint64_t>(usedVertices.size()));
-			const uint32_t firstStructIndexInPathStep = (totalPrevPathStrokesCount + subPathPointIndex -1) * static_cast<uint32_t>(usedVertices.size());
-			auto setTriangleVertexCoords = [&coordsPtr, &usedVertices](const unsigned index) {
-				const Vector3f vertex = usedVertices[index];
-				*coordsPtr++ = vertex.x();
-				*coordsPtr++ = vertex.y();
-				*coordsPtr++ = vertex.z();
-				updateBounds(coordsPtr-3);
-			};
-
-			auto setTriangleVertexIndex = [&indicesPtr, firstStructIndexInPathStep](const unsigned structIndex) {
-				*indicesPtr++ = firstStructIndexInPathStep + structIndex;
-			};
-
-			auto setQuadVertexCoords = [setTriangleVertexCoords](const std::vector<ushort>&& indices) {
-				std::for_each(indices.begin(), indices.end(), setTriangleVertexCoords);
-			};
-
-			auto setQuadTriangleIndices = [setTriangleVertexIndex](const std::vector<ushort>&& indices) {
-				std::for_each(indices.begin(), indices.end(), setTriangleVertexIndex);
-			};
-
-			{// bottom quad - 4 vertices and 6 indices are enough
-				setQuadVertexCoords({0,1,2,3});
-				setQuadTriangleIndices({0,1,2,0,2,3});
-			}
-
-			if (_isUsingCubeStruct)
-			{// For a cuboid we need 4 more vertices and 5 more quads
-				// VERTICES
-				setQuadVertexCoords({4,5,6,7});
-
-				// QUADS
-				setQuadTriangleIndices({4,5,6,6,7,4}); // top
-				setQuadTriangleIndices({0,1,5,5,4,0}); // left
-				setQuadTriangleIndices({3,2,6,6,7,3}); // right
-				setQuadTriangleIndices({0,3,7,7,4,0}); // back
-				setQuadTriangleIndices({1,2,6,6,5,1}); // front
-			}
-
+			assert(std::numeric_limits<uint32_t>::max() >= static_cast<uint64_t>(totalPrevPathStrokesCount + subPathPointIndex -1) * static_cast<uint64_t>(usedStructVertices.size()));
+			const uint32_t firstStructIndexInPathStep = (totalPrevPathStrokesCount + subPathPointIndex -1) * static_cast<uint32_t>(usedStructVertices.size());
+			generateSubPathTriangles(prevPoint, pathStep, firstStructIndexInPathStep, coordsPtr, indicesPtr);
 			prevPoint = currPoint;
 		}
 		// TODO: WATCH OUT FOR THIS -1 here!!! (It is necessary.)
@@ -553,7 +555,7 @@ void GCodeGeometry::updateData()
 	QByteArray usedIndices(_allIndices);
 
 	// TODO: Refactor - use things initialized previously in generateTriangles().
-	const std::vector<Vector3f>& usedStructVertices = _isUsingCubeStruct ? cubeVertices : squareVertices;
+	const std::vector<Vector3f>& usedStructVertices = _isUsingCubeStruct ? _cubeVertices : _squareVertices;
 	static const ushort verticesPerPathPoint = static_cast<ushort>(usedStructVertices.size());
 	usedVertices.resize(static_cast<int64_t>(verticesPerPathPoint * _numPathPointsUsed * uint32_t(stride())));
 	const ushort numRect = (_isUsingCubeStruct) ? 6u : 1u;

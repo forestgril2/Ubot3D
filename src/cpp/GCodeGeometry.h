@@ -65,8 +65,10 @@ signals:
 	void numPathPointsUsedChanged();
 
 private:
+	void loadGCodeProgram();
     void updateData();
 	void generateTriangles();
+	void generateSubPathTriangles(const Eigen::Vector3f& prevPoint, const Eigen::Vector3f& pathStep, const uint32_t firstStructIndexInPathStep, float*& coordsPtr, uint32_t*& indicesPtr);
 	void createExtruderPaths(const gpr::gcode_program& gcodeProgram);
 	void setRectProfile(const Real width, const Real height);
 	void dumpSubPath(const std::string& blockString, const std::vector<Eigen::Vector3f>& subPath);
@@ -79,7 +81,6 @@ private:
 
 	unsigned _numSubPaths = 0;
 	unsigned _numPointsInSubPath = 0;
-	static const bool _isUsingCubeStruct = true;
 	bool _isPicked = false;
 	bool _areTrianglesReady = false;
 
@@ -87,7 +88,4 @@ private:
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
 	QString _inputFile = "C:/Projects/Ubot3D/CE3_mandoblasterlow.gcode";
-//	QString _inputFile = "C:/Projects/Ubot3D/TEST.gcode";
-//		QString _inputFile = "C:/ProjectsData/stl_files/CE3_mandoblaster.gcode";
-	void loadGCodeProgram();
 };
