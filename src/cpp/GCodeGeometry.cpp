@@ -70,8 +70,7 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 {
 	Chronograph chronograph("Read gcode file contents", true);
 	std::ifstream t(file);
-	std::string file_contents((std::istreambuf_iterator<char>(t)),
-				  std::istreambuf_iterator<char>());
+	std::string file_contents((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 	chronograph.log();
 
 	chronograph.start("Parse gcode");
@@ -320,58 +319,6 @@ void GCodeGeometry::setInputFile(const QString& url)
 	emit modelLoaded();
 }
 
-bool GCodeGeometry::normals() const { return m_hasNormals; }
-
-void GCodeGeometry::setNormals(bool enable)
-{
-	if (m_hasNormals == enable)
-		return;
-
-    m_hasNormals = enable;
-    emit normalsChanged();
-    updateData();
-    update();
-}
-
-float GCodeGeometry::normalXY() const { return m_normalXY; }
-
-void GCodeGeometry::setNormalXY(float xy)
-{
-	if (m_normalXY == xy)
-        return;
-
-    m_normalXY = xy;
-    emit normalXYChanged();
-    updateData();
-    update();
-}
-
-bool GCodeGeometry::uv() const { return m_hasUV; }
-
-void GCodeGeometry::setUV(bool enable)
-{
-	if (m_hasUV == enable)
-        return;
-
-    m_hasUV = enable;
-    emit uvChanged();
-    updateData();
-    update();
-}
-
-float GCodeGeometry::uvAdjust() const { return m_uvAdjust; }
-
-void GCodeGeometry::setUVAdjust(float f)
-{
-	if (m_uvAdjust == f)
-        return;
-
-    m_uvAdjust = f;
-    emit uvAdjustChanged();
-    updateData();
-    update();
-}
-
 void GCodeGeometry::setBounds(const QVector3D& min, const QVector3D& max)
 {
 	QQuick3DGeometry::setBounds(min, max);
@@ -464,17 +411,12 @@ uint32_t GCodeGeometry::getNumPathPointsUsed() const
 
 void GCodeGeometry::generateTriangles()
 {
-	Chronograph chronograph(__FUNCTION__, true);
+	if (_areTrianglesReady)
+	{
+		return;
+	}
 
-	uint32_t stride = 3 * sizeof(float);
-	if (m_hasNormals)
-	{
-		stride += 3 * sizeof(float);
-	}
-	if (m_hasUV)
-	{
-		stride += 2 * sizeof(float);
-	}
+	Chronograph chronograph(__FUNCTION__, true);
 
 	size_t numPathPoints = 0;
 	size_t numSubPathUsed = std::min<uint32_t>(static_cast<uint32_t>(_extruderSubPaths.size()), _numSubPaths);
@@ -502,7 +444,8 @@ void GCodeGeometry::generateTriangles()
 
 	const std::vector<Vector3f>& usedStructVertices = _isUsingCubeStruct ? cubeVertices : squareVertices;
 	static const ushort verticesPerPathPoint = static_cast<ushort>(usedStructVertices.size());
-	_allModelVertices.resize(static_cast<int64_t>(verticesPerPathPoint * numPathPoints * stride));
+	setStride(static_cast<int32_t>(3 * sizeof(float)));
+	_allModelVertices.resize(static_cast<int64_t>(verticesPerPathPoint * numPathPoints * static_cast<uint64_t>(stride())));
 	float* coordsPtr = reinterpret_cast<float*>(_allModelVertices.data());
 
 	// One rectangle or 6 rects for cube.
@@ -592,11 +535,9 @@ void GCodeGeometry::generateTriangles()
 		// TODO: WATCH OUT FOR THIS -1 here!!! (It is necessary.)
 		totalPrevPathStrokesCount += subPath.size() -1;
 	}
+
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
-
-	setStride(static_cast<int32_t>(stride));
 	_numPathPointsUsed = totalPrevPathStrokesCount;
-
 	_areTrianglesReady = true;
 }
 
@@ -606,12 +547,7 @@ void GCodeGeometry::updateData()
 	clear();
 	setRectProfile(0.4f, 0.28f);
 
-	if (!_areTrianglesReady)
-	{
-		std::cout << "### TRIANGLES NOT READY" << "" << std::endl;
-		generateTriangles();
-//		_areTrianglesReady = true;
-	}
+	generateTriangles();
 
 	QByteArray usedVertices(_allModelVertices);
 	QByteArray usedIndices(_allIndices);

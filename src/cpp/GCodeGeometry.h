@@ -21,10 +21,6 @@ namespace gpr
 class GCodeGeometry : public QQuick3DGeometry
 {
     Q_OBJECT
-    Q_PROPERTY(bool normals READ normals WRITE setNormals NOTIFY normalsChanged)
-    Q_PROPERTY(float normalXY READ normalXY WRITE setNormalXY NOTIFY normalXYChanged)
-    Q_PROPERTY(bool uv READ uv WRITE setUV NOTIFY uvChanged)
-	Q_PROPERTY(float uvAdjust READ uvAdjust WRITE setUVAdjust NOTIFY uvAdjustChanged)
 	Q_PROPERTY(QVector3D minBounds READ minBounds WRITE setMinBounds NOTIFY boundsChanged)
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
@@ -39,18 +35,6 @@ public:
 
 	QString getInputFile() const;
 	void setInputFile(const QString& url);
-
-	bool normals() const;
-    void setNormals(bool enable);
-
-	float normalXY() const;
-    void setNormalXY(float xy);
-
-	bool uv() const;
-    void setUV(bool enable);
-
-	float uvAdjust() const;
-    void setUVAdjust(float f);
 
     void setBounds(const QVector3D &min, const QVector3D &max);
     QVector3D minBounds() const;
@@ -73,10 +57,6 @@ public slots:
 	void setMaxBounds(const QVector3D& maxBounds);
 
 signals:
-    void normalsChanged();
-    void normalXYChanged();
-    void uvChanged();
-    void uvAdjustChanged();
 	void boundsChanged();
 	void modelLoaded();
 	void isPickedChanged();
@@ -96,11 +76,6 @@ private:
 	std::vector<std::vector<Eigen::Vector3f>> _extruderSubPaths; /** Vectors of points along the center of the filament path. */
 	std::vector<Eigen::Vector3f> _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
 	uint32_t _numPathPointsUsed = 0;
-
-    bool m_hasNormals = false;
-    float m_normalXY = 0.0f;
-    bool m_hasUV = false;
-    float m_uvAdjust = 0.0f;
 
 	unsigned _numSubPaths = 0;
 	unsigned _numPointsInSubPath = 0;
