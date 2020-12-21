@@ -13,6 +13,12 @@
 #include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 
 using Real = float;
+using Vertex = Eigen::Vector3f;
+using Point = Eigen::Vector3f;
+using Vertices = std::vector<Vertex>;
+using Points = std::vector<Point>;
+using Indices = std::vector<uint32_t>;
+
 namespace gpr
 {
 	class gcode_program;
@@ -68,15 +74,19 @@ private:
 	void loadGCodeProgram();
     void updateData();
 	void generateTriangles();
-	void generateSubPathTriangles(const Eigen::Vector3f& prevPoint, const Eigen::Vector3f& pathStep, const uint32_t firstStructIndexInPathStep, float*& coordsPtr, uint32_t*& indicesPtr);
+	void generateSubPathTriangles(const Point& prevPoint,
+								  const Eigen::Vector3f& pathStep,
+								  const uint32_t firstStructIndexInPathStep,
+								  float*& coordsPtr,
+								  uint32_t*& indicesPtr);
 	void createExtruderPaths(const gpr::gcode_program& gcodeProgram);
 	void setRectProfile(const Real width, const Real height);
-	void dumpSubPath(const std::string& blockString, const std::vector<Eigen::Vector3f>& subPath);
+	void dumpSubPath(const std::string& blockString, const Points& subPath);
 
 	QByteArray _allIndices;
 	QByteArray _allModelVertices;
-	std::vector<std::vector<Eigen::Vector3f>> _extruderSubPaths; /** Vectors of points along the center of the filament path. */
-	std::vector<Eigen::Vector3f> _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
+	std::vector<Points> _extruderSubPaths; /** Vectors of points along the center of the filament path. */
+	Vertices _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
 	uint32_t _numPathPointsUsed = 0;
 
 	unsigned _numSubPaths = 0;
