@@ -39,6 +39,13 @@ static std::vector<T> range(const unsigned N) {
 };
 
 template <typename T>
+static std::vector<T> range(const T start, const unsigned N) {
+	std::vector<T> out(N);
+	std::iota(out.begin(), out.end(), start);
+	return out;
+};
+
+template <typename T>
 static void range_test()
 {
 	assert(range<T>(0).size() == 0);
@@ -46,6 +53,12 @@ static void range_test()
 	assert(range<T>(100).size() == 100);
 	assert(range<T>(100)[0] == 0);
 	assert(range<T>(100)[99] == 99);
+
+	assert(range<T>(1, 0).size() == 0);
+	assert(range<T>(1, 1).size() == 1);
+	assert(range<T>(1, 100).size() == 100);
+	assert(range<T>(1, 100)[0] == 1);
+	assert(range<T>(1, 100)[99] == 100);
 //    std::cout << " ### " << __FUNCTION__  << ": OK!" << std::endl;
 }
 
@@ -72,21 +85,48 @@ static void generateCylinderVertices(const float radius, const float height, con
 
 }
 
-static std::pair<Vertices, Indices> generateCircle(const Point center, const Vector3f radius, unsigned short numCirclePoints = 20)
+static std::pair<Vertices, Indices> generateCirclePies(const Point& center,
+													   const Vector3f& radiusStart,
+													   const Vector3f& radiusEnd,
+													   const float height,
+													   unsigned short numCirclePoints = 20)
 {
 	Vertices vert{center};
 	Indices ind;
-	const float angleStep = 2.0f * float(M_PI) / numCirclePoints;
-	for(float p : range<float>(numCirclePoints))
+	const float angle = atan2(radiusEnd.y(), radiusEnd.x()) - atan2(radiusStart.y(), radiusStart.x());
+	const float angleStep = angle / float(numCirclePoints);
+	for(float p : range<float>(numCirclePoints+1))
 	{
 		const float cos = std::cosf(p*angleStep);
 		const float sin = std::sinf(p*angleStep);
-		vert.push_back(center + Matrix3f{{cos, -sin, 0},{sin, cos, 0}, {0, 0, 1}}*radius);
+		vert.push_back(center + Matrix3f{{cos , -sin, 0},
+										 {sin,   cos, 0},
+										 {0,       0, 1}} * radiusStart);
+
+		if (unsigned(p) == numCirclePoints)
+		{// We only need the last vertex from the final iteration.
+			break;
+		}
+
 		ind.push_back(0);
 		ind.push_back(uint32_t(p)+1);
 		ind.push_back(uint32_t(p)+2);
 	}
-	ind.back() = 1;
+
+	const Vector3f heightShift{0,0,height};
+	const unsigned upperCircleCenterIndex = vert.size();
+	const unsigned prevIndicesSize = ind.size();
+	vert.resize(2*upperCircleCenterIndex);
+	ind.resize(2*prevIndicesSize);
+	for (uint32_t i = 0, j = upperCircleCenterIndex; i < upperCircleCenterIndex; ++i, ++j)
+	{
+		vert[j] = vert[i] + heightShift;
+	}
+	for (uint32_t i = 0, j = prevIndicesSize; i < prevIndicesSize; ++i, ++j)
+	{
+		ind[j] = ind[i] + upperCircleCenterIndex;
+	}
+
 	return {vert, ind};
 }
 
@@ -602,7 +642,7 @@ void GCodeGeometry::generateTriangles()
 		totalPrevPathStrokesCount += subPath.size() -1;
 	}
 
-	std::pair<Vertices, Indices> circleGeometry = generateCircle({100,100,0}, {15,0,0});
+	std::pair<Vertices, Indices> circleGeometry = generateCirclePies({100,100,0}, {15,15,0}, {-15,0,0}, 10);
 
 	const Vertices& circleGeometryVertices = circleGeometry.first;
 	const Indices& circleGeometryIndices = circleGeometry.second;
