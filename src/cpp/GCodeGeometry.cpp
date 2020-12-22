@@ -113,26 +113,36 @@ static std::pair<Vertices, Indices> generateCirclePies(const Point& center,
 		ind.push_back(uint32_t(p)+2);
 	}
 
+	// Copy thecircle  pie shifted by height in z-direction.
 	const Vector3f heightShift{0,0,height};
-	const unsigned upperCircleCenterIndex = vert.size();
-	const unsigned prevIndicesSize = ind.size();
+	const uint32_t upperCircleCenterIndex = uint32_t(vert.size());
+	const uint32_t firstIndicesSize = uint32_t(ind.size());
 	vert.resize(2*upperCircleCenterIndex);
-	ind.resize(2*prevIndicesSize);
+	ind.resize(2*firstIndicesSize);
 	for (uint32_t i = 0, j = upperCircleCenterIndex; i < upperCircleCenterIndex; ++i, ++j)
 	{
 		vert[j] = vert[i] + heightShift;
 	}
-	for (uint32_t i = 0, j = prevIndicesSize; i < prevIndicesSize; ++i, ++j)
+	for (uint32_t i = 0, j = firstIndicesSize; i < firstIndicesSize; ++i, ++j)
 	{
 		ind[j] = ind[i] + upperCircleCenterIndex;
 	}
 
+	// Setup pie cylinder side part indices, 1 quad == 2 triangles per each point
+	const uint32_t secondIndSize = uint32_t(ind.size());
+	ind.resize(ind.size() + (6 * numCirclePoints));
+	uint32_t* triangleIndexPtr = &ind[secondIndSize];
+	for (uint32_t i = 1, j = firstIndicesSize +1; i < 3*numCirclePoints; i+=3, j+=3)
+	{
+		*triangleIndexPtr++ = ind[i];
+		*triangleIndexPtr++ = ind[j];
+		*triangleIndexPtr++ = ind[i+1];
+		*triangleIndexPtr++ = ind[i+1];
+		*triangleIndexPtr++ = ind[j+1];
+		*triangleIndexPtr++ = ind[j];
+	}
+
 	return {vert, ind};
-}
-
-static Vertices generatePieVertices(const float radius, const float height, const unsigned short numCirclePoints = 20)
-{
-
 }
 
 static const bool _isUsingCubeStruct = true;
