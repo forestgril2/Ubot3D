@@ -74,13 +74,11 @@ private:
 	void loadGCodeProgram();
     void updateData();
 	void generateTriangles();
-	void generateSubPathTriangles(const Point& prevPoint,
-								  const Eigen::Vector3f& pathStep,
-								  const uint32_t firstStructIndexInPathStep,
-								  float*& coordsPtr,
-								  uint32_t*& indicesPtr);
+	void generateSubPathData(const Point& prevPoint, const Eigen::Vector3f& pathStep, const uint32_t firstStructIndexInPathStep,
+							 QByteArray& _allIndices, QByteArray& _allModelVertices);
 	void createExtruderPaths(const gpr::gcode_program& gcodeProgram);
 	void setRectProfile(const Real width, const Real height);
+	void setupPieData(float*& coordsPtr, uint32_t*& indicesPtr);
 	void dumpSubPath(const std::string& blockString, const Points& subPath);
 
 	QByteArray _allIndices;
