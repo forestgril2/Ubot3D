@@ -53,7 +53,7 @@ public:
 	uint32_t getNumSubPaths() const;
 
 	void setNumPointsInSubPath(const uint32_t num);
-	unsigned getNumPointsInSubPath() const;
+	uint32_t getNumPointsInSubPath() const;
 
 	void setNumPathStepsUsed(const uint32_t num);
 	uint32_t getNumPathPointsUsed() const;
@@ -72,26 +72,31 @@ signals:
 
 private:
 	void loadGCodeProgram();
-    void updateData();
-	void generateTriangles();
-	void generateSubPathData(const Point& prevPoint, const Eigen::Vector3f& pathStep, const uint32_t meshIndexInPathStep, QByteArray& modelVertices,
-							 QByteArray& modelIndices);
-	void createExtruderPaths(const gpr::gcode_program& gcodeProgram);
 	void setRectProfile(const Real width, const Real height);
-	void setupPieData(float*& coordsPtr, uint32_t*& indicesPtr);
-	void dumpSubPath(const std::string& blockString, const Points& subPath);
+	void createExtruderPaths(const gpr::gcode_program& gcodeProgram);
 	size_t calcVerifyModelNumbers();
+    void updateData();
+	void generateSubPathCurve(QByteArray& modelVertices,
+							  QByteArray& modelIndices);
+	void generateSubPathStep(const Point& prevPoint,
+							 const Eigen::Vector3f& pathStep,
+							 QByteArray& modelVertices,
+							 QByteArray& modelIndices);
+	void generate();
+	void dumpSubPath(const std::string& blockString, const Points& subPath);
 
-	QByteArray _allIndices;
-	QByteArray _allModelVertices;
-	std::vector<Points> _extruderSubPaths; /** Vectors of points along the center of the filament path. */
-	Vertices _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
-	uint32_t _numPathStepsUsed;
-
-	unsigned _numSubPaths = 0;
-	unsigned _maxNumPointsInSubPath = 0;
 	bool _isPicked = false;
-	bool _areTrianglesReady = false;
+	bool _wasGenerated = false;
+
+	uint32_t _numSubPaths = 0;
+	uint32_t _maxNumPointsInSubPath = 0;
+	std::vector<Points> _extruderSubPaths;            /** Vectors of points along the center of the filament path. */
+	uint32_t _numPathStepsUsed;
+	QByteArray _modelIndices;
+	QByteArray _modelVertices;
+	std::vector<float*> _pathStepVertexCoordPointers; /** Pointers to beginnings of vertices of consecutive path steps. */
+	std::vector<uint32_t*> _pathStepIndexPointers;    /** Pointers to beginnings of indices of consecutive path steps. */
+	Vertices _profile;                                /** Defines a cross section of the filament path boundary (along the z-direction). */
 
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;

@@ -79,7 +79,7 @@ static const Vertices _cubeVertices = {//bottom
 									   { 0.5, 1.0, 0.5},
 									   { 0.5, 0.0, 0.5}};
 
-static std::pair<Vertices, Indices> generateCirclePies(const Point& center,
+static std::pair<Vertices, Indices> generateCylinderPie(const Point& center,
 													   const Vector3f& radiusStart,
 													   const Vector3f& radiusEnd,
 													   const float height,
@@ -413,7 +413,7 @@ void GCodeGeometry::setInputFile(const QString& url)
 		return;
 
 	_inputFile = url;
-	_areTrianglesReady = false;
+	_wasGenerated = false;
 	loadGCodeProgram();
 	updateData();
 	std::cout << "### isComponentComplete:" << isComponentComplete() << std::endl;
@@ -491,7 +491,7 @@ void GCodeGeometry::setNumPointsInSubPath(const unsigned num)
 	emit numPointsInSubPathChanged();
 }
 
-unsigned GCodeGeometry::getNumPointsInSubPath() const
+uint32_t GCodeGeometry::getNumPointsInSubPath() const
 {
 	return _maxNumPointsInSubPath;
 }
@@ -512,9 +512,8 @@ uint32_t GCodeGeometry::getNumPathPointsUsed() const
 	return _numPathStepsUsed;
 }
 
-void GCodeGeometry::generateSubPathData(const Point& prevPoint,
+void GCodeGeometry::generateSubPathStep(const Point& prevPoint,
 										const Vector3f& pathStep,
-										const uint32_t meshIndexInPathStep,
 										QByteArray& modelVertices,
 										QByteArray& modelIndices)
 {
@@ -536,10 +535,10 @@ void GCodeGeometry::generateSubPathData(const Point& prevPoint,
 	static const uint32_t numAddedIndices = std::accumulate(cubeMeshQuadIndices.begin(), cubeMeshQuadIndices.end(), 0u,
 															[](uint32_t acc, const Indices& indices){ return indices.size() + acc; });
 
-
-
 	const uint32_t prevVerticesSize = uint32_t(modelVertices.size());
 	const uint32_t prevIndicesSize = uint32_t(modelIndices.size());
+
+	const uint32_t newVertexIndex = prevVerticesSize/static_cast<uint32_t>(stride());
 
 	modelVertices.resize(prevVerticesSize + numAddedVertices*static_cast<int64_t>(stride()));
 	modelIndices.resize(prevIndicesSize + numAddedIndices*sizeof(uint32_t));
@@ -559,7 +558,7 @@ void GCodeGeometry::generateSubPathData(const Point& prevPoint,
 		v = rotation*(scale*v) + prevPoint;
 	});
 
-	auto setTriangleVertexCoords = [&coordsPtr, &vertices](const unsigned index) {
+	const auto setTriangleVertexCoords = [&coordsPtr, &vertices](const unsigned index) {
 		const Vertex vertex = vertices[index];
 		*coordsPtr++ = vertex.x();
 		*coordsPtr++ = vertex.y();
@@ -567,50 +566,51 @@ void GCodeGeometry::generateSubPathData(const Point& prevPoint,
 		updateBounds(coordsPtr - 3);
 	};
 
-	auto setTriangleVertexIndex = [&indicesPtr, meshIndexInPathStep](const unsigned structIndex) {
-		*indicesPtr++ = meshIndexInPathStep + structIndex;
+	const auto setTriangleVertexIndex = [&indicesPtr, newVertexIndex](const unsigned appendedStructIndex) {
+		*indicesPtr++ = newVertexIndex + appendedStructIndex;
 	};
 
-	auto setQuadVertexCoords = [setTriangleVertexCoords](const std::vector<uint32_t>& indices) {
+	const auto setQuadVertexCoords = [setTriangleVertexCoords](const std::vector<uint32_t>& indices) {
 		std::for_each(indices.begin(), indices.end(), setTriangleVertexCoords);
 	};
 
-	auto setQuadTriangleIndices = [setTriangleVertexIndex](const std::vector<uint32_t>& indices) {
+	const auto setQuadTriangleIndices = [setTriangleVertexIndex](const std::vector<uint32_t>& indices) {
 		std::for_each(indices.begin(), indices.end(), setTriangleVertexIndex);
 	};
 
 	setQuadVertexCoords(cubeMeshVertexIndices);
 	std::for_each(cubeMeshQuadIndices.begin(), cubeMeshQuadIndices.end(), setQuadTriangleIndices);
 
-	const short unsigned numOfPointsInCylinderCircleBase = 20;
-	const float height = profileDiag.y();
-	const float radius = 0.5f * profileDiag.x();
+	// Remember pointers to the ends of the vertex and index arrays (1 past the last array positions).
+	_pathStepVertexCoordPointers.push_back(coordsPtr);
+	_pathStepIndexPointers.push_back(indicesPtr);
 }
 
-void GCodeGeometry::setupPieData(float*& coordsPtr, uint32_t*& indicesPtr)
+void GCodeGeometry::generateSubPathCurve(QByteArray& modelVertices, QByteArray& modelIndices)
 {
-	std::pair<Vertices, Indices> circleGeometry = generateCirclePies({100,100,0}, {15,0,0}, {0,-15,0}, 10);
+	const std::pair<Vertices, Indices> cylinderPieGeometry = generateCylinderPie({100,100,0}, {15,0,0}, {0,-15,0}, 10);
 
-	const Vertices& circleGeometryVertices = circleGeometry.first;
-	const Indices& circleGeometryIndices = circleGeometry.second;
+	const Vertices& cylinderPieVertices = cylinderPieGeometry.first;
+	const Indices& cylinderPieIndices = cylinderPieGeometry.second;
 
-	const uint32_t numCircleGeometryVertices = uint32_t(circleGeometryVertices.size());
-	const uint32_t numCircleGeometryindices = uint32_t(circleGeometryIndices .size());
+	const uint32_t prevVerticesSize = uint32_t(modelVertices.size());
+	const uint32_t prevIndicesSize = uint32_t(modelIndices.size());
 
-	const uint32_t prevVerticesSize = uint32_t(_allModelVertices.size());
-	const uint32_t prevIndicesSize = uint32_t(_allIndices.size());
+	const uint32_t numCircleGeometryVertices = uint32_t(cylinderPieVertices.size());
+	const uint32_t numCircleGeometryindices = uint32_t(cylinderPieIndices.size());
 
-//	_allModelVertices.resize(prevVerticesSize + numCircleGeometryVertices);
-//		  _allIndices.resize(prevIndicesSize  + numCircleGeometryindices);
-	_allModelVertices.resize(static_cast<int64_t>(numCircleGeometryVertices * static_cast<uint64_t>(stride())));
-		  _allIndices.resize(numCircleGeometryindices * static_cast<uint32_t>(sizeof(uint32_t)));
+	assert(std::numeric_limits<uint32_t>::max() >= prevVerticesSize + numCircleGeometryVertices * static_cast<uint32_t>(stride()));
+	assert(std::numeric_limits<uint32_t>::max() >= prevIndicesSize + numCircleGeometryindices*sizeof(uint32_t));
 
-	coordsPtr = reinterpret_cast<float*>(_allModelVertices.data());
-	indicesPtr = reinterpret_cast<uint32_t*>(_allIndices.data());
+	modelVertices.resize(prevVerticesSize + numCircleGeometryVertices * static_cast<uint32_t>(stride()));
+	 modelIndices.resize(prevIndicesSize  + numCircleGeometryindices  * sizeof(uint32_t));
+
+	float* coordsPtr = reinterpret_cast<float*>(modelVertices.data()[prevVerticesSize]);
+	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(modelIndices.data()[prevIndicesSize]);
 
 	for(uint32_t v = 0; v < numCircleGeometryVertices; ++v)
 	{
-		const Vertex vertex = circleGeometryVertices[v];
+		const Vertex vertex = cylinderPieVertices[v];
 		*coordsPtr++ = vertex.x();
 		*coordsPtr++ = vertex.y();
 		*coordsPtr++ = vertex.z();
@@ -618,9 +618,12 @@ void GCodeGeometry::setupPieData(float*& coordsPtr, uint32_t*& indicesPtr)
 
 	for(uint32_t i = 0; i < numCircleGeometryindices; ++i)
 	{
-//		*indicesPtr++ = prevVerticesSize + circleGeometryIndices[i];
-		*indicesPtr++ = circleGeometryIndices[i];
+		*indicesPtr++ = cylinderPieIndices[i];
 	}
+
+	// Remember pointers to the ends of the vertex and index arrays (1 past the last array positions).
+	_pathStepVertexCoordPointers.push_back(coordsPtr);
+	_pathStepIndexPointers.push_back(indicesPtr);
 }
 
 size_t GCodeGeometry::calcVerifyModelNumbers()
@@ -647,88 +650,79 @@ size_t GCodeGeometry::calcVerifyModelNumbers()
 	return numSubPathsUsed;
 }
 
-void GCodeGeometry::generateTriangles()
+void GCodeGeometry::generate()
 {
-	if (_areTrianglesReady)
+	if (_wasGenerated)
 	{
 		return;
 	}
 
 	Chronograph chronograph(__FUNCTION__, true);
 
-	const size_t numSubPathsUsed = calcVerifyModelNumbers();
+	calcVerifyModelNumbers();
 
-	// TODO: This needs to be changed to accomodate for a custom structure..
 	setStride(static_cast<int32_t>(3 * sizeof(float)));
-	_allModelVertices.resize(0);
-	_allIndices.resize(0);
+	_modelVertices.resize(0);
+	_modelIndices.resize(0);
 
-	// One rectangle or 6 rects for cube.
-	// TODO: This needs to be changed to accomodate for a custom structure..
-	uint32_t totalPathStepsCount = 0;
+	_pathStepVertexCoordPointers.push_back(reinterpret_cast<float*>(_modelVertices.data()));
+	_pathStepIndexPointers.push_back(reinterpret_cast<uint32_t*>(_modelIndices.data()));
 
 	Point prevPoint;
 	for (const Points& subPath : _extruderSubPaths)
-	{// For every subPath - a contiguous extrusion path points.
+	{// For every subPath - which is a contiguous set of consecutive extrusion points - generate a corresponding geometry.
 		if (subPath.empty())
 		{
 			std::cout << " ### WARNING empty path " << std::endl;
 			continue;
 		}
 
+		if (subPath.size() < 2)
+		{
+			std::cout << " ### WARNING subPath.size() == 1 " << std::endl;
+			continue;
+		}
+
+		// Prepend the first subPath point with half of a cylinder.
+		generateSubPathCurve(_modelVertices, _modelIndices);
+
 		const uint32_t numSubPathPoints = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size())) -1;
-		// TODO: This needs to be changed to accomodate for a custom structure..
-		assert(std::numeric_limits<uint32_t>::max() >= static_cast<uint64_t>(totalPathStepsCount + numSubPathPoints -1) * static_cast<uint64_t>(_cubeVertices.size()));
 
 		// To get a path step with known length we need the first point of subPath defined and start iterating from the second point.
 		prevPoint = subPath[0];
-//		++totalPathStepsCount;
+		// TODO: The last point should be generated differently (should be: subPathPointIndex < numSubPathPoints)
 		for (uint32_t subPathPointIndex = 1; subPathPointIndex <= numSubPathPoints; ++subPathPointIndex)
 		{
-//			if (totalPathStepsCount >= _numPathStepsUsed)
-//				break;
-
 			const Point& currPoint = subPath[subPathPointIndex];
 			const Vector3f pathStep = currPoint - prevPoint;
-			// TODO: This needs to be changed to accomodate for a custom structure..
-			const uint32_t meshVertexIndex = (totalPathStepsCount + subPathPointIndex -1) * static_cast<uint32_t>(_cubeVertices.size());
-
-			generateSubPathData(prevPoint, pathStep, meshVertexIndex, _allModelVertices, _allIndices);
-
+			generateSubPathStep(prevPoint, pathStep, _modelVertices, _modelIndices);
 			prevPoint = currPoint;
-
-//			++totalPathStepsCount;
 		}
-		totalPathStepsCount += numSubPathPoints;
+		// The last point should be generated differently.
 
-//		if (totalPathStepsCount >= _numPathStepsUsed)
-//			break;
+		// Append a half circle to the end of the subPath.
 	}
-
-	_numPathStepsUsed = totalPathStepsCount;
-
-//	setupPieData(coordsPtr, indicesPtr);
-
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
-	_areTrianglesReady = true;
+
+	_wasGenerated = true;
 }
 
 void GCodeGeometry::updateData()
 {
 	clear();
-	generateTriangles();
+	generate();
 
-	QByteArray usedVertices(_allModelVertices);
-	QByteArray usedIndices(_allIndices);
+	QByteArray usedVertices(_modelVertices);
+	QByteArray usedIndices(_modelIndices);
 
-	static const ushort numRectsPerPathStep = 6u;
-	static const ushort numIndicesPerRect = 6u;
-	static const ushort verticesPerPathStep = static_cast<ushort>(_cubeVertices.size());
+	// Remember pointers to the ends of the vertex and index arrays (1 past the last array positions).
+	const float* ptrToNextPathStepVertexCoord = _pathStepVertexCoordPointers[_numPathStepsUsed -1];
+	const uint32_t* ptrToNextPathStepIndex = _pathStepIndexPointers[_numPathStepsUsed -1];
 
-	usedVertices.resize(_numPathStepsUsed * verticesPerPathStep *  uint32_t(stride()));
-	usedIndices.resize(_numPathStepsUsed * numRectsPerPathStep * numIndicesPerRect * sizeof(uint32_t));
+	usedVertices.resize(ptrToNextPathStepVertexCoord - reinterpret_cast<float*>(_modelVertices.data()));
+	usedIndices.resize(ptrToNextPathStepIndex - reinterpret_cast<uint32_t*>(_modelIndices.data()));
 
-	// TODO?: Refactor - use things initialized previously in generateTriangles()?.
+	// TODO?: Refactor - use things initialized previously in generate()?.
 
 //	std::cout << "### verticesPerPathStep :" << verticesPerPathStep << std::endl;
 //	std::cout << "### _numPathStepsUsed :" << _numPathStepsUsed << std::endl;
