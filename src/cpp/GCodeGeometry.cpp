@@ -199,7 +199,7 @@ GCodeGeometry::GCodeGeometry()
 
 	connect(this, &GCodeGeometry::numSubPathsChanged, this, updateDataAndUpdate);
 	connect(this, &GCodeGeometry::numPointsInSubPathChanged, this, updateDataAndUpdate);
-	connect(this, &GCodeGeometry::numPathPointsUsedChanged, this, updateDataAndUpdate);
+	connect(this, &GCodeGeometry::numPathPointsStepsChanged, this, updateDataAndUpdate);
 }
 
 void GCodeGeometry::dumpSubPath(const std::string& blockString, const Points& subPath)
@@ -396,7 +396,7 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 		std::swap(_extruderSubPaths.back(), subPath);
 	}
 
-	_numPointsInSubPath = maxPointsInSubPath;
+	_maxNumPointsInSubPath = maxPointsInSubPath;
 	_numSubPaths = _extruderSubPaths.size();
 }
 
@@ -482,68 +482,69 @@ unsigned GCodeGeometry::getNumSubPaths() const
 
 void GCodeGeometry::setNumPointsInSubPath(const unsigned num)
 {
-	if (_numPointsInSubPath == num)
+	if (_maxNumPointsInSubPath == num)
 		return;
 
-	_numPointsInSubPath = num;
+	_maxNumPointsInSubPath = num;
 
 	emit numPointsInSubPathChanged();
 }
 
 unsigned GCodeGeometry::getNumPointsInSubPath() const
 {
-	return _numPointsInSubPath;
+	return _maxNumPointsInSubPath;
 }
 
-void GCodeGeometry::setNumPathStrokesUsed(const uint32_t num)
+void GCodeGeometry::setNumPathStepsUsed(const uint32_t num)
 {
-	if (_numPathPointsUsed == num)
+	if (_numPathStepsUsed == num)
 		return;
 
-	_numPathPointsUsed = num;
+	_numPathStepsUsed = num;
 
-	emit numPathPointsUsedChanged();
+	emit numPathPointsStepsChanged();
 
 }
 
 uint32_t GCodeGeometry::getNumPathPointsUsed() const
 {
-	return _numPathPointsUsed;
+	return _numPathStepsUsed;
 }
 
 void GCodeGeometry::generateSubPathData(const Point& prevPoint,
-																const Vector3f& pathStep,
-																const uint32_t firstStructIndexInPathStep,
-																QByteArray& _allIndices,
-																QByteArray& _allModelVertices)
+										const Vector3f& pathStep,
+										const uint32_t meshIndexInPathStep,
+										QByteArray& modelVertices,
+										QByteArray& modelIndices)
 {
 	const float length = pathStep.norm();
 	assert(length > FLT_MIN);
 
 	// VERTICES
-	static const Indices cubeStructVertexIndices = {0,1,2,3,4,5,6,7};
+	static const Indices cubeMeshVertexIndices = {0,1,2,3,4,5,6,7};
 
 	// QUADS
-	static const std::vector<Indices> cubeStructQuadIndices = {{0,1,2,0,2,3}, // bottom
-															   {4,5,6,6,7,4}, // top
-															   {0,1,5,5,4,0}, // left
-															   {3,2,6,6,7,3},// right
-															   {0,3,7,7,4,0}, // back
-															   {1,2,6,6,5,1}};// front*/
+	static const std::vector<Indices> cubeMeshQuadIndices = {{0,1,2,0,2,3}, // bottom
+															 {4,5,6,6,7,4}, // top
+															 {0,1,5,5,4,0}, // left
+															 {3,2,6,6,7,3}, // right
+															 {0,3,7,7,4,0}, // back
+															 {1,2,6,6,5,1}};// front*/
 
-	static const uint32_t numAddedVertices = uint32_t(cubeStructVertexIndices.size());
-	static const uint32_t numAddedIndices = std::accumulate(cubeStructQuadIndices.begin(), cubeStructQuadIndices.end(), 0u,
+	static const uint32_t numAddedVertices = uint32_t(cubeMeshVertexIndices.size());
+	static const uint32_t numAddedIndices = std::accumulate(cubeMeshQuadIndices.begin(), cubeMeshQuadIndices.end(), 0u,
 															[](uint32_t acc, const Indices& indices){ return indices.size() + acc; });
 
 
-	const uint32_t prevVerticesSize = uint32_t(_allModelVertices.size());
-	const uint32_t prevIndicesSize = uint32_t(_allIndices.size());
 
-	_allModelVertices.resize(prevVerticesSize + numAddedVertices*static_cast<int64_t>(stride()));
-	_allIndices.resize(prevIndicesSize + numAddedIndices*sizeof(uint32_t));
+	const uint32_t prevVerticesSize = uint32_t(modelVertices.size());
+	const uint32_t prevIndicesSize = uint32_t(modelIndices.size());
 
-	float* coordsPtr = reinterpret_cast<float*>(&_allModelVertices[prevVerticesSize]);
-	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(&_allIndices[prevIndicesSize]);
+	modelVertices.resize(prevVerticesSize + numAddedVertices*static_cast<int64_t>(stride()));
+	modelIndices.resize(prevIndicesSize + numAddedIndices*sizeof(uint32_t));
+
+	float* coordsPtr = reinterpret_cast<float*>(&(modelVertices[prevVerticesSize]));
+	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(&(modelIndices[prevIndicesSize]));
 
 	static const Vector3f profileDiag = _profile[2] - _profile[0];
 	const Matrix3f scale{{profileDiag.x(), 0,      0              },
@@ -557,18 +558,16 @@ void GCodeGeometry::generateSubPathData(const Point& prevPoint,
 		v = rotation*(scale*v) + prevPoint;
 	});
 
-
-	// Set vertex indices as in a rectangle.
 	auto setTriangleVertexCoords = [&coordsPtr, &vertices](const unsigned index) {
 		const Vertex vertex = vertices[index];
 		*coordsPtr++ = vertex.x();
 		*coordsPtr++ = vertex.y();
 		*coordsPtr++ = vertex.z();
-		updateBounds(coordsPtr-3);
+		updateBounds(coordsPtr - 3);
 	};
 
-	auto setTriangleVertexIndex = [&indicesPtr, firstStructIndexInPathStep](const unsigned structIndex) {
-		*indicesPtr++ = firstStructIndexInPathStep + structIndex;
+	auto setTriangleVertexIndex = [&indicesPtr, meshIndexInPathStep](const unsigned structIndex) {
+		*indicesPtr++ = meshIndexInPathStep + structIndex;
 	};
 
 	auto setQuadVertexCoords = [setTriangleVertexCoords](const std::vector<uint32_t>& indices) {
@@ -579,8 +578,8 @@ void GCodeGeometry::generateSubPathData(const Point& prevPoint,
 		std::for_each(indices.begin(), indices.end(), setTriangleVertexIndex);
 	};
 
-	setQuadVertexCoords(cubeStructVertexIndices);
-	std::for_each(cubeStructQuadIndices.begin(), cubeStructQuadIndices.end(), setQuadTriangleIndices);
+	setQuadVertexCoords(cubeMeshVertexIndices);
+	std::for_each(cubeMeshQuadIndices.begin(), cubeMeshQuadIndices.end(), setQuadTriangleIndices);
 
 	const short unsigned numOfPointsInCylinderCircleBase = 20;
 	const float height = profileDiag.y();
@@ -623,6 +622,30 @@ void GCodeGeometry::setupPieData(float*& coordsPtr, uint32_t*& indicesPtr)
 	}
 }
 
+size_t GCodeGeometry::calcVerifyModelNumbers()
+{
+	const size_t numSubPathsUsed = 1;//std::min<uint32_t>(static_cast<uint32_t>(_extruderSubPaths.size()), _numSubPaths);
+	if (numSubPathsUsed == 0)
+	{
+		std::cout << "### " << __FUNCTION__ << ": numSubPathUsed == 0, return" << std::endl;
+		exit(-1);
+	}
+	std::cout << "### updateData() numSubPathUsed:" << numSubPathsUsed << std::endl;
+
+	size_t numPathPoints = 0;
+	for (uint32_t subPathIndex = 0; subPathIndex < numSubPathsUsed; ++subPathIndex)
+	{
+		numPathPoints += std::min<uint32_t>(_maxNumPointsInSubPath, static_cast<uint32_t>(_extruderSubPaths[subPathIndex].size()));
+	}
+	if (numPathPoints == 0)
+	{
+		std::cout << "### " << __FUNCTION__ << ": numPathPoints == 0, return" << std::endl;
+		exit(-1);
+	}
+	std::cout << "### updateData() numPathPoints:" << numPathPoints << std::endl;
+	return numSubPathsUsed;
+}
+
 void GCodeGeometry::generateTriangles()
 {
 	if (_areTrianglesReady)
@@ -632,71 +655,53 @@ void GCodeGeometry::generateTriangles()
 
 	Chronograph chronograph(__FUNCTION__, true);
 
-	size_t numSubPathsUsed = std::min<uint32_t>(static_cast<uint32_t>(_extruderSubPaths.size()), _numSubPaths);
-	if (numSubPathsUsed == 0)
-	{
-		std::cout << "### " << __FUNCTION__ << ": numSubPathUsed == 0, return" << std::endl;
-		return;
-	}
-	std::cout << "### updateData() numSubPathUsed:" << numSubPathsUsed << std::endl;
+	const size_t numSubPathsUsed = calcVerifyModelNumbers();
 
-	size_t numPathPoints = 0;
-	for (uint32_t j = 0; j < numSubPathsUsed; ++j)
-	{
-		numPathPoints += std::min<uint32_t>(_numPointsInSubPath, static_cast<uint32_t>(_extruderSubPaths[j].size()));
-	}
-	if (numPathPoints == 0)
-	{
-		std::cout << "### " << __FUNCTION__ << ": numPathPoints == 0, return" << std::endl;
-		return;
-	}
-	std::cout << "### updateData() numPathPoints:" << numPathPoints << std::endl;
-
-	// TODO: This needs to be changed.
+	// TODO: This needs to be changed to accomodate for a custom structure..
 	setStride(static_cast<int32_t>(3 * sizeof(float)));
 	_allModelVertices.resize(0);
 	_allIndices.resize(0);
 
 	// One rectangle or 6 rects for cube.
-	// TODO: This needs to be changed.
-	uint32_t totalPrevPathStrokesCount = 0;
+	// TODO: This needs to be changed to accomodate for a custom structure..
+	uint32_t totalPathStepsCount = 0;
 
 	Point prevPoint;
-	for (uint32_t subPathIndex = 0; subPathIndex < numSubPathsUsed; ++subPathIndex)
-	{
-		const Points& subPath = _extruderSubPaths[subPathIndex];
-
+	for (const Points& subPath : _extruderSubPaths)
+	{// For every subPath - a contiguous extrusion path points.
 		if (subPath.empty())
 		{
 			std::cout << " ### WARNING empty path " << std::endl;
 			continue;
 		}
 
-		// To get a path rectangle with known length we need the first point of subPath defined and start iterating from the second point.
-		prevPoint = subPath[0];
-		const uint32_t limitSubPathPointIndex = std::min<uint32_t>(_numPointsInSubPath, uint32_t(subPath.size()));
-		for (uint32_t subPathPointIndex = 1; subPathPointIndex < limitSubPathPointIndex; ++subPathPointIndex)
-		{
-//			const Vector3f boundDiff = maxBound-minBound;
-			const Point currPoint = subPath[subPathPointIndex];
-			const Vector3f pathStep = currPoint - prevPoint;
-			// TODO: This needs to be changed.
-			assert(std::numeric_limits<uint32_t>::max() >= static_cast<uint64_t>(totalPrevPathStrokesCount + subPathPointIndex -1) * static_cast<uint64_t>(_cubeVertices.size()));
-			// TODO: This needs to be changed.
-			const uint32_t firstStructIndexInPathStep = (totalPrevPathStrokesCount + subPathPointIndex -1) * static_cast<uint32_t>(_cubeVertices.size());
+		const uint32_t numSubPathSteps = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size())) -1;
+		// TODO: This needs to be changed to accomodate for a custom structure..
+		assert(std::numeric_limits<uint32_t>::max() >= static_cast<uint64_t>(totalPathStepsCount + numSubPathSteps -1) * static_cast<uint64_t>(_cubeVertices.size()));
 
-			generateSubPathData(prevPoint, pathStep, firstStructIndexInPathStep, _allModelVertices, _allIndices);
+		// To get a path step with known length we need the first point of subPath defined and start iterating from the second point.
+		prevPoint = subPath[0];
+		for (uint32_t subPathPointIndex = 1; subPathPointIndex <= numSubPathSteps; ++subPathPointIndex)
+		{
+			const Point& currPoint = subPath[subPathPointIndex];
+			const Vector3f pathStep = currPoint - prevPoint;
+			// TODO: This needs to be changed to accomodate for a custom structure..
+			const uint32_t meshVertexIndex = (totalPathStepsCount + subPathPointIndex -1) * static_cast<uint32_t>(_cubeVertices.size());
+
+			generateSubPathData(prevPoint, pathStep, meshVertexIndex, _allModelVertices, _allIndices);
 
 			prevPoint = currPoint;
 		}
 		// TODO: WATCH OUT FOR THIS -1 here!!! (It is necessary.)
-		totalPrevPathStrokesCount += subPath.size() -1;
+		totalPathStepsCount += numSubPathSteps;
 	}
+
+	std::cout << "### :" << "" << std::endl;
+	_numPathStepsUsed = totalPathStepsCount;
 
 //	setupPieData(coordsPtr, indicesPtr);
 
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
-	_numPathPointsUsed = totalPrevPathStrokesCount + 2;
 	_areTrianglesReady = true;
 }
 
@@ -709,13 +714,20 @@ void GCodeGeometry::updateData()
 	QByteArray usedVertices(_allModelVertices);
 	QByteArray usedIndices(_allIndices);
 
-	// TODO: Refactor - use things initialized previously in generateTriangles().
-	const Vertices& usedStructVertices = _cubeVertices;
-	static const ushort verticesPerPathPoint = static_cast<ushort>(usedStructVertices.size());
-//	usedVertices.resize(static_cast<int64_t>(verticesPerPathPoint * _numPathPointsUsed * uint32_t(stride())));
-	const ushort numRect = 6u;
-	const ushort numIndexPerRect = 6u;
-//	usedIndices.resize(static_cast<int64_t>(_numPathPointsUsed * numRect * numIndexPerRect * sizeof(uint32_t)));
+	// TODO?: Refactor - use things initialized previously in generateTriangles()?.
+	static const ushort verticesPerPathStep = static_cast<ushort>(_cubeVertices.size());
+
+	std::cout << "### verticesPerPathStep :" << verticesPerPathStep << std::endl;
+	std::cout << "### _numPathStepsUsed :" << _numPathStepsUsed << std::endl;
+	std::cout << "### stride() :" << stride() << std::endl;
+	std::cout << "### multiplied :" << _numPathStepsUsed * verticesPerPathStep *  uint32_t(stride()) << std::endl;
+	std::cout << "### usedVertices.size() :" << usedVertices.size() << std::endl;
+
+	assert(usedVertices.size() == static_cast<int64_t>(_numPathStepsUsed * verticesPerPathStep *  uint32_t(stride())));
+
+	const ushort numRectsPerPathStep = 6u;
+	const ushort numIndicesPerRect = 6u;
+	assert(usedIndices.size() == static_cast<int64_t>(_numPathStepsUsed * numRectsPerPathStep * numIndicesPerRect * sizeof(uint32_t)));
 
 	setVertexData(usedVertices);
 	setIndexData(usedIndices);

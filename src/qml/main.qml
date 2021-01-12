@@ -144,15 +144,15 @@ Window {
             }
 
             numSubPathsSlider.onValueChanged: {
-                gcodeGeometry.numSubPaths = numSubPathsSlider.value
+//                gcodeGeometry.numSubPaths = numSubPathsSlider.value
             }
 
             numPointsInSubPathSlider.onValueChanged: {
-                gcodeGeometry.numPointsInSubPath = numPointsInSubPathSlider.value
+//                gcodeGeometry.numPointsInSubPath = numPointsInSubPathSlider.value
             }
 
-            numPathPointsUsedSlider.onValueChanged: {
-                gcodeGeometry.numPathPointsUsed = numPathPointsUsedSlider.value
+            numPathStepsUsedSlider.onValueChanged: {
+//                gcodeGeometry.numPathStepsUsed = numPathStepsUsedSlider.value
             }
 
             function resetSliders() {
@@ -161,8 +161,8 @@ Window {
                 numPointsInSubPath = gcodeGeometry.numPointsInSubPath
                 numPointsInSubPathSlider.value = gcodeGeometry.numPointsInSubPath
                 numSubPaths = gcodeGeometry.numSubPaths
-                numPathPointsUsed = gcodeGeometry.numPathPointsUsed
-                numPathPointsUsedSlider.value = gcodeGeometry.numPathPointsUsed
+                numPathStepsUsed = gcodeGeometry.numPathStepsUsed
+                numPathStepsUsedSlider.value = gcodeGeometry.numPathStepsUsed
             }
         }
     }

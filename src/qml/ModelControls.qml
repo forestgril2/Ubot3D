@@ -3,7 +3,7 @@ import QtQuick.Controls 2.15
 Row {
     property alias numSubPathsSlider: numSubPathsSlider
     property alias numPointsInSubPathSlider: numPointsInSubPathSlider
-    property alias numPathPointsUsedSlider: numPathPointsUsedSlider
+    property alias numPathStepsUsedSlider: numPathStepsUsedSlider
 
     property alias mouseInvertCheckBox: mouseInvertCheckBox
     property alias commonRotationCheckBox: commonRotationCheckBox
@@ -11,7 +11,7 @@ Row {
 
     property int numSubPaths
     property int numPointsInSubPath
-    property int numPathPointsUsed
+    property int numPathStepsUsed
 
     Slider {
         id: triangleModelWarpSlider
@@ -40,10 +40,10 @@ Row {
     }
 
     ValueEditSlider {
-        id: numPathPointsUsedSlider
+        id: numPathStepsUsedSlider
 
         from: 0
-        to: numPathPointsUsed
+        to: numPathStepsUsed
     }
 
     Column {

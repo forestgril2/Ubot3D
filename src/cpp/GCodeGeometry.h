@@ -33,7 +33,7 @@ class GCodeGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
 	Q_PROPERTY(uint32_t numSubPaths READ getNumSubPaths WRITE setNumSubPaths NOTIFY numSubPathsChanged)
 	Q_PROPERTY(uint32_t numPointsInSubPath READ getNumPointsInSubPath WRITE setNumPointsInSubPath NOTIFY numPointsInSubPathChanged)
-	Q_PROPERTY(uint32_t numPathPointsUsed READ getNumPathPointsUsed WRITE setNumPathStrokesUsed NOTIFY numPathPointsUsedChanged)
+	Q_PROPERTY(uint32_t numPathStepsUsed READ getNumPathPointsUsed WRITE setNumPathStepsUsed NOTIFY numPathPointsStepsChanged)
 	QML_NAMED_ELEMENT(GCodeGeometry)
 
 public:
@@ -55,7 +55,7 @@ public:
 	void setNumPointsInSubPath(const uint32_t num);
 	unsigned getNumPointsInSubPath() const;
 
-	void setNumPathStrokesUsed(const uint32_t num);
+	void setNumPathStepsUsed(const uint32_t num);
 	uint32_t getNumPathPointsUsed() const;
 
 public slots:
@@ -68,27 +68,28 @@ signals:
 	void isPickedChanged();
 	void numPointsInSubPathChanged();
 	void numSubPathsChanged();
-	void numPathPointsUsedChanged();
+	void numPathPointsStepsChanged();
 
 private:
 	void loadGCodeProgram();
     void updateData();
 	void generateTriangles();
-	void generateSubPathData(const Point& prevPoint, const Eigen::Vector3f& pathStep, const uint32_t firstStructIndexInPathStep,
-							 QByteArray& _allIndices, QByteArray& _allModelVertices);
+	void generateSubPathData(const Point& prevPoint, const Eigen::Vector3f& pathStep, const uint32_t meshIndexInPathStep, QByteArray& modelVertices,
+							 QByteArray& modelIndices);
 	void createExtruderPaths(const gpr::gcode_program& gcodeProgram);
 	void setRectProfile(const Real width, const Real height);
 	void setupPieData(float*& coordsPtr, uint32_t*& indicesPtr);
 	void dumpSubPath(const std::string& blockString, const Points& subPath);
+	size_t calcVerifyModelNumbers();
 
 	QByteArray _allIndices;
 	QByteArray _allModelVertices;
 	std::vector<Points> _extruderSubPaths; /** Vectors of points along the center of the filament path. */
 	Vertices _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
-	uint32_t _numPathPointsUsed = 0;
+	uint32_t _numPathStepsUsed = 0;
 
 	unsigned _numSubPaths = 0;
-	unsigned _numPointsInSubPath = 0;
+	unsigned _maxNumPointsInSubPath = 0;
 	bool _isPicked = false;
 	bool _areTrianglesReady = false;
 
