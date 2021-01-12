@@ -180,7 +180,8 @@ void GCodeGeometry::loadGCodeProgram()
 	createExtruderPaths(gcodeProgram);
 }
 
-GCodeGeometry::GCodeGeometry()
+GCodeGeometry::GCodeGeometry() :
+	_numPathStepsUsed(std::numeric_limits<uint32_t>::max())
 {
 	range_test<unsigned>();
 	range_test<float>();
@@ -675,14 +676,18 @@ void GCodeGeometry::generateTriangles()
 			continue;
 		}
 
-		const uint32_t numSubPathSteps = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size())) -1;
+		const uint32_t numSubPathPoints = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size())) -1;
 		// TODO: This needs to be changed to accomodate for a custom structure..
-		assert(std::numeric_limits<uint32_t>::max() >= static_cast<uint64_t>(totalPathStepsCount + numSubPathSteps -1) * static_cast<uint64_t>(_cubeVertices.size()));
+		assert(std::numeric_limits<uint32_t>::max() >= static_cast<uint64_t>(totalPathStepsCount + numSubPathPoints -1) * static_cast<uint64_t>(_cubeVertices.size()));
 
 		// To get a path step with known length we need the first point of subPath defined and start iterating from the second point.
 		prevPoint = subPath[0];
-		for (uint32_t subPathPointIndex = 1; subPathPointIndex <= numSubPathSteps; ++subPathPointIndex)
+//		++totalPathStepsCount;
+		for (uint32_t subPathPointIndex = 1; subPathPointIndex <= numSubPathPoints; ++subPathPointIndex)
 		{
+//			if (totalPathStepsCount >= _numPathStepsUsed)
+//				break;
+
 			const Point& currPoint = subPath[subPathPointIndex];
 			const Vector3f pathStep = currPoint - prevPoint;
 			// TODO: This needs to be changed to accomodate for a custom structure..
@@ -691,12 +696,15 @@ void GCodeGeometry::generateTriangles()
 			generateSubPathData(prevPoint, pathStep, meshVertexIndex, _allModelVertices, _allIndices);
 
 			prevPoint = currPoint;
+
+//			++totalPathStepsCount;
 		}
-		// TODO: WATCH OUT FOR THIS -1 here!!! (It is necessary.)
-		totalPathStepsCount += numSubPathSteps;
+		totalPathStepsCount += numSubPathPoints;
+
+//		if (totalPathStepsCount >= _numPathStepsUsed)
+//			break;
 	}
 
-	std::cout << "### :" << "" << std::endl;
 	_numPathStepsUsed = totalPathStepsCount;
 
 //	setupPieData(coordsPtr, indicesPtr);
@@ -707,27 +715,30 @@ void GCodeGeometry::generateTriangles()
 
 void GCodeGeometry::updateData()
 {
-
 	clear();
 	generateTriangles();
 
 	QByteArray usedVertices(_allModelVertices);
 	QByteArray usedIndices(_allIndices);
 
-	// TODO?: Refactor - use things initialized previously in generateTriangles()?.
+	static const ushort numRectsPerPathStep = 6u;
+	static const ushort numIndicesPerRect = 6u;
 	static const ushort verticesPerPathStep = static_cast<ushort>(_cubeVertices.size());
 
-	std::cout << "### verticesPerPathStep :" << verticesPerPathStep << std::endl;
-	std::cout << "### _numPathStepsUsed :" << _numPathStepsUsed << std::endl;
-	std::cout << "### stride() :" << stride() << std::endl;
-	std::cout << "### multiplied :" << _numPathStepsUsed * verticesPerPathStep *  uint32_t(stride()) << std::endl;
-	std::cout << "### usedVertices.size() :" << usedVertices.size() << std::endl;
+	usedVertices.resize(_numPathStepsUsed * verticesPerPathStep *  uint32_t(stride()));
+	usedIndices.resize(_numPathStepsUsed * numRectsPerPathStep * numIndicesPerRect * sizeof(uint32_t));
 
-	assert(usedVertices.size() == static_cast<int64_t>(_numPathStepsUsed * verticesPerPathStep *  uint32_t(stride())));
+	// TODO?: Refactor - use things initialized previously in generateTriangles()?.
 
-	const ushort numRectsPerPathStep = 6u;
-	const ushort numIndicesPerRect = 6u;
-	assert(usedIndices.size() == static_cast<int64_t>(_numPathStepsUsed * numRectsPerPathStep * numIndicesPerRect * sizeof(uint32_t)));
+//	std::cout << "### verticesPerPathStep :" << verticesPerPathStep << std::endl;
+//	std::cout << "### _numPathStepsUsed :" << _numPathStepsUsed << std::endl;
+//	std::cout << "### stride() :" << stride() << std::endl;
+//	std::cout << "### multiplied :" << _numPathStepsUsed * verticesPerPathStep *  uint32_t(stride()) << std::endl;
+//	std::cout << "### usedVertices.size() :" << usedVertices.size() << std::endl;
+
+//	assert(usedVertices.size() == static_cast<int64_t>(_numPathStepsUsed * verticesPerPathStep *  uint32_t(stride())));
+
+//	assert(usedIndices.size() == static_cast<int64_t>(_numPathStepsUsed * numRectsPerPathStep * numIndicesPerRect * sizeof(uint32_t)));
 
 	setVertexData(usedVertices);
 	setIndexData(usedIndices);

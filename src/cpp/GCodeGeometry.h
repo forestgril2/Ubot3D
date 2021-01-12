@@ -86,7 +86,7 @@ private:
 	QByteArray _allModelVertices;
 	std::vector<Points> _extruderSubPaths; /** Vectors of points along the center of the filament path. */
 	Vertices _profile; /** Defines a cross section of the filament path boundary (along the z-direction). */
-	uint32_t _numPathStepsUsed = 0;
+	uint32_t _numPathStepsUsed;
 
 	unsigned _numSubPaths = 0;
 	unsigned _maxNumPointsInSubPath = 0;

@@ -144,15 +144,15 @@ Window {
             }
 
             numSubPathsSlider.onValueChanged: {
-//                gcodeGeometry.numSubPaths = numSubPathsSlider.value
+                gcodeGeometry.numSubPaths = numSubPathsSlider.value
             }
 
             numPointsInSubPathSlider.onValueChanged: {
-//                gcodeGeometry.numPointsInSubPath = numPointsInSubPathSlider.value
+                gcodeGeometry.numPointsInSubPath = numPointsInSubPathSlider.value
             }
 
             numPathStepsUsedSlider.onValueChanged: {
-//                gcodeGeometry.numPathStepsUsed = numPathStepsUsedSlider.value
+                gcodeGeometry.numPathStepsUsed = numPathStepsUsedSlider.value
             }
 
             function resetSliders() {
