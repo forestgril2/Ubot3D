@@ -94,9 +94,9 @@ private:
 	uint32_t _numPathStepsUsed;
 	QByteArray _modelIndices;
 	QByteArray _modelVertices;
-	std::vector<float*> _pathStepVertexCoordPointers; /** Pointers to beginnings of vertices of consecutive path steps. */
-	std::vector<uint32_t*> _pathStepIndexPointers;    /** Pointers to beginnings of indices of consecutive path steps. */
-	Vertices _profile;                                /** Defines a cross section of the filament path boundary (along the z-direction). */
+	std::vector<uint32_t> _numTotalPathStepVertices; /** Remember how many vertices are added in each consecutive path step. */
+	std::vector<uint32_t> _numTotalPathStepIndices;  /** Remember how many indices are added in each consecutive path step. */
+	Vertices _profile;                               /** Defines a cross section of the filament path boundary (along the z-direction). */
 
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
