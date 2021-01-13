@@ -69,21 +69,21 @@ static const Vertices _squareVertices = {{-0.5, 0.0, 0.0},
 										 { 0.5, 0.0, 0.0}};
 
 static const Vertices _cubeVertices = {//bottom
-									   {-0.5, 0.0, -0.5},
-									   {-0.5, 1.0, -0.5},
-									   { 0.5, 1.0, -0.5},
-									   { 0.5, 0.0, -0.5},
+									   {-0.5, 0.0, 0},
+									   {-0.5, 1.0, 0},
+									   { 0.5, 1.0, 0},
+									   { 0.5, 0.0, 0},
 									   //top
-									   {-0.5, 0.0, 0.5},
-									   {-0.5, 1.0, 0.5},
-									   { 0.5, 1.0, 0.5},
-									   { 0.5, 0.0, 0.5}};
+									   {-0.5, 0.0, 1},
+									   {-0.5, 1.0, 1},
+									   { 0.5, 1.0, 1},
+									   { 0.5, 0.0, 1}};
 
 static std::pair<Vertices, Indices> generateCylinderPie(const Point& center,
-													   const Vector3f& radiusStart,
-													   const Vector3f& radiusEnd,
-													   const float height,
-													   unsigned short numCirclePoints = 20)
+														const Vector3f& radiusStart,
+														const Vector3f& radiusEnd,
+														const float height,
+														unsigned short numCirclePoints = 20)
 {
 	Vertices vert{center};
 	Indices ind;
@@ -112,7 +112,7 @@ static std::pair<Vertices, Indices> generateCylinderPie(const Point& center,
 		ind.push_back(uint32_t(p)+2);
 	}
 
-	// Copy thecircle  pie shifted by height in z-direction.
+	// Copy the circle  pie shifted by height in z-direction.
 	const Vector3f heightShift{0,0,height};
 	const uint32_t upperCircleCenterIndex = uint32_t(vert.size());
 	const uint32_t firstIndicesSize = uint32_t(ind.size());
@@ -546,10 +546,9 @@ void GCodeGeometry::generateSubPathStep(const Point& prevPoint,
 	float* coordsPtr = reinterpret_cast<float*>(&(modelVertices[prevVerticesSize]));
 	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(&(modelIndices[prevIndicesSize]));
 
-	static const Vector3f profileDiag = _profile[2] - _profile[0];
-	const Matrix3f scale{{profileDiag.x(), 0,      0              },
-						 {0,               length, 0              },
-						 {0,               0,      profileDiag.y()}};
+	const Matrix3f scale{{_profileDiag.x(), 0,      0               },
+						 {0,                length, 0               },
+						 {0,                0,      _profileDiag.y()}};
 	const Eigen::Quaternionf rotation = Quaternionf::FromTwoVectors(Vector3f{0,1,0}, pathStep);
 
 	Vertices vertices = _cubeVertices;
@@ -584,13 +583,25 @@ void GCodeGeometry::generateSubPathStep(const Point& prevPoint,
 	// Remember how many vertices and indices are added in this structure.
 	_numTotalPathStepVertices.push_back(_numTotalPathStepVertices.back() + numAddedVertices);
 	_numTotalPathStepIndices.push_back(_numTotalPathStepIndices.back() + numAddedIndices);
+	++_numPathStepsUsed;
 }
 
-void GCodeGeometry::generateSubPathBend(QByteArray& modelVertices, QByteArray& modelIndices)
+void GCodeGeometry::generateSubPathBend(const Point& center,
+										const Vector3f& radiusStart,
+										const Vector3f& radiusEnd,
+										QByteArray& modelVertices,
+										QByteArray& modelIndices)
 {
 //	Chronograph chrono(__FUNCTION__);
+	const std::pair<Vertices, Indices> cylinderPieGeometry = generateCylinderPie(center, radiusStart, radiusEnd, _profileDiag.y(), 20);
 
-	const std::pair<Vertices, Indices> cylinderPieGeometry = generateCylinderPie({100,100,0}, {15,0,0}, {0,-15,0}, 10);
+//	std::for_each(cylinderPieGeometry.first.begin(), cylinderPieGeometry.first.end(), [](const Vertex& v) {
+//		std::cout << " ### " << __FUNCTION__ << " vertex:" << v.x() << "," << v.y() << "," << v.z() << std::endl;
+//	});
+
+//	std::for_each(cylinderPieGeometry.second.begin(), cylinderPieGeometry.second.end(), [](const Index& v) {
+//		std::cout << " ### " << __FUNCTION__ << " index:" << v << std::endl;
+//	});
 
 	const Vertices& cylinderPieVertices = cylinderPieGeometry.first;
 	const Indices& cylinderPieIndices = cylinderPieGeometry.second;
@@ -609,7 +620,9 @@ void GCodeGeometry::generateSubPathBend(QByteArray& modelVertices, QByteArray& m
 
 	float* coordsPtr = reinterpret_cast<float*>(&(modelVertices.data()[prevVerticesSize]));
 	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(&(modelIndices.data()[prevIndicesSize]));
-	const uint32_t newMeshVertexIndex = prevVerticesSize;
+	const uint32_t newMeshVertexIndex = prevVerticesSize/static_cast<uint32_t>(stride());
+
+//	std::cout << " ### " << __FUNCTION__ << " newMeshVertexIndex:" << newMeshVertexIndex << std::endl;
 
 	for(uint32_t v=0; v<numCircleGeometryVertices; ++v)
 	{
@@ -694,22 +707,29 @@ void GCodeGeometry::generate()
 			continue;
 		}
 
+		// To get a path step with known length, we need the first point of subPath defined and start iterating from the second point.
+		prevPoint = subPath[0];
+
 		// Prepend the first subPath point with half of a cylinder.
-		generateSubPathBend(_modelVertices, _modelIndices);
+		const Vector3f direction = (subPath[1] - prevPoint).normalized();
+		const Vector3f radiusStart = 0.5f * _profileDiag.x() * Vector3f{-direction.y(), direction.x(), 0};
+//		std::cout << " ### " << __FUNCTION__ << " direction:" << direction.x() << "," << direction.y() << "," << direction.z() << std::endl;
+//		std::cout << " ### " << __FUNCTION__ << " Radius:" << radiusStart.x() << "," << radiusStart.y() << "," << radiusStart.z() << std::endl;
+		const Vector3f radiusEnd = -radiusStart;
+		if (direction.x() !=0 || direction.y() !=0)
+		{
+			generateSubPathBend(prevPoint, radiusStart, radiusEnd, _modelVertices, _modelIndices);
+		}
 
-
-//		const uint32_t numSubPathPoints = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size())) -1;
-
-//		// To get a path step with known length we need the first point of subPath defined and start iterating from the second point.
-//		prevPoint = subPath[0];
-//		// TODO: The last point should be generated differently (should be: subPathPointIndex < numSubPathPoints)
-//		for (uint32_t subPathPointIndex = 1; subPathPointIndex <= numSubPathPoints; ++subPathPointIndex)
-//		{
-//			const Point& currPoint = subPath[subPathPointIndex];
-//			const Vector3f pathStep = currPoint - prevPoint;
-//			generateSubPathStep(prevPoint, pathStep, _modelVertices, _modelIndices);
-//			prevPoint = currPoint;
-//		}
+		const uint32_t numSubPathPoints = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size())) -1;
+		// TODO: The last point should be generated differently (should be: subPathPointIndex < numSubPathPoints)
+		for (uint32_t subPathPointIndex = 1; subPathPointIndex <= numSubPathPoints; ++subPathPointIndex)
+		{
+			const Point& currPoint = subPath[subPathPointIndex];
+			const Vector3f pathStep = currPoint - prevPoint;
+			generateSubPathStep(prevPoint, pathStep, _modelVertices, _modelIndices);
+			prevPoint = currPoint;
+		}
 		// The last point should be generated differently.
 
 		// Append a half circle to the end of the subPath.
@@ -733,6 +753,18 @@ void GCodeGeometry::updateData()
 	usedVertices.resize(numTotalPathStepVerticesUsed * static_cast<uint32_t>(stride()));
 	usedIndices.resize(numTotalPathStepIndicesUsed * sizeof(uint32_t));
 
+//	for (uint32_t pos = 0; pos < _modelVertices.size(); pos+=static_cast<uint32_t>(stride()))
+//	{
+//		const Vertex& v = *reinterpret_cast<const Vertex*>(&_modelVertices[pos]);
+//		std::cout << " ### " << __FUNCTION__ << " v:" << v.x() << "," << v.y() << "," << v.z() << std::endl;
+//	}
+
+//	for (uint32_t pos = 0; pos < _modelIndices.size(); pos+=sizeof(uint32_t))
+//	{
+//		const uint32_t& i = *reinterpret_cast<const uint32_t*>(&_modelIndices[pos]);
+//		std::cout << " ### " << __FUNCTION__ << " i:" << i << std::endl;
+//	}
+
 	setVertexData(usedVertices);
 	setIndexData(usedIndices);
 
@@ -751,6 +783,7 @@ void GCodeGeometry::setRectProfile(const Real width, const Real height)
 {
 	const Point start = {-width/Real(2.0), -height/Real(2.0), Real(0.0)};
 	_profile = {start, start + Vector3f{0.0, height, 0.0}, start + Vector3f{width, height, 0.0}, start + Vector3f{width, 0.0, 0.0}};
+	_profileDiag = _profile[2] - _profile[0];
 };
 
 QT_END_NAMESPACE

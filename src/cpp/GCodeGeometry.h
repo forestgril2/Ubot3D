@@ -76,8 +76,11 @@ private:
 	void createExtruderPaths(const gpr::gcode_program& gcodeProgram);
 	size_t calcVerifyModelNumbers();
     void updateData();
-	void generateSubPathCurve(QByteArray& modelVertices,
-							  QByteArray& modelIndices);
+	void generateSubPathBend(const Point& center,
+							 const Eigen::Vector3f& radiusStart,
+							 const Eigen::Vector3f& radiusEnd,
+							 QByteArray& modelVertices,
+							 QByteArray& modelIndices);
 	void generateSubPathStep(const Point& prevPoint,
 							 const Eigen::Vector3f& pathStep,
 							 QByteArray& modelVertices,
@@ -97,9 +100,11 @@ private:
 	std::vector<uint32_t> _numTotalPathStepVertices; /** Remember how many vertices are added in each consecutive path step. */
 	std::vector<uint32_t> _numTotalPathStepIndices;  /** Remember how many indices are added in each consecutive path step. */
 	Vertices _profile;                               /** Defines a cross section of the filament path boundary (along the z-direction). */
+	Eigen::Vector3f _profileDiag;                    /** Defines a cross section of the filament path boundary (along the z-direction). */
 
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
 	QString _inputFile = "C:/Projects/Ubot3D/CE3_mandoblasterlow.gcode";
+//	QString _inputFile = "C:/ProjectsData/stl_files/TEST.gcode";
 };
