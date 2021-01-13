@@ -525,11 +525,11 @@ void GCodeGeometry::generateSubPathStep(const Point& prevPoint,
 
 	// QUADS
 	static const std::vector<Indices> cubeMeshQuadIndices = {{0,1,2,0,2,3}, // bottom
+															 //{0,3,7,7,4,0}, // back
+															 //{1,2,6,6,5,1}, // front
 															 {4,5,6,6,7,4}, // top
 															 {0,1,5,5,4,0}, // left
-															 {3,2,6,6,7,3}, // right
-															 {0,3,7,7,4,0}, // back
-															 {1,2,6,6,5,1}};// front*/
+															 {3,2,6,6,7,3}}; // right
 
 	static const uint32_t numAddedVertices = uint32_t(cubeMeshVertexIndices.size());
 	static const uint32_t numAddedIndices = std::accumulate(cubeMeshQuadIndices.begin(), cubeMeshQuadIndices.end(), 0u,
@@ -711,28 +711,55 @@ void GCodeGeometry::generate()
 		prevPoint = subPath[0];
 
 		// Prepend the first subPath point with half of a cylinder.
-		const Vector3f direction = (subPath[1] - prevPoint).normalized();
-		const Vector3f radiusStart = 0.5f * _profileDiag.x() * Vector3f{-direction.y(), direction.x(), 0};
+		const Vector3f directionAtTheBeginning = (subPath[1] - prevPoint).normalized();
+		const Vector3f radiusStart = 0.5f * _profileDiag.x() * Vector3f{-directionAtTheBeginning.y(), directionAtTheBeginning.x(), 0};
 //		std::cout << " ### " << __FUNCTION__ << " direction:" << direction.x() << "," << direction.y() << "," << direction.z() << std::endl;
 //		std::cout << " ### " << __FUNCTION__ << " Radius:" << radiusStart.x() << "," << radiusStart.y() << "," << radiusStart.z() << std::endl;
 		const Vector3f radiusEnd = -radiusStart;
-		if (direction.x() !=0 || direction.y() !=0)
+		if (directionAtTheBeginning.x() !=0 || directionAtTheBeginning.y() !=0)
 		{
 			generateSubPathBend(prevPoint, radiusStart, radiusEnd, _modelVertices, _modelIndices);
 		}
 
 		const uint32_t numSubPathPoints = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size())) -1;
-		// TODO: The last point should be generated differently (should be: subPathPointIndex < numSubPathPoints)
-		for (uint32_t subPathPointIndex = 1; subPathPointIndex <= numSubPathPoints; ++subPathPointIndex)
+		for (uint32_t subPathPointIndex = 1; subPathPointIndex < numSubPathPoints; ++subPathPointIndex)
 		{
 			const Point& currPoint = subPath[subPathPointIndex];
+			const Point& nextPoint = subPath[subPathPointIndex +1];
 			const Vector3f pathStep = currPoint - prevPoint;
 			generateSubPathStep(prevPoint, pathStep, _modelVertices, _modelIndices);
+
+			// Insert a cylinder section (pie) between two path steps.
+			const Vector3f prevDirection = pathStep.normalized();
+			const Vector3f nextDirection = (nextPoint - currPoint).normalized();
+			const Vector3f radiusPrev = 0.5f * _profileDiag.x() * Vector3f{-prevDirection.y(), prevDirection.x(), 0};
+			const Vector3f radiusNext = 0.5f * _profileDiag.x() * Vector3f{-nextDirection.y(), nextDirection.x(), 0};
+			if (radiusPrev != radiusNext)
+			{
+				// TODO: Make a nice condition for which order of radii use this.
+				generateSubPathBend(prevPoint, radiusNext, radiusPrev, _modelVertices, _modelIndices);
+				generateSubPathBend(prevPoint, radiusPrev, radiusNext, _modelVertices, _modelIndices);
+			}
+
 			prevPoint = currPoint;
 		}
 		// The last point should be generated differently.
+		const Point& currPoint = subPath[numSubPathPoints];
+		const Vector3f pathStep = currPoint - prevPoint;
+		generateSubPathStep(prevPoint, pathStep, _modelVertices, _modelIndices);
 
 		// Append a half circle to the end of the subPath.
+		const Vector3f directionAtTheEnd = (prevPoint - currPoint).normalized();
+		const Vector3f radiusAtEndStart = 0.5f * _profileDiag.x() * Vector3f{-directionAtTheEnd.y(), directionAtTheEnd.x(), 0};
+//		std::cout << " ### " << __FUNCTION__ << " directionAtTheEnd:" << directionAtTheEnd.x() << "," << directionAtTheEnd.y() << "," << directionAtTheEnd.z() << std::endl;
+//		std::cout << " ### " << __FUNCTION__ << " Radius:" << radiusAtEndStart .x() << "," << radiusAtEndStart .y() << "," << radiusAtEndStart .z() << std::endl;
+		const Vector3f radiusAtEndEnd = -radiusAtEndStart;
+		if (directionAtTheEnd.x() !=0 || directionAtTheEnd.y() !=0)
+		{
+			generateSubPathBend(prevPoint, radiusAtEndStart, radiusAtEndEnd, _modelVertices, _modelIndices);
+		}
+
+		prevPoint = currPoint;
 	}
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
 
