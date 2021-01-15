@@ -85,21 +85,26 @@ static void dumpVector3f(const Vector3f& v, const std::string& name = "")
 }
 
 
-static std::pair<Vertices, Indices> generateCylinderPie(const Point& center,
-														const Vector3f& radiusStart,
-														const Vector3f& axis,
-														const float angle,
-														const float thickness,
-														unsigned short numCirclePoints)
+static std::pair<Vertices, Indices> generateCylinderPieSection(const Point& center,
+															   const Vector3f& radiusStart,
+															   const Vector3f& axis,
+															   const float angle,
+															   const float thickness,
+															   uint16_t numAngleSteps)
 {
 	Vertices vert{center};
 	Indices ind;
-	const float angleStep = angle / float(numCirclePoints);
-	for(float p : range<float>(numCirclePoints+1))
+//	if (angle < 0)
+
+	const float angleStep = angle / float(numAngleSteps);
+
+//	const Vector3f& usedAxis;
+
+	for(float p : range<float>(numAngleSteps+1))
 	{
 		vert.push_back(center + AngleAxisf(p * angleStep, axis) * radiusStart);
 
-		if (unsigned(p) == numCirclePoints)
+		if (unsigned(p) == numAngleSteps)
 		{// We only need the last vertex from the final iteration.
 			break;
 		}
@@ -126,9 +131,9 @@ static std::pair<Vertices, Indices> generateCylinderPie(const Point& center,
 
 	// Setup pie cylinder side part indices, 1 quad == 2 triangles per each point
 	const uint32_t secondIndSize = uint32_t(ind.size());
-	ind.resize(ind.size() + (6 * numCirclePoints));
+	ind.resize(ind.size() + (6 * numAngleSteps));
 	uint32_t* triangleIndexPtr = &ind[secondIndSize];
-	for (uint32_t i = 1, j = firstIndicesSize +1; i < 3*numCirclePoints; i+=3, j+=3)
+	for (uint32_t i = 1, j = firstIndicesSize +1; i < 3*numAngleSteps; i+=3, j+=3)
 	{
 		*triangleIndexPtr++ = ind[i];
 		*triangleIndexPtr++ = ind[j];
@@ -591,7 +596,15 @@ void GCodeGeometry::generateSubPathTurn(const Point& center,
 										QByteArray& modelIndices)
 {
 //	Chronograph chrono(__FUNCTION__);
-	const std::pair<Vertices, Indices> cylinderPieGeometry = generateCylinderPie(center, radiusStart, axis, angle, _profileDiag.y(), 20);
+	static const uint32_t numStepsPerFullCircle = 20;
+	static const float anglePerStep = 2.0f*float(M_PI)/numStepsPerFullCircle;
+	uint16_t numAngleSteps = static_cast<uint16_t>(std::abs(angle)/anglePerStep);
+	if (numAngleSteps < 1)
+	{
+		numAngleSteps = 1;
+	}
+
+	const std::pair<Vertices, Indices> cylinderPieGeometry = generateCylinderPieSection(center, radiusStart, axis, angle, _profileDiag.y(), numAngleSteps);
 
 //	std::for_each(cylinderPieGeometry.first.begin(), cylinderPieGeometry.first.end(), [](const Vertex& v) {
 //		std::cout << " ### " << __FUNCTION__ << " vertex:" << v.x() << "," << v.y() << "," << v.z() << std::endl;
@@ -760,6 +773,49 @@ void GCodeGeometry::generate()
 
 		prevPoint = currPoint;
 	}
+
+//	generateSubPathTurn({100,100,0},
+//						{20,20,0},
+//						{0,0,1},
+//						M_PI/5,
+//						_modelVertices,
+//						_modelIndices);
+
+//	generateSubPathTurn({70,70,0},
+//						{20,20,0},
+//						{0,0,1},
+//						M_PI/8,
+//						_modelVertices,
+//						_modelIndices);
+
+//	generateSubPathTurn({40,40,0},
+//						{20,20,0},
+//						{0,0,1},
+//						M_PI/16,
+//						_modelVertices,
+//						_modelIndices);
+
+//	generateSubPathTurn({100,100,0},
+//						{20,20,0},
+//						{0,0,1},
+//						-M_PI/5,
+//						_modelVertices,
+//						_modelIndices);
+
+//	generateSubPathTurn({70,70,0},
+//						{20,20,0},
+//						{0,0,1},
+//						-M_PI/8,
+//						_modelVertices,
+//						_modelIndices);
+
+//	generateSubPathTurn({40,40,0},
+//						{20,20,0},
+//						{0,0,1},
+//						-M_PI/16,
+//						_modelVertices,
+//						_modelIndices);
+
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
 
 	_wasGenerated = true;
