@@ -28,6 +28,27 @@ static Vector3f minFloatBound(FLT_MAX, FLT_MAX, FLT_MAX);
 static Vector3f maxBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 static Vector3f minBound(FLT_MAX, FLT_MAX, FLT_MAX);
 
+
+static bool approximatelyEqual(float a, float b, float epsilon)
+{
+	return std::abs(a - b) <= ( (std::abs(a) < std::abs(b) ? std::abs(b) : std::abs(a)) * epsilon);
+}
+
+static bool essentiallyEqual(float a, float b, float epsilon)
+{
+	return std::abs(a - b) <= ( (std::abs(a) > std::abs(b) ? std::abs(b) : std::abs(a)) * epsilon);
+}
+
+static bool definitelyGreaterThan(float a, float b, float epsilon)
+{
+	return (a - b) > ( (std::abs(a) < std::abs(b) ? std::abs(b) : std::abs(a)) * epsilon);
+}
+
+static bool definitelyLessThan(float a, float b, float epsilon)
+{
+	return (b - a) > ( (std::abs(a) < std::abs(b) ? std::abs(b) : std::abs(a)) * epsilon);
+}
+
 // To have QSG included
 QT_BEGIN_NAMESPACE
 
@@ -551,6 +572,9 @@ void GCodeGeometry::generateSubPathStep(const Point& prevPoint,
 	const Matrix3f scale{{_profileDiag.x(), 0,      0               },
 						 {0,                length, 0               },
 						 {0,                0,      _profileDiag.y()}};
+
+//	const Vector3f rotationAxis = (Vector3f{0,1,0}.cross(pathStep)).normalized();
+//	const AngleAxisf rotation(std::acosf(Vector3f{0,1,0}.dot(pathStep.normalized())), rotationAxis);
 	const Eigen::Quaternionf rotation = Quaternionf::FromTwoVectors(Vector3f{0,1,0}, pathStep);
 
 	Vertices vertices = _cubeVertices;
@@ -745,7 +769,7 @@ void GCodeGeometry::generate()
 			turnAxis = prevDirection.cross(nextDirection).normalized();
 
 			const float turnAngle = std::acosf(prevDirection.dot(nextDirection));
-			if (turnAngle != 0)
+			if (!approximatelyEqual(turnAngle, 0, FLT_EPSILON))
 			{
 				//TODO: Watch out - HACKING a bit.
 				const Vector3f bottomShift = _profileDiag.y()*turnAxis*(turnAxis.dot(upVector) > 0 ? 0 : 1);
