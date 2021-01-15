@@ -37,7 +37,7 @@ Item {
     property var camera: undefined
     property bool isMouseDragInverted: false
 
-    property real speed: 1
+    property real speed: 0.2
     property real shiftSpeed: 5
 
     property real forwardSpeed: 1

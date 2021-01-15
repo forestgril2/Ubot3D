@@ -76,9 +76,9 @@ private:
 	void createExtruderPaths(const gpr::gcode_program& gcodeProgram);
 	size_t calcVerifyModelNumbers();
     void updateData();
-	void generateSubPathBend(const Point& center,
+	void generateSubPathTurn(const Point& center,
 							 const Eigen::Vector3f& radiusStart,
-							 const Eigen::Vector3f& radiusEnd,
+							 const Eigen::Vector3f& axis, const float angle,
 							 QByteArray& modelVertices,
 							 QByteArray& modelIndices);
 	void generateSubPathStep(const Point& prevPoint,

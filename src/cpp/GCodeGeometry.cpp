@@ -79,28 +79,25 @@ static const Vertices _cubeVertices = {//bottom
 									   { 0.5, 1.0, 1},
 									   { 0.5, 0.0, 1}};
 
+static void dumpVector3f(const Vector3f& v, const std::string& name = "")
+{
+	std::cout << " ### vector " << name << ": " << v.x() << "," << v.y() << "," << v.z() << std::endl;
+}
+
+
 static std::pair<Vertices, Indices> generateCylinderPie(const Point& center,
 														const Vector3f& radiusStart,
-														const Vector3f& radiusEnd,
-														const float height,
-														unsigned short numCirclePoints = 20)
+														const Vector3f& axis,
+														const float angle,
+														const float thickness,
+														unsigned short numCirclePoints)
 {
 	Vertices vert{center};
 	Indices ind;
-	const float startAngle = atan2(radiusStart.y(), radiusStart.x());
-	float endAngle = atan2(radiusEnd.y(), radiusEnd.x());
-	if (endAngle < startAngle)
-	{
-		endAngle += 2.0f*float(M_PI);
-	}
-	const float angleStep = (endAngle - startAngle) / float(numCirclePoints);
+	const float angleStep = angle / float(numCirclePoints);
 	for(float p : range<float>(numCirclePoints+1))
 	{
-		const float cos = std::cosf(p*angleStep);
-		const float sin = std::sinf(p*angleStep);
-		vert.push_back(center + Matrix3f{{cos , -sin, 0},
-										 {sin,   cos, 0},
-										 {0,       0, 1}} * radiusStart);
+		vert.push_back(center + AngleAxisf(p * angleStep, axis) * radiusStart);
 
 		if (unsigned(p) == numCirclePoints)
 		{// We only need the last vertex from the final iteration.
@@ -112,8 +109,8 @@ static std::pair<Vertices, Indices> generateCylinderPie(const Point& center,
 		ind.push_back(uint32_t(p)+2);
 	}
 
-	// Copy the circle  pie shifted by height in z-direction.
-	const Vector3f heightShift{0,0,height};
+	// Copy the circle  pie shifted by height in rotation axis direction.
+	const Vector3f heightShift = thickness * axis;
 	const uint32_t upperCircleCenterIndex = uint32_t(vert.size());
 	const uint32_t firstIndicesSize = uint32_t(ind.size());
 	vert.resize(2*upperCircleCenterIndex);
@@ -586,14 +583,15 @@ void GCodeGeometry::generateSubPathStep(const Point& prevPoint,
 	++_numPathStepsUsed;
 }
 
-void GCodeGeometry::generateSubPathBend(const Point& center,
+void GCodeGeometry::generateSubPathTurn(const Point& center,
 										const Vector3f& radiusStart,
-										const Vector3f& radiusEnd,
+										const Vector3f& axis,
+										const float angle,
 										QByteArray& modelVertices,
 										QByteArray& modelIndices)
 {
 //	Chronograph chrono(__FUNCTION__);
-	const std::pair<Vertices, Indices> cylinderPieGeometry = generateCylinderPie(center, radiusStart, radiusEnd, _profileDiag.y(), 20);
+	const std::pair<Vertices, Indices> cylinderPieGeometry = generateCylinderPie(center, radiusStart, axis, angle, _profileDiag.y(), 20);
 
 //	std::for_each(cylinderPieGeometry.first.begin(), cylinderPieGeometry.first.end(), [](const Vertex& v) {
 //		std::cout << " ### " << __FUNCTION__ << " vertex:" << v.x() << "," << v.y() << "," << v.z() << std::endl;
@@ -710,16 +708,14 @@ void GCodeGeometry::generate()
 		// To get a path step with known length, we need the first point of subPath defined and start iterating from the second point.
 		prevPoint = subPath[0];
 
+		const float turnRadius = 0.5f*_profileDiag.x();
+
 		// Prepend the first subPath point with half of a cylinder.
-		const Vector3f directionAtTheBeginning = (subPath[1] - prevPoint).normalized();
-		const Vector3f radiusStart = 0.5f * _profileDiag.x() * Vector3f{-directionAtTheBeginning.y(), directionAtTheBeginning.x(), 0};
-//		std::cout << " ### " << __FUNCTION__ << " direction:" << direction.x() << "," << direction.y() << "," << direction.z() << std::endl;
-//		std::cout << " ### " << __FUNCTION__ << " Radius:" << radiusStart.x() << "," << radiusStart.y() << "," << radiusStart.z() << std::endl;
-		const Vector3f radiusEnd = -radiusStart;
-		if (directionAtTheBeginning.x() !=0 || directionAtTheBeginning.y() !=0)
-		{
-			generateSubPathBend(prevPoint, radiusStart, radiusEnd, _modelVertices, _modelIndices);
-		}
+		const Vector3f dirAtBeginning = (subPath[1] - prevPoint).normalized();
+		static const Vector3f upVector{0,0,1};
+		Vector3f rightToDir = dirAtBeginning.cross(upVector);
+		Vector3f turnAxis = rightToDir.cross(dirAtBeginning);
+		generateSubPathTurn(prevPoint,  turnRadius*rightToDir, turnAxis, -float(M_PI), _modelVertices, _modelIndices);
 
 		const uint32_t numSubPathPoints = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size())) -1;
 		for (uint32_t subPathPointIndex = 1; subPathPointIndex < numSubPathPoints; ++subPathPointIndex)
@@ -732,13 +728,15 @@ void GCodeGeometry::generate()
 			// Insert a cylinder section (pie) between two path steps.
 			const Vector3f prevDirection = pathStep.normalized();
 			const Vector3f nextDirection = (nextPoint - currPoint).normalized();
-			const Vector3f radiusPrev = 0.5f * _profileDiag.x() * Vector3f{-prevDirection.y(), prevDirection.x(), 0};
-			const Vector3f radiusNext = 0.5f * _profileDiag.x() * Vector3f{-nextDirection.y(), nextDirection.x(), 0};
-			if (radiusPrev != radiusNext)
+
+			turnAxis = prevDirection.cross(nextDirection).normalized();
+
+			const float turnAngle = std::acosf(prevDirection.dot(nextDirection));
+			if (turnAngle != 0)
 			{
-				// TODO: Make a nice condition for which order of radii use this.
-				generateSubPathBend(prevPoint, radiusNext, radiusPrev, _modelVertices, _modelIndices);
-				generateSubPathBend(prevPoint, radiusPrev, radiusNext, _modelVertices, _modelIndices);
+				//TODO: Watch out - HACKING a bit.
+				const Vector3f bottomShift = _profileDiag.y()*turnAxis*(turnAxis.dot(upVector) > 0 ? 0 : 1);
+				generateSubPathTurn(currPoint - bottomShift, turnRadius * prevDirection.cross(turnAxis), turnAxis, turnAngle, _modelVertices, _modelIndices);
 			}
 
 			prevPoint = currPoint;
@@ -749,15 +747,16 @@ void GCodeGeometry::generate()
 		generateSubPathStep(prevPoint, pathStep, _modelVertices, _modelIndices);
 
 		// Append a half circle to the end of the subPath.
-		const Vector3f directionAtTheEnd = (prevPoint - currPoint).normalized();
-		const Vector3f radiusAtEndStart = 0.5f * _profileDiag.x() * Vector3f{-directionAtTheEnd.y(), directionAtTheEnd.x(), 0};
-//		std::cout << " ### " << __FUNCTION__ << " directionAtTheEnd:" << directionAtTheEnd.x() << "," << directionAtTheEnd.y() << "," << directionAtTheEnd.z() << std::endl;
-//		std::cout << " ### " << __FUNCTION__ << " Radius:" << radiusAtEndStart .x() << "," << radiusAtEndStart .y() << "," << radiusAtEndStart .z() << std::endl;
-		const Vector3f radiusAtEndEnd = -radiusAtEndStart;
-		if (directionAtTheEnd.x() !=0 || directionAtTheEnd.y() !=0)
-		{
-			generateSubPathBend(prevPoint, radiusAtEndStart, radiusAtEndEnd, _modelVertices, _modelIndices);
-		}
+		const Vector3f dirAtEnd = (currPoint - prevPoint).normalized();
+		rightToDir = dirAtEnd.cross(upVector);
+		turnAxis = rightToDir.cross(dirAtEnd);
+
+//		std::cout << " ### " << __FUNCTION__ << " :" << "" << "," << "" << std::endl;
+//		dumpVector3f(dirAtEnd, "dirAtEnd");
+//		dumpVector3f(rightToDir, "rightToDir");
+//		dumpVector3f(turnAxis, "turnAxis");
+
+		generateSubPathTurn(currPoint, turnRadius*rightToDir, turnAxis, float(M_PI), _modelVertices, _modelIndices);
 
 		prevPoint = currPoint;
 	}
