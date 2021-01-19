@@ -10,6 +10,7 @@
 
 // ASSIMP LIBRARY INCLUDE
 #include <assimp/Importer.hpp>
+#include <assimp/Exporter.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <assimp/DefaultLogger.hpp>
@@ -29,6 +30,7 @@
 static bool isAssimpReadDone = false;
 // Create an instance of the Importer class
 static Assimp::Importer importer;
+static Assimp::Exporter exporter;
 static const aiScene* scene;
 
 static aiVector3D maxFloatBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
@@ -160,11 +162,28 @@ float ExampleTriangleGeometry::getRotationAngle(const QQuaternion& rotation)
 	return angle;
 }
 
+void ExampleTriangleGeometry::exportModelToSTL(const QString& filePath)
+{
+
+		// And have it read the given file with some example postprocessing
+	// Usually - if speed is not the most important aspect for you - you'll
+	// probably to request more postprocessing than we do in this example.
+	if (AI_SUCCESS == exporter.Export(scene, "stl", filePath.toStdString()))
+	{
+		std::cout << " ### " << __FUNCTION__ << " filePATH:" << filePath.toStdString() << " export OK" << std::endl;
+	}
+	else
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR for file:" << filePath.toStdString() << std::endl;
+	}
+
+}
+
 ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVector3D& origin,
 																	 const QVector3D& direction,
 																	 const QMatrix4x4& globalTransform)
 {
-	return PickResult();
+//	return PickResult();
 
 	QSSGRenderRay hitRay(origin, direction);
 

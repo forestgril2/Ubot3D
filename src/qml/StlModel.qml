@@ -12,6 +12,7 @@ Model {
 
 
     geometry: ExampleTriangleGeometry {
+        id: geometry
         warp: modelControls.triangleModelWarpSlider.value
 
         onBoundsChanged: {
@@ -30,6 +31,9 @@ Model {
         }
     ]
 
+    function exportModelToSTL() {
+        geometry.exportModelToSTL("C:\ProjectsData\stl_files\copy.stl")
+    }
 
     function snapToFloor()
     {

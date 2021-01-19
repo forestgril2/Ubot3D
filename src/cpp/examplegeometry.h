@@ -36,6 +36,8 @@ public:
 	static Q_INVOKABLE QVector3D getRotationAxis(const QQuaternion& rotation);
 	static Q_INVOKABLE float getRotationAngle(const QQuaternion& rotation);
 
+	static Q_INVOKABLE void exportModelToSTL(const QString& filePath);
+
 
 	struct PickResult
 	{
