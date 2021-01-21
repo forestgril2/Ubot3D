@@ -66,21 +66,6 @@ Row {
 
         }
 
-        Button {
-            id: exportModelToSTL
-
-            text: "exportModelToSTL"
-
-            topInset: 20
-            topPadding: 20
-            height: 70
-
-            onPressed: {
-                stlModel.exportModelToSTL()
-            }
-
-        }
-
         CheckBox {
             id: commonRotationCheckBox
             text: qsTr("Rotate together")

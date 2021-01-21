@@ -6,8 +6,9 @@ FileDialog {
     id: root
 
     enum FileType {
-        Gcode,
-        Stl
+        GcodeImport,
+        StlImport,
+        StlExport
     }
 
     property int fileType: TypedFileDialog.Stl
@@ -17,6 +18,30 @@ FileDialog {
         setInputFile(fileDialog.currentFile)
     }
 
+    function importStl()
+    {
+        nameFilters = ["STL files (*.stl *.STL)", "Object files (*.obj)"]
+        fileMode = FileDialog.OpenFiles
+        fileType = TypedFileDialog.StlImport
+        open()
+    }
+
+    function exportStl()
+    {
+        nameFilters = ["STL files (*.stl *.STL)"]
+        fileMode = FileDialog.SaveFile
+        fileType = TypedFileDialog.StlExport
+        open()
+    }
+
+    function importGcode()
+    {
+        nameFilters = ["Gcode files (*.gcode)"]
+        fileMode = FileDialog.OpenFile
+        fileType = TypedFileDialog.GcodeImport
+        open()
+    }
+
     function setInputFile(filePath) {
         var fullSystemFilePath = filePath.toString()
         var pos = fullSystemFilePath.search("file:///");
@@ -24,11 +49,15 @@ FileDialog {
 
         switch(fileType)
         {
-        case TypedFileDialog.Stl:
+        case TypedFileDialog.StlImport:
             stlModel.geometry.inputFile = fullSystemFilePath
             console.log(" ### stlModel.geometry.inputFile: " + stlModel.geometry.inputFile)
             break
-        case TypedFileDialog.Gcode:
+        case TypedFileDialog.StlExport:
+            stlModel.exportModelToSTL(fullSystemFilePath)
+            console.log(" ### stlModel.geometry.exportFile: " + fullSystemFilePath)
+            break
+        case TypedFileDialog.GcodeImport:
             gcodeModel.geometry.inputFile = fullSystemFilePath
             console.log(" ### gcodeModel.geometry.inputFile: " + gcodeModel.geometry.inputFile)
             break

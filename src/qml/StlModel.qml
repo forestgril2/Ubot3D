@@ -31,8 +31,8 @@ Model {
         }
     ]
 
-    function exportModelToSTL() {
-        geometry.exportModelToSTL("C:\ProjectsData\stl_files\copy.stl")
+    function exportModelToSTL(path) {
+        geometry.exportModelToSTL(path)
     }
 
     function snapToFloor()
