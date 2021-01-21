@@ -27,6 +27,8 @@
 //#include <D:\Projects\qt6\qtquick3d\src\utils\qssgoption_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrenderlayer_p.h>
 
+#include "Chronograph.h"
+
 static bool isAssimpReadDone = false;
 // Create an instance of the Importer class
 static Assimp::Importer importer;
@@ -183,7 +185,12 @@ ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVect
 																	 const QVector3D& direction,
 																	 const QMatrix4x4& globalTransform)
 {
-//	return PickResult();
+	Chronograph chronograph(__FUNCTION__);
+	if (vertexData().size() == 0)
+	{
+		std::cout << " ### " << __FUNCTION__ << " WARNING vertex buffer empty, returning empty pick" << std::endl;
+		return PickResult();
+	}
 
 	QSSGRenderRay hitRay(origin, direction);
 
@@ -367,6 +374,12 @@ void ExampleTriangleGeometry::reloadSceneIfNecessary()
 {
 	if (!isAssimpReadDone)
 	{
+		if (_inputFile.isEmpty())
+		{
+			clear();
+			return;
+		}
+
 		if (!importModelFromFile(_inputFile.toStdString().c_str()))
 			return;
 
@@ -378,7 +391,11 @@ void ExampleTriangleGeometry::reloadSceneIfNecessary()
 }
 void ExampleTriangleGeometry::updateData()
 {
+	Chronograph chronograph(__FUNCTION__);
 	reloadSceneIfNecessary();
+
+	if (!scene)
+		return;
 
     int stride = 3 * sizeof(float);
     if (m_hasNormals)

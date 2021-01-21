@@ -3,6 +3,7 @@ import customgeometry 1.0
 
 Model {
     id: rootModel
+    property alias inputFile: geometry.inputFile
     property bool isPicked: false
     objectName: "STL geometry"
     pickable: true

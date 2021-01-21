@@ -36,9 +36,8 @@ Window {
 
         Component.onCompleted: {
             console.log(" ### ComponentComplete")
-            view3d.gcodeModelCenter = getModelCenter(gcodeModel)
-            camera.lookAtModel(gcodeModel)
-
+//            view3d.gcodeModelCenter = getModelCenter(gcodeModel)
+//            camera.lookAtModel(gcodeModel)
             modelControls.resetSliders()
         }
 
@@ -64,7 +63,7 @@ Window {
             {
                 var modelCenter = getModelCenter(model)
                 console.log(" ### lookAtModel: " + model.objectName + ", modelCenter: " + modelCenter);
-                console.log(" ### " + gcodeModel.objectName + " modelLoaded with paths: " + gcodeGeometry.numSubPaths + ", max points in subPath: " + gcodeGeometry.numPointsInSubPath)
+//                console.log(" ### " + gcodeModel.objectName + " modelLoaded with paths: " + gcodeGeometry.numSubPaths + ", max points in subPath: " + gcodeGeometry.numPointsInSubPath)
                 var direction = modelCenter.minus(camera.position)
                 var upDirection = Qt.vector3d(0,0,1)
                 var lookAtModelCenterRotation = stlModel.geometry.getRotationFromDirection(direction, upDirection)
@@ -73,17 +72,26 @@ Window {
         }
 
         DirectionalLight {
-            position: sceneCenter.plus(Qt.vector3d(50, 50, -10))
-            color: Qt.rgba(0.4, 0.2, 0.6, 1.0)
+            eulerRotation.x: 30
+            eulerRotation.y: 30
+            eulerRotation.z: 30
+            color: Qt.rgba(0.7, 0.7, 0.7, 1.0)
             ambientColor: Qt.rgba(0.1, 0.1, 0.1, 1.0)
         }
 
-        PointLight {
-            position: sceneCenter.plus(Qt.vector3d(30, 0, 100))
-            color: Qt.rgba(0.1, 1.0, 0.1, 1.0)
-            ambientColor: Qt.rgba(0.2, 0.2, 0.2, 1.0)
+        DirectionalLight {
+            eulerRotation.x: -45
+            eulerRotation.y: -45
+            eulerRotation.z: -45
+            color: Qt.rgba(0.3, 0.3, 0.3, 1.0)
+            ambientColor: Qt.rgba(0.1, 0.1, 0.1, 1.0)
         }
 
+//        PointLight {
+//            position: sceneCenter.plus(Qt.vector3d(30, 0, 100))
+//            color: Qt.rgba(0.1, 1.0, 0.1, 1.0)
+//            ambientColor: Qt.rgba(0.2, 0.2, 0.2, 1.0)
+//        }
 
         Model {
             scale: Qt.vector3d(100, 100, 100)
@@ -99,34 +107,39 @@ Window {
             ]
         }
 
-        Model {
-            id: gcodeModel
-            property bool isPicked: false
-            position: Qt.vector3d(0, 0, 0)
-            objectName: "gCode geometry"
-            pickable: true
-            rotation: modelControls.commonRotationCheckBox.checked ?
-                          stlModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
-                          Qt.quaternion(0,0,0,0)
+//        Model {
+//            id: gcodeModel
+//            property bool isPicked: false
+//            position: Qt.vector3d(0, 0, 0)
+//            objectName: "gCode geometry"
+//            pickable: true
+//            rotation: modelControls.commonRotationCheckBox.checked ?
+//                          stlModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
+//                          Qt.quaternion(0,0,0,0)
 
-            geometry: GCodeGeometry {
-                id: gcodeGeometry
+//            geometry: GCodeGeometry {
+//                id: gcodeGeometry
 
-                onModelLoaded: {
-                    modelControls.resetSliders()
-                }
+//                onModelLoaded: {
+//                    modelControls.resetSliders()
+//                }
+//            }
+//            materials: [
+//                DefaultMaterial {
+//                    cullMode: DefaultMaterial.NoCulling
+//                    diffuseColor: "lightgreen"
+//                    specularAmount: 0.5
+//                }
+//            ]
+//        }
+
+        Repeater3D {
+            id: stlModels
+
+            delegate: StlModel {
+                id: stlModel
+                inputFile: stlModels.model[index]
             }
-            materials: [
-                DefaultMaterial {
-                    cullMode: DefaultMaterial.NoCulling
-                    diffuseColor: "lightgreen"
-                    specularAmount: 0.5
-                }
-            ]
-        }
-
-        StlModel {
-            id: stlModel
         }
 
         PickArea {

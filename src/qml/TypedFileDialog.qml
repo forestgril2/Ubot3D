@@ -11,7 +11,7 @@ FileDialog {
         StlExport
     }
 
-    property int fileType: TypedFileDialog.Stl
+    property int fileType: TypedFileDialog.StlImport
 
     onAccepted:
     {
@@ -50,8 +50,9 @@ FileDialog {
         switch(fileType)
         {
         case TypedFileDialog.StlImport:
-            stlModel.geometry.inputFile = fullSystemFilePath
-            console.log(" ### stlModel.geometry.inputFile: " + stlModel.geometry.inputFile)
+//            stlModel.geometry.inputFile = fullSystemFilePath
+            stlModels.model = [fullSystemFilePath]
+//            console.log(" ### stlModel.geometry.inputFile: " + stlModel.geometry.inputFile)
             break
         case TypedFileDialog.StlExport:
             stlModel.exportModelToSTL(fullSystemFilePath)
