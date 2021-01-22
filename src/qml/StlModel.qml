@@ -17,7 +17,7 @@ Model {
         warp: modelControls.triangleModelWarpSlider.value
 
         onBoundsChanged: {
-            var modelCenter = rootModel.geometry.minBounds.plus(triangleModel.geometry.maxBounds).times(0.5)
+            var modelCenter = rootModel.geometry.minBounds.plus(rootModel.geometry.maxBounds).times(0.5)
             console.log(" model bounds min: " + rootModel.geometry.minBounds)
             console.log(" model bounds max: " + rootModel.geometry.maxBounds)
             console.log(" modelCenter : " + modelCenter)

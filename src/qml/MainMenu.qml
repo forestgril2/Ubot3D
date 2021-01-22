@@ -13,6 +13,9 @@ MenuBar {
 //	height: 30
 	
 	id: mainMenu
+
+    signal modelCloseRequested()
+
 	menus: [
 		Menu {
 			title: qsTr("File")
@@ -35,6 +38,9 @@ MenuBar {
 			}
 			MenuItem{
 				text: qsTr("Close file")
+                onTriggered: {
+                    mainMenu.modelCloseRequested()
+                }
 			}
 			MenuSeparator {}
 			MenuItem{

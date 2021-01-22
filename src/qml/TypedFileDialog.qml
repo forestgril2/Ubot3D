@@ -15,7 +15,35 @@ FileDialog {
 
     onAccepted:
     {
-        setInputFile(fileDialog.currentFile)
+        function generateSystemFilePath(qtFilePath) {
+            var fullSystemFilePath = qtFilePath.toString()
+            var pos = fullSystemFilePath.search("file:///");
+            return fullSystemFilePath.substring(pos+8)
+        }
+
+        function generateSystemFilepathList(qtFilePathList) {
+            var retList = []
+            qtFilePathList.forEach(function (qtFilePath, index) {
+                retList.push(generateSystemFilePath(qtFilePath))
+            })
+            return retList
+        }
+
+        switch(fileType) {
+            case TypedFileDialog.StlImport:
+                console.log(" ### fileDialog.currentFiles:" + fileDialog.currentFiles)
+                stlModels.model = generateSystemFilepathList(fileDialog.currentFiles)
+                break
+            case TypedFileDialog.StlExport:
+                stlModel.exportModelToSTL(generateSystemFilePath(fileDialog.currentFile))
+                console.log(" ### stlModel.geometry.exportFile: " + fullSystemFilePath)
+                break
+            case TypedFileDialog.GcodeImport:
+                gcodeModel.geometry.inputFile = generateSystemFilePath(fileDialog.currentFile)
+                console.log(" ### gcodeModel.geometry.inputFile: " + gcodeModel.geometry.inputFile)
+                break
+
+        }
     }
 
     function importStl()
@@ -40,29 +68,5 @@ FileDialog {
         fileMode = FileDialog.OpenFile
         fileType = TypedFileDialog.GcodeImport
         open()
-    }
-
-    function setInputFile(filePath) {
-        var fullSystemFilePath = filePath.toString()
-        var pos = fullSystemFilePath.search("file:///");
-        fullSystemFilePath = fullSystemFilePath.substring(pos+8)
-
-        switch(fileType)
-        {
-        case TypedFileDialog.StlImport:
-//            stlModel.geometry.inputFile = fullSystemFilePath
-            stlModels.model = [fullSystemFilePath]
-//            console.log(" ### stlModel.geometry.inputFile: " + stlModel.geometry.inputFile)
-            break
-        case TypedFileDialog.StlExport:
-            stlModel.exportModelToSTL(fullSystemFilePath)
-            console.log(" ### stlModel.geometry.exportFile: " + fullSystemFilePath)
-            break
-        case TypedFileDialog.GcodeImport:
-            gcodeModel.geometry.inputFile = fullSystemFilePath
-            console.log(" ### gcodeModel.geometry.inputFile: " + gcodeModel.geometry.inputFile)
-            break
-
-        }
     }
 }

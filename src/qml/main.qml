@@ -21,6 +21,11 @@ Window {
     }
 
     MainMenu {
+        id: mainMenu
+
+        onModelCloseRequested: {
+            stlModels.model = []
+        }
     }
 
     PickDebugs {
