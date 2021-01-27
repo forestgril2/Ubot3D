@@ -25,6 +25,7 @@ Window {
 
         onModelCloseRequested: {
             stlModels.model = []
+            gcodeModels.model = []
         }
     }
 
@@ -112,31 +113,37 @@ Window {
             ]
         }
 
-//        Model {
-//            id: gcodeModel
-//            property bool isPicked: false
-//            position: Qt.vector3d(0, 0, 0)
-//            objectName: "gCode geometry"
-//            pickable: true
-//            rotation: modelControls.commonRotationCheckBox.checked ?
-//                          stlModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
-//                          Qt.quaternion(0,0,0,0)
+        Repeater3D {
+            id: gcodeModels
 
-//            geometry: GCodeGeometry {
-//                id: gcodeGeometry
+            delegate: Model {
+                id: gcodeModel
 
-//                onModelLoaded: {
-//                    modelControls.resetSliders()
-//                }
-//            }
-//            materials: [
-//                DefaultMaterial {
-//                    cullMode: DefaultMaterial.NoCulling
-//                    diffuseColor: "lightgreen"
-//                    specularAmount: 0.5
-//                }
-//            ]
-//        }
+                property bool isPicked: false
+                position: Qt.vector3d(0, 0, 0)
+                objectName: "gCode geometry"
+                pickable: true
+                rotation: modelControls.commonRotationCheckBox.checked ?
+                              stlModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
+                              Qt.quaternion(0,0,0,0)
+
+                geometry: GCodeGeometry {
+                    id: gcodeGeometry
+                    inputFile: gcodeModels.model[index]
+
+                    onModelLoaded: {
+                        modelControls.resetSliders()
+                    }
+                }
+                materials: [
+                    DefaultMaterial {
+                        cullMode: DefaultMaterial.NoCulling
+                        diffuseColor: "lightgreen"
+                        specularAmount: 0.5
+                    }
+                ]
+            }
+        }
 
         Repeater3D {
             id: stlModels

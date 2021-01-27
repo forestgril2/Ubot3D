@@ -91,8 +91,8 @@ private:
 	bool _isPicked = false;
 	bool _wasGenerated = false;
 
-	uint32_t _numSubPaths = 0;
-	uint32_t _maxNumPointsInSubPath = 0;
+	uint32_t _numSubPaths;
+	uint32_t _maxNumPointsInSubPath;
 	std::vector<Points> _extruderSubPaths;            /** Vectors of points along the center of the filament path. */
 	uint32_t _numPathStepsUsed;
 	QByteArray _modelIndices;
@@ -106,6 +106,4 @@ private:
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
 	QString _inputFile;
-//	QString _inputFile = "C:/Projects/Ubot3D/CE3_mandoblasterlow.gcode";
-//	QString _inputFile = "C:/ProjectsData/stl_files/TEST.gcode";
 };

@@ -39,8 +39,8 @@ FileDialog {
                 console.log(" ### stlModel.geometry.exportFile: " + fullSystemFilePath)
                 break
             case TypedFileDialog.GcodeImport:
-                gcodeModel.geometry.inputFile = generateSystemFilePath(fileDialog.currentFile)
-                console.log(" ### gcodeModel.geometry.inputFile: " + gcodeModel.geometry.inputFile)
+                gcodeModels.model = [generateSystemFilePath(fileDialog.currentFile)]
+                console.log(" ### gcodeModel.geometry.inputFile: " + gcodeModels.model[0])
                 break
 
         }

@@ -199,12 +199,21 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 
 void GCodeGeometry::loadGCodeProgram()
 {
+	if (_inputFile.isEmpty())
+		return;
 	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
 	createExtruderPaths(gcodeProgram);
 }
 
 GCodeGeometry::GCodeGeometry() :
-	_numPathStepsUsed(0)
+	_numSubPaths(0),
+	_extruderSubPaths({}),
+	_numPathStepsUsed(0),
+	_modelIndices({}),
+	_modelVertices({}),
+	_inputFile("")
+//	_inputFile("C:/Projects/Ubot3D/CE3_mandoblasterlow.gcode"),
+//	_inputFile("C:/ProjectsData/stl_files/TEST.gcode")
 {
 	range_test<unsigned>();
 	range_test<float>();
@@ -431,15 +440,25 @@ QString GCodeGeometry::getInputFile() const
 
 void GCodeGeometry::setInputFile(const QString& url)
 {
-	std::cout << "### " << __FUNCTION__ << std::endl;
+	std::cout << "### " << __FUNCTION__ << url.toStdString() << std::endl;
 	if (url == _inputFile)
 		return;
 
 	_inputFile = url;
 	_wasGenerated = false;
-	loadGCodeProgram();
+
+	_extruderSubPaths.clear();
+	_modelIndices.clear();
+	_modelVertices.clear();
+	setNumPointsInSubPath(0);
+	setNumSubPaths(0);
+
+	if (!_inputFile.isEmpty())
+	{
+		loadGCodeProgram();
+	}
+
 	updateData();
-	std::cout << "### isComponentComplete:" << isComponentComplete() << std::endl;
 	update();
 
 	emit modelLoaded();
@@ -680,13 +699,13 @@ void GCodeGeometry::generateSubPathTurn(const Point& center,
 
 size_t GCodeGeometry::calcVerifyModelNumbers()
 {
-	const size_t numSubPathsUsed = 1;//std::min<uint32_t>(static_cast<uint32_t>(_extruderSubPaths.size()), _numSubPaths);
+	const size_t numSubPathsUsed = std::min<uint32_t>(static_cast<uint32_t>(_extruderSubPaths.size()), _numSubPaths);
 	if (numSubPathsUsed == 0)
 	{
 		std::cout << "### " << __FUNCTION__ << ": numSubPathUsed == 0, return" << std::endl;
-		exit(-1);
+		return 0;
 	}
-	std::cout << "### updateData() numSubPathUsed:" << numSubPathsUsed << std::endl;
+	std::cout << "### calcVerifyModelNumbers() numSubPathUsed:" << numSubPathsUsed << std::endl;
 
 	size_t numPathPoints = 0;
 	for (uint32_t subPathIndex = 0; subPathIndex < numSubPathsUsed; ++subPathIndex)
@@ -696,9 +715,9 @@ size_t GCodeGeometry::calcVerifyModelNumbers()
 	if (numPathPoints == 0)
 	{
 		std::cout << "### " << __FUNCTION__ << ": numPathPoints == 0, return" << std::endl;
-		exit(-1);
+		return 0;
 	}
-	std::cout << "### updateData() numPathPoints:" << numPathPoints << std::endl;
+	std::cout << "### calcVerifyModelNumbers() numPathPoints:" << numPathPoints << std::endl;
 	return numSubPathsUsed;
 }
 
@@ -711,14 +730,15 @@ void GCodeGeometry::generate()
 
 	Chronograph chronograph(__FUNCTION__, true);
 
-	calcVerifyModelNumbers();
-
 	_numPathStepsUsed = 0;
 
 	_modelVertices.resize(0);
 	_modelIndices.resize(0);
 	_numTotalPathStepVertices.resize(0);
 	_numTotalPathStepIndices.resize(0);
+
+	if (calcVerifyModelNumbers() < 1)
+		return;
 
 	// Push back 0's to always be able to quickly compare the new size
 	// with the previous (without additional checks for container size);
@@ -847,8 +867,16 @@ void GCodeGeometry::generate()
 
 void GCodeGeometry::updateData()
 {
+	Chronograph chrono(__FUNCTION__);
 	clear();
 	generate();
+
+	if (!_wasGenerated)
+	{
+		setVertexData({});
+		setIndexData({});
+		return;
+	}
 
 	QByteArray usedVertices(_modelVertices);
 	QByteArray usedIndices(_modelIndices);
