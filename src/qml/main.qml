@@ -115,6 +115,7 @@ Window {
 
         Repeater3D {
             id: gcodeModels
+            property var gcodeGeometry: (model == [] ? null : objectAt(0).geometry)
 
             delegate: Model {
                 id: gcodeModel
@@ -132,7 +133,10 @@ Window {
                     inputFile: gcodeModels.model[index]
 
                     onModelLoaded: {
-                        modelControls.resetSliders()
+                        modelControls.resetSliders(gcodeGeometry)
+
+                        console.log(" ### gcodeModels.gcodeGeometry.inputFile:" + gcodeModels.gcodeGeometry.inputFile)
+                        console.log(" ### gcodeModels.gcodeGeometry.numSubPaths:" + gcodeModels.gcodeGeometry.numSubPaths)
                     }
                 }
                 materials: [
@@ -159,6 +163,8 @@ Window {
 
         ModelControls {
             id: modelControls
+
+            property var referencedGcodeGeometry
             anchors {
                 left: parent.left
                 top: parent.top
@@ -169,18 +175,29 @@ Window {
             }
 
             numSubPathsSlider.onValueChanged: {
-                gcodeGeometry.numSubPaths = numSubPathsSlider.value
+                if (!referencedGcodeGeometry)
+                    return;
+                referencedGcodeGeometry.numSubPaths = numSubPathsSlider.value
             }
 
             numPointsInSubPathSlider.onValueChanged: {
-                gcodeGeometry.numPointsInSubPath = numPointsInSubPathSlider.value
+                if (!referencedGcodeGeometry)
+                    return;
+                referencedGcodeGeometry.numPointsInSubPath = numPointsInSubPathSlider.value
             }
 
             numPathStepsUsedSlider.onValueChanged: {
-                gcodeGeometry.numPathStepsUsed = numPathStepsUsedSlider.value
+                if (!referencedGcodeGeometry)
+                    return;
+                referencedGcodeGeometry.numPathStepsUsed = numPathStepsUsedSlider.value
             }
 
-            function resetSliders() {
+            function resetSliders(gcodeGeometry) {
+
+                referencedGcodeGeometry = gcodeGeometry;
+
+                console.log(" ### resetSliders(): gcodeModels.gcodeGeometry.inputFile:" + gcodeGeometry.inputFile)
+
                 numSubPaths = gcodeGeometry.numSubPaths
                 numSubPathsSlider.value = gcodeGeometry.numSubPaths
                 numPointsInSubPath = gcodeGeometry.numPointsInSubPath

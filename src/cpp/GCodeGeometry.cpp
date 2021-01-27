@@ -199,6 +199,7 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 
 void GCodeGeometry::loadGCodeProgram()
 {
+	Chronograph chrono(__FUNCTION__);
 	if (_inputFile.isEmpty())
 		return;
 	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
@@ -440,7 +441,7 @@ QString GCodeGeometry::getInputFile() const
 
 void GCodeGeometry::setInputFile(const QString& url)
 {
-	std::cout << "### " << __FUNCTION__ << url.toStdString() << std::endl;
+	std::cout << "### " << __FUNCTION__ << ": " << url.toStdString() << std::endl;
 	if (url == _inputFile)
 		return;
 
@@ -450,13 +451,13 @@ void GCodeGeometry::setInputFile(const QString& url)
 	_extruderSubPaths.clear();
 	_modelIndices.clear();
 	_modelVertices.clear();
-	setNumPointsInSubPath(0);
-	setNumSubPaths(0);
+	_maxNumPointsInSubPath = 0;
+	_numSubPaths = 0;
 
-	if (!_inputFile.isEmpty())
-	{
-		loadGCodeProgram();
-	}
+	loadGCodeProgram();
+
+	std::cout << "### " << __FUNCTION__ << "_extruderSubPaths.size(): " << _extruderSubPaths.size() << std::endl;
+	std::cout << "### " << __FUNCTION__ << "_numSubPaths: " << _numSubPaths << std::endl;
 
 	updateData();
 	update();
@@ -877,6 +878,8 @@ void GCodeGeometry::updateData()
 		setIndexData({});
 		return;
 	}
+
+	chrono.start("Reusing vertices");
 
 	QByteArray usedVertices(_modelVertices);
 	QByteArray usedIndices(_modelIndices);
