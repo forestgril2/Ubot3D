@@ -105,15 +105,28 @@ static void dumpVector3f(const Vector3f& v, const std::string& name = "")
 	std::cout << " ### vector " << name << ": " << v.x() << "," << v.y() << "," << v.z() << std::endl;
 }
 
+#define ENABLE_GENERATION_CODE
 
-static std::pair<Vertices, Indices> generateCylinderPieSection(const Point& center,
+Eigen::Vector2f GCodeGeometry::calculateProfileDiagonal(const float pathStepLength, const float extrusionLength, const float profileHeight)
+{
+	assert(_profileHeight > 0);
+	assert(pathStepLength > 0);
+
+	const float profileWidth = (_filamentCrossArea * extrusionLength) / (profileHeight * pathStepLength);
+
+	const Eigen::Vector2f start = {-profileWidth/Real(2.0), -profileHeight/Real(2.0)};
+	_profile = {start, start + Vector2f{0.0, profileHeight}, start + Vector2f{profileWidth, profileHeight}, start + Vector2f{profileWidth, 0.0}};
+	return _profile[2] - _profile[0];
+};
+
+static std::pair<Vertices, Indices> generateCylinderPieSection(const ExtrPoint& center,
 															   const Vector3f& radiusStart,
 															   const Vector3f& axis,
 															   const float angle,
 															   const float thickness,
 															   uint16_t numAngleSteps)
 {
-	Vertices vert{center};
+	Vertices vert{{center.x(), center.y(), center.z()}};
 	Indices ind;
 //	if (angle < 0)
 
@@ -123,7 +136,7 @@ static std::pair<Vertices, Indices> generateCylinderPieSection(const Point& cent
 
 	for(float p : range<float>(numAngleSteps+1))
 	{
-		vert.push_back(center + AngleAxisf(p * angleStep, axis) * radiusStart);
+		vert.push_back(vert[0] + AngleAxisf(p * angleStep, axis) * radiusStart);
 
 		if (unsigned(p) == numAngleSteps)
 		{// We only need the last vertex from the final iteration.
@@ -212,6 +225,8 @@ GCodeGeometry::GCodeGeometry() :
 	_numPathStepsUsed(0),
 	_modelIndices({}),
 	_modelVertices({}),
+	_filamentCrossArea(1.75f*1.75f*float(M_PI_4)), // for filament cross section diameter 1.75mm
+	_profileHeight(0.0),
 	_inputFile("")
 //	_inputFile("C:/Projects/Ubot3D/CE3_mandoblasterlow.gcode"),
 //	_inputFile("C:/ProjectsData/stl_files/TEST.gcode")
@@ -219,7 +234,7 @@ GCodeGeometry::GCodeGeometry() :
 	range_test<unsigned>();
 	range_test<float>();
 
-	setRectProfile(0.4f, 0.28f);
+	setStride(static_cast<int32_t>(3 * sizeof(float)));
 
 	loadGCodeProgram();
 	updateData();
@@ -236,7 +251,7 @@ GCodeGeometry::GCodeGeometry() :
 	connect(this, &GCodeGeometry::numPathPointsStepsChanged, this, updateDataAndUpdate);
 }
 
-void GCodeGeometry::dumpSubPath(const std::string& blockString, const Points& subPath)
+void GCodeGeometry::dumpSubPath(const std::string& blockString, const ExtrPath& subPath)
 {
 //	std::ofstream pathFile("path" + std::to_string(_extruderPaths.size()) + ".txt");
 //	for (const Vector3f& point : subPath)
@@ -245,198 +260,6 @@ void GCodeGeometry::dumpSubPath(const std::string& blockString, const Points& su
 //	}
 //	pathFile << blockString << std::endl;
 //	pathFile.close();
-}
-
-void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
-{
-	Chronograph chronograph(__FUNCTION__, true);
-
-	Points subPath;
-	_extruderSubPaths.clear();
-	_extruderSubPaths.push_back(Points());
-
-	unsigned maxPointsInSubPath = 0;
-
-	bool isExtruderOn = false;
-	bool isAbsoluteMode = true;
-	unsigned blockCount = 0;
-	const unsigned blockCountLimit = 5220800;
-//	const unsigned blockCountLimit = 52208;
-//	const unsigned blockCountLimit = 255;
-	std::string blockString;
-
-	Point lastAbsCoords(0,0,0);
-	Point blockAbsCoords(0,0,0);
-	Point* newCoordsPtr = &blockAbsCoords;
-	for (auto it = gcodeProgram.begin(); it != gcodeProgram.end() && blockCount < blockCountLimit; ++it, ++blockCount)
-	{
-		const auto& block = *it;
-		blockString = block.to_string();
-		Point blockRelativeCoords(0,0,0);
-
-		auto setExtrusionOff = [this, &maxPointsInSubPath, &blockString, &subPath, &isExtruderOn]()
-		{// If we are setting extrusion off, swap created path with the empty one in path vector.
-			if (!isExtruderOn)
-				return;
-			isExtruderOn = false;
-
-			if (subPath.empty())
-				return;
-			maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPath.size());
-
-			dumpSubPath(blockString, subPath);
-
-			if (subPath.size() < 2)
-			{
-				static bool wasSubpathOfSmallSizeAnounced = false;
-				if (!wasSubpathOfSmallSizeAnounced)
-				{
-					std::cout << "### WARNING: subpath of size: " << subPath.size() << std::endl;
-					wasSubpathOfSmallSizeAnounced = true;
-				}
-
-				subPath.clear();
-				return;
-			}
-
-			std::swap(_extruderSubPaths.back(), subPath);
-			_extruderSubPaths.push_back(Points());
-		};
-
-		auto setExtrusionOn = [&subPath, &isExtruderOn](const Point& lastAbsCoords)
-		{// If we are setting extrusion on, add new (empty) path to path vector.
-			if (isExtruderOn)
-				return;
-			isExtruderOn = true;
-			subPath.push_back(lastAbsCoords);
-		};
-
-		auto setAbsoluteModeOn = [&isAbsoluteMode, &newCoordsPtr, &blockAbsCoords]() {
-			if (isAbsoluteMode)
-				return;
-			isAbsoluteMode = true;
-			newCoordsPtr = &blockAbsCoords;
-		};
-
-		auto setAbsoluteModeOff = [&isAbsoluteMode, &newCoordsPtr, &blockRelativeCoords]() {
-			if (!isAbsoluteMode)
-				return;
-
-			isAbsoluteMode = false;
-			newCoordsPtr = &blockRelativeCoords;
-		};
-
-		Vector3i wichCoordsSetInBlock(0,0,0);
-
-		for (const gpr::chunk& chunk : block)
-		{
-			switch(chunk.tp())
-			{
-				case gpr::CHUNK_TYPE_COMMENT:
-				case gpr::CHUNK_TYPE_PERCENT:
-				case gpr::CHUNK_TYPE_WORD:
-					break;
-
-				case gpr::CHUNK_TYPE_WORD_ADDRESS:
-				{
-					const gpr::addr& ad = chunk.get_address();
-					const char& word = chunk.get_word();
-
-					switch(word)
-					{
-						case 'G':
-							switch (ad.tp())
-							{
-								case gpr::ADDRESS_TYPE_INTEGER:
-									switch (ad.int_value())
-									{
-										case 0:
-											setExtrusionOff();
-											break;
-										case 1:
-											setExtrusionOn(lastAbsCoords);
-											break;
-										case 90:
-											setAbsoluteModeOn();
-											break;
-										case 91:
-											setAbsoluteModeOff();
-											break;
-										case 92:
-											//TODO: IMPLEMENT.
-											break;
-										default:
-											break;
-									}
-									break;
-
-								case gpr::ADDRESS_TYPE_DOUBLE:
-									assert(false);
-									break;
-							}
-							break;
-						case 'X':
-							newCoordsPtr->x() = float(ad.double_value());
-							wichCoordsSetInBlock.x() = true;
-							break;
-						case 'Y':
-							newCoordsPtr->y() = float(ad.double_value());
-							wichCoordsSetInBlock.y() = true;
-							break;
-						case 'Z':
-							newCoordsPtr->z() = float(ad.double_value());
-							wichCoordsSetInBlock.z() = true;
-							break;
-						default:
-							break;
-					}
-					break;
-				}
-			}
-		}
-
-		if (wichCoordsSetInBlock.isZero())
-			continue;
-
-		for (unsigned short i = 0; i < wichCoordsSetInBlock.size(); ++i)
-		{// If this coord is not set in this block, use the most recent for absolute coordinates.
-			if (wichCoordsSetInBlock[i] != 0 || !isAbsoluteMode)
-				continue;
-			blockAbsCoords[i] = lastAbsCoords[i];
-		}
-
-		if (!isAbsoluteMode)
-		{
-			lastAbsCoords += blockRelativeCoords;
-		}
-		else
-		{
-			lastAbsCoords = blockAbsCoords;
-		}
-
-		if (isExtruderOn)
-		{
-			subPath.push_back(lastAbsCoords);
-		}
-	}
-
-	if (!subPath.empty())
-	{
-		maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPath.size());
-		std::cout << " #### adding subPath no. " << _extruderSubPaths.size() -1<< ", maxPointsInSubPath: " << maxPointsInSubPath << std::endl;
-
-		dumpSubPath(blockString, subPath);
-
-		std::swap(_extruderSubPaths.back(), subPath);
-	}
-
-	_maxNumPointsInSubPath = maxPointsInSubPath;
-	_numSubPaths = _extruderSubPaths.size();
-}
-
-QString GCodeGeometry::getInputFile() const
-{
-	return _inputFile;
 }
 
 void GCodeGeometry::setInputFile(const QString& url)
@@ -463,6 +286,11 @@ void GCodeGeometry::setInputFile(const QString& url)
 	update();
 
 	emit modelLoaded();
+}
+
+QString GCodeGeometry::getInputFile() const
+{
+	return _inputFile;
 }
 
 void GCodeGeometry::setBounds(const QVector3D& min, const QVector3D& max)
@@ -555,149 +383,6 @@ uint32_t GCodeGeometry::getNumPathPointsUsed() const
 	return _numPathStepsUsed;
 }
 
-void GCodeGeometry::generateSubPathStep(const Point& prevPoint,
-										const Vector3f& pathStep,
-										QByteArray& modelVertices,
-										QByteArray& modelIndices)
-{
-	const float length = pathStep.norm();
-	assert(length > FLT_MIN);
-
-	// VERTICES
-	static const Indices cubeMeshVertexIndices = {0,1,2,3,4,5,6,7};
-
-	// QUADS
-	static const std::vector<Indices> cubeMeshQuadIndices = {{0,1,2,0,2,3}, // bottom
-															 //{0,3,7,7,4,0}, // back
-															 //{1,2,6,6,5,1}, // front
-															 {4,5,6,6,7,4}, // top
-															 {0,1,5,5,4,0}, // left
-															 {3,2,6,6,7,3}}; // right
-
-	static const uint32_t numAddedVertices = uint32_t(cubeMeshVertexIndices.size());
-	static const uint32_t numAddedIndices = std::accumulate(cubeMeshQuadIndices.begin(), cubeMeshQuadIndices.end(), 0u,
-															[](uint32_t acc, const Indices& indices){ return indices.size() + acc; });
-
-	const uint32_t prevVerticesSize = uint32_t(modelVertices.size());
-	const uint32_t prevIndicesSize = uint32_t(modelIndices.size());
-
-	const uint32_t newVertexIndex = prevVerticesSize/static_cast<uint32_t>(stride());
-
-	modelVertices.resize(prevVerticesSize + (numAddedVertices * static_cast<int64_t>(stride())));
-	modelIndices.resize(prevIndicesSize + (numAddedIndices * sizeof(uint32_t)));
-
-	float* coordsPtr = reinterpret_cast<float*>(&(modelVertices[prevVerticesSize]));
-	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(&(modelIndices[prevIndicesSize]));
-
-	const Matrix3f scale{{_profileDiag.x(), 0,      0               },
-						 {0,                length, 0               },
-						 {0,                0,      _profileDiag.y()}};
-
-//	const Vector3f rotationAxis = (Vector3f{0,1,0}.cross(pathStep)).normalized();
-//	const AngleAxisf rotation(std::acosf(Vector3f{0,1,0}.dot(pathStep.normalized())), rotationAxis);
-	const Eigen::Quaternionf rotation = Quaternionf::FromTwoVectors(Vector3f{0,1,0}, pathStep);
-
-	Vertices vertices = _cubeVertices;
-
-	std::for_each(vertices.begin(), vertices.end(), [&scale, &rotation, &prevPoint](Vector3f& v){
-		v = rotation*(scale*v) + prevPoint;
-	});
-
-	const auto setTriangleVertexCoords = [&coordsPtr, &vertices](const unsigned index) {
-		const Vertex vertex = vertices[index];
-		*coordsPtr++ = vertex.x();
-		*coordsPtr++ = vertex.y();
-		*coordsPtr++ = vertex.z();
-		updateBounds(coordsPtr - 3);
-	};
-
-	const auto setTriangleVertexIndex = [&indicesPtr, newVertexIndex](const unsigned appendedStructIndex) {
-		*indicesPtr++ = newVertexIndex + appendedStructIndex;
-	};
-
-	const auto setQuadVertexCoords = [setTriangleVertexCoords](const std::vector<uint32_t>& indices) {
-		std::for_each(indices.begin(), indices.end(), setTriangleVertexCoords);
-	};
-
-	const auto setQuadTriangleIndices = [setTriangleVertexIndex](const std::vector<uint32_t>& indices) {
-		std::for_each(indices.begin(), indices.end(), setTriangleVertexIndex);
-	};
-
-	setQuadVertexCoords(cubeMeshVertexIndices);
-	std::for_each(cubeMeshQuadIndices.begin(), cubeMeshQuadIndices.end(), setQuadTriangleIndices);
-
-	// Remember how many vertices and indices are added in this structure.
-	_numTotalPathStepVertices.push_back(_numTotalPathStepVertices.back() + numAddedVertices);
-	_numTotalPathStepIndices.push_back(_numTotalPathStepIndices.back() + numAddedIndices);
-	++_numPathStepsUsed;
-}
-
-void GCodeGeometry::generateSubPathTurn(const Point& center,
-										const Vector3f& radiusStart,
-										const Vector3f& axis,
-										const float angle,
-										QByteArray& modelVertices,
-										QByteArray& modelIndices)
-{
-//	Chronograph chrono(__FUNCTION__);
-	static const uint32_t numStepsPerFullCircle = 20;
-	static const float anglePerStep = 2.0f*float(M_PI)/numStepsPerFullCircle;
-	uint16_t numAngleSteps = static_cast<uint16_t>(std::abs(angle)/anglePerStep);
-	if (numAngleSteps < 1)
-	{
-		numAngleSteps = 1;
-	}
-
-	const std::pair<Vertices, Indices> cylinderPieGeometry = generateCylinderPieSection(center, radiusStart, axis, angle, _profileDiag.y(), numAngleSteps);
-
-//	std::for_each(cylinderPieGeometry.first.begin(), cylinderPieGeometry.first.end(), [](const Vertex& v) {
-//		std::cout << " ### " << __FUNCTION__ << " vertex:" << v.x() << "," << v.y() << "," << v.z() << std::endl;
-//	});
-
-//	std::for_each(cylinderPieGeometry.second.begin(), cylinderPieGeometry.second.end(), [](const Index& v) {
-//		std::cout << " ### " << __FUNCTION__ << " index:" << v << std::endl;
-//	});
-
-	const Vertices& cylinderPieVertices = cylinderPieGeometry.first;
-	const Indices& cylinderPieIndices = cylinderPieGeometry.second;
-
-	const uint32_t prevVerticesSize = uint32_t(modelVertices.size());
-	const uint32_t prevIndicesSize = uint32_t(modelIndices.size());
-
-	const uint32_t numCircleGeometryVertices = uint32_t(cylinderPieVertices.size());
-	const uint32_t numCircleGeometryindices = uint32_t(cylinderPieIndices.size());
-
-	assert(std::numeric_limits<uint32_t>::max() >= prevVerticesSize + (numCircleGeometryVertices * static_cast<uint32_t>(stride())));
-	assert(std::numeric_limits<uint32_t>::max() >= prevIndicesSize + (numCircleGeometryindices * sizeof(uint32_t)));
-
-	modelVertices.resize(prevVerticesSize + (numCircleGeometryVertices * static_cast<uint32_t>(stride())));
-	 modelIndices.resize(prevIndicesSize  + (numCircleGeometryindices  * sizeof(uint32_t)));
-
-	float* coordsPtr = reinterpret_cast<float*>(&(modelVertices.data()[prevVerticesSize]));
-	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(&(modelIndices.data()[prevIndicesSize]));
-	const uint32_t newMeshVertexIndex = prevVerticesSize/static_cast<uint32_t>(stride());
-
-//	std::cout << " ### " << __FUNCTION__ << " newMeshVertexIndex:" << newMeshVertexIndex << std::endl;
-
-	for(uint32_t v=0; v<numCircleGeometryVertices; ++v)
-	{
-		const Vertex vertex = cylinderPieVertices[v];
-		*coordsPtr++ = vertex.x();
-		*coordsPtr++ = vertex.y();
-		*coordsPtr++ = vertex.z();
-	}
-
-	for(uint32_t i=0; i<numCircleGeometryindices; ++i)
-	{
-		*indicesPtr++ = newMeshVertexIndex + cylinderPieIndices[i];
-	}
-
-	// Remember how many vertices and indices are added in this structure.
-	_numTotalPathStepVertices.push_back(_numTotalPathStepVertices.back() + numCircleGeometryVertices);
-	_numTotalPathStepIndices.push_back(_numTotalPathStepIndices.back() + numCircleGeometryindices);
-	++_numPathStepsUsed;
-}
-
 size_t GCodeGeometry::calcVerifyModelNumbers()
 {
 	const size_t numSubPathsUsed = std::min<uint32_t>(static_cast<uint32_t>(_extruderSubPaths.size()), _numSubPaths);
@@ -722,6 +407,228 @@ size_t GCodeGeometry::calcVerifyModelNumbers()
 	return numSubPathsUsed;
 }
 
+#ifdef ENABLE_GENERATION_CODE
+
+void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
+{
+	Chronograph chronograph(__FUNCTION__, true);
+
+	ExtrPath subPath;
+	_extruderSubPaths.clear();
+	_extruderSubPaths.push_back(ExtrPath());
+
+	unsigned maxPointsInSubPath = 0;
+
+	bool isExtruderOn = false;
+	bool isAbsoluteMode = true;
+	unsigned blockCount = 0;
+	const unsigned blockCountLimit = 5220800;
+//	const unsigned blockCountLimit = 52208;
+//	const unsigned blockCountLimit = 255;
+	std::string blockString;
+
+	ExtrPoint lastAbsCoords(0,0,0,0);
+	ExtrPoint blockAbsCoords(0,0,0,0);
+	ExtrPoint* newCoordsPtr = &blockAbsCoords;
+	for (auto it = gcodeProgram.begin(); it != gcodeProgram.end() && blockCount < blockCountLimit; ++it, ++blockCount)
+	{
+		const auto& block = *it;
+		blockString = block.to_string();
+		ExtrPoint blockRelativeCoords(0,0,0,0);
+
+		auto setExtrusionOff = [this, &maxPointsInSubPath, &blockString, &subPath, &isExtruderOn]()
+		{// If we are setting extrusion off, swap created path with the empty one in path vector.
+			if (!isExtruderOn)
+				return;
+			isExtruderOn = false;
+
+			if (subPath.empty())
+				return;
+			maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPath.size());
+
+			dumpSubPath(blockString, subPath);
+
+			if (subPath.size() < 2)
+			{
+				static bool wasSubpathOfSmallSizeAnounced = false;
+				if (!wasSubpathOfSmallSizeAnounced)
+				{
+					std::cout << "### WARNING: subpath of size: " << subPath.size() << std::endl;
+					wasSubpathOfSmallSizeAnounced = true;
+				}
+
+				subPath.clear();
+				return;
+			}
+
+			std::swap(_extruderSubPaths.back(), subPath);
+			_extruderSubPaths.push_back(ExtrPath());
+		};
+
+		auto setExtrusionOn = [&subPath, &isExtruderOn](const ExtrPoint& lastAbsCoords)
+		{// If we are setting extrusion on, add new (empty) path to path vector.
+			if (isExtruderOn)
+				return;
+			isExtruderOn = true;
+			subPath.push_back(lastAbsCoords);
+		};
+
+		auto setAbsoluteModeOn = [&isAbsoluteMode, &newCoordsPtr, &blockAbsCoords]() {
+			if (isAbsoluteMode)
+				return;
+			isAbsoluteMode = true;
+			newCoordsPtr = &blockAbsCoords;
+		};
+
+		auto setAbsoluteModeOff = [&isAbsoluteMode, &newCoordsPtr, &blockRelativeCoords]() {
+			if (!isAbsoluteMode)
+				return;
+
+			isAbsoluteMode = false;
+			newCoordsPtr = &blockRelativeCoords;
+		};
+
+		Vector4i wichCoordsSetInBlock(0,0,0,0);
+
+		for (const gpr::chunk& chunk : block)
+		{
+			switch(chunk.tp())
+			{
+				case gpr::CHUNK_TYPE_COMMENT:
+				case gpr::CHUNK_TYPE_PERCENT:
+				case gpr::CHUNK_TYPE_WORD:
+					break;
+
+				case gpr::CHUNK_TYPE_WORD_ADDRESS:
+				{
+					const gpr::addr& adddres = chunk.get_address();
+					const char& word = chunk.get_word();
+
+					switch(word)
+					{
+						// Header movements.
+						case 'G':
+							switch (adddres.tp())
+							{
+								case gpr::ADDRESS_TYPE_INTEGER:
+									switch (adddres.int_value())
+									{
+										case 0:
+											setExtrusionOff();
+											break;
+										case 1:
+											setExtrusionOn(lastAbsCoords);
+											break;
+										case 90:
+											setAbsoluteModeOn();
+											break;
+										case 91:
+											setAbsoluteModeOff();
+											break;
+										case 92:
+											//TODO: IMPLEMENT.
+											break;
+										default:
+											break;
+									}
+									break;
+
+								case gpr::ADDRESS_TYPE_DOUBLE:
+									assert(false);
+									break;
+							}
+							break;
+
+						// Path point coordinates.
+						case 'X':
+							newCoordsPtr->x() = float(adddres.double_value());
+							wichCoordsSetInBlock.x() = true;
+							break;
+						case 'Y':
+							newCoordsPtr->y() = float(adddres.double_value());
+							wichCoordsSetInBlock.y() = true;
+							break;
+						case 'Z':
+							newCoordsPtr->z() = float(adddres.double_value());
+							wichCoordsSetInBlock.z() = true;
+							break;
+
+						// Extruded length.
+						case 'E':
+							newCoordsPtr->w() = float(adddres.double_value());
+							wichCoordsSetInBlock.w() = true;
+							break;
+
+						default:
+							break;
+					}
+					break;
+				}
+			}
+		}
+
+		if (wichCoordsSetInBlock.isZero())
+			continue;
+
+		for (unsigned short i = 0; i < wichCoordsSetInBlock.size(); ++i)
+		{// If this coord is not set in this block, use the most recent for absolute coordinates.
+			if (wichCoordsSetInBlock[i] != 0 || !isAbsoluteMode)
+				continue;
+			blockAbsCoords[i] = lastAbsCoords[i];
+		}
+
+		if (!isAbsoluteMode)
+		{
+			lastAbsCoords += blockRelativeCoords;
+		}
+		else
+		{
+			lastAbsCoords = blockAbsCoords;
+		}
+
+		if (isExtruderOn)
+		{
+			subPath.push_back(lastAbsCoords);
+		}
+	}
+
+	if (!subPath.empty())
+	{
+		maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPath.size());
+		std::cout << " #### adding subPath no. " << _extruderSubPaths.size() -1<< ", maxPointsInSubPath: " << maxPointsInSubPath << std::endl;
+
+		dumpSubPath(blockString, subPath);
+
+		std::swap(_extruderSubPaths.back(), subPath);
+	}
+
+	_maxNumPointsInSubPath = maxPointsInSubPath;
+	_numSubPaths = _extruderSubPaths.size();
+}
+
+
+void GCodeGeometry::reset()
+{
+	_numPathStepsUsed = 0;
+	_modelVertices.resize(0);
+	_modelIndices.resize(0);
+	_numTotalPathStepVertices.resize(0);
+	_numTotalPathStepIndices.resize(0);
+	// Push back 0's to always be able to quickly compare the new size
+	// with the previous (without additional checks for container size);
+	_numTotalPathStepVertices.push_back(0);
+	_numTotalPathStepIndices.push_back(0);
+}
+
+bool GCodeGeometry::verifyEnoughPoints(const ExtrPath& subPath)
+{
+	if (subPath.size() > 1)
+		return true;
+
+	std::cout << " ### WARNING extruder subPath.size(): " << subPath.size() << std::endl;
+	return false;
+}
+
 void GCodeGeometry::generate()
 {
 	if (_wasGenerated)
@@ -731,135 +638,83 @@ void GCodeGeometry::generate()
 
 	Chronograph chronograph(__FUNCTION__, true);
 
-	_numPathStepsUsed = 0;
-
-	_modelVertices.resize(0);
-	_modelIndices.resize(0);
-	_numTotalPathStepVertices.resize(0);
-	_numTotalPathStepIndices.resize(0);
+	reset();
 
 	if (calcVerifyModelNumbers() < 1)
 		return;
 
-	// Push back 0's to always be able to quickly compare the new size
-	// with the previous (without additional checks for container size);
-	_numTotalPathStepVertices.push_back(0);
-	_numTotalPathStepIndices.push_back(0);
+	// Previous layer top at start is just the bed level.
+	float previousLayerTop = 0.0f;
 
-	setStride(static_cast<int32_t>(3 * sizeof(float)));
+	//Remember start point to know the direction and level, from which extruder head arrives in next subpath.
+	ExtrPoint lastStartPoint;
 
-	Point prevPoint;
-	for (const Points& subPath : _extruderSubPaths)
-	{// For every subPath - which is a contiguous set of consecutive extrusion points - generate a corresponding geometry.
-		if (subPath.empty())
-		{
-			std::cout << " ### WARNING empty path " << std::endl;
+	for (const ExtrPath& subPath : _extruderSubPaths)
+	{// For every subPath - which is a set of consecutive extrusion points - generate a corresponding contiguous geometry.
+		if (!verifyEnoughPoints(subPath))
 			continue;
+
+		if (!approximatelyEqual(lastStartPoint.z(), subPath[0].z(), FLT_EPSILON))
+		{// This means, that layer top level has changed with this subpath.
+			previousLayerTop = lastStartPoint.z();
 		}
 
-		if (subPath.size() < 2)
-		{
-			std::cout << " ### WARNING subPath.size() == 1 " << std::endl;
-			continue;
-		}
+		// To get a path step with known length, remember the first point of new subPath
+		lastStartPoint = subPath[0];
 
-		// To get a path step with known length, we need the first point of subPath defined and start iterating from the second point.
-		prevPoint = subPath[0];
+		// Profile recalculation for the beginning of the subpath.
+		const float firstStepLength = (subPath[1].head<3>() - lastStartPoint.head<3>()).norm();
+		const float extrusionLength = subPath[1].w() - lastStartPoint.w();
+		Eigen::Vector2f profileDiag = calculateProfileDiagonal(firstStepLength, extrusionLength, lastStartPoint.z() - previousLayerTop);
 
-		const float turnRadius = 0.5f*_profileDiag.x();
+		// TODO: The turn radius is calculated based on a certain simplification.
+		const float turnRadius = 0.5f*profileDiag.x();
 
 		// Prepend the first subPath point with half of a cylinder.
-		const Vector3f dirAtBeginning = (subPath[1] - prevPoint).normalized();
+		const Vector3f dirAtBeginning = (subPath[1] - lastStartPoint).normalized();
 		static const Vector3f upVector{0,0,1};
-		Vector3f rightToDir = dirAtBeginning.cross(upVector);
-		Vector3f turnAxis = rightToDir.cross(dirAtBeginning);
-		generateSubPathTurn(prevPoint,  turnRadius*rightToDir, turnAxis, -float(M_PI), _modelVertices, _modelIndices);
+		const Vector3f rightToDir = dirAtBeginning.cross(upVector);
+		const Vector3f turnAxis = rightToDir.cross(dirAtBeginning);
+		generateSubPathTurn(lastStartPoint,  turnRadius*rightToDir, turnAxis, -float(M_PI), _modelVertices, _modelIndices);
 
+		// Start iterating from the second point.
 		const uint32_t numSubPathPoints = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size())) -1;
 		for (uint32_t subPathPointIndex = 1; subPathPointIndex < numSubPathPoints; ++subPathPointIndex)
 		{
-			const Point& currPoint = subPath[subPathPointIndex];
-			const Point& nextPoint = subPath[subPathPointIndex +1];
-			const Vector3f pathStep = currPoint - prevPoint;
-			generateSubPathStep(prevPoint, pathStep, _modelVertices, _modelIndices);
+			const ExtrPoint& currPoint = subPath[subPathPointIndex];
+			const ExtrPoint& nextPoint = subPath[subPathPointIndex +1];
+			const Vector4f pathStep = currPoint - lastStartPoint;
+			generateSubPathStep(lastStartPoint, pathStep, _modelVertices, _modelIndices);
 
-			// Insert a cylinder section (pie) between two path steps.
-			const Vector3f prevDirection = pathStep.normalized();
-			const Vector3f nextDirection = (nextPoint - currPoint).normalized();
+			// Insert a cylinder section (pie) between two path steps, forget about w==filament extrusion length.
+			const Vector4f prevDirection = (pathStep*Vector4f{1,1,1,0}).normalized();
+			const Vector4f nextDirection = ((nextPoint - currPoint)*Vector4f{1,1,1,0}).normalized();
 
-			turnAxis = prevDirection.cross(nextDirection).normalized();
-
+			const Vector3f turnAxis = prevDirection.cross(nextDirection).normalized();
 			const float turnAngle = std::acosf(prevDirection.dot(nextDirection));
 			if (!approximatelyEqual(turnAngle, 0, FLT_EPSILON))
 			{
 				//TODO: Watch out - HACKING a bit.
-				const Vector3f bottomShift = _profileDiag.y()*turnAxis*(turnAxis.dot(upVector) > 0 ? 0 : 1);
+				const Vector3f bottomShift = profileDiag.y()*turnAxis*(turnAxis.dot(upVector) > 0 ? 0 : 1);
 				generateSubPathTurn(currPoint - bottomShift, turnRadius * prevDirection.cross(turnAxis), turnAxis, turnAngle, _modelVertices, _modelIndices);
 			}
 
-			prevPoint = currPoint;
+			lastStartPoint = currPoint;
 		}
 		// The last point should be generated differently.
-		const Point& currPoint = subPath[numSubPathPoints];
-		const Vector3f pathStep = currPoint - prevPoint;
-		generateSubPathStep(prevPoint, pathStep, _modelVertices, _modelIndices);
+		const ExtrPoint& currPoint = subPath[numSubPathPoints];
+		const Vector3f pathStep = currPoint - lastStartPoint;
+		generateSubPathStep(lastStartPoint, pathStep, _modelVertices, _modelIndices);
 
 		// Append a half circle to the end of the subPath.
-		const Vector3f dirAtEnd = (currPoint - prevPoint).normalized();
+		const Vector3f dirAtEnd = (currPoint - lastStartPoint).normalized();
 		rightToDir = dirAtEnd.cross(upVector);
 		turnAxis = rightToDir.cross(dirAtEnd);
 
-//		std::cout << " ### " << __FUNCTION__ << " :" << "" << "," << "" << std::endl;
-//		dumpVector3f(dirAtEnd, "dirAtEnd");
-//		dumpVector3f(rightToDir, "rightToDir");
-//		dumpVector3f(turnAxis, "turnAxis");
-
 		generateSubPathTurn(currPoint, turnRadius*rightToDir, turnAxis, float(M_PI), _modelVertices, _modelIndices);
 
-		prevPoint = currPoint;
+		lastStartPoint = currPoint;
 	}
-
-//	generateSubPathTurn({100,100,0},
-//						{20,20,0},
-//						{0,0,1},
-//						M_PI/5,
-//						_modelVertices,
-//						_modelIndices);
-
-//	generateSubPathTurn({70,70,0},
-//						{20,20,0},
-//						{0,0,1},
-//						M_PI/8,
-//						_modelVertices,
-//						_modelIndices);
-
-//	generateSubPathTurn({40,40,0},
-//						{20,20,0},
-//						{0,0,1},
-//						M_PI/16,
-//						_modelVertices,
-//						_modelIndices);
-
-//	generateSubPathTurn({100,100,0},
-//						{20,20,0},
-//						{0,0,1},
-//						-M_PI/5,
-//						_modelVertices,
-//						_modelIndices);
-
-//	generateSubPathTurn({70,70,0},
-//						{20,20,0},
-//						{0,0,1},
-//						-M_PI/8,
-//						_modelVertices,
-//						_modelIndices);
-
-//	generateSubPathTurn({40,40,0},
-//						{20,20,0},
-//						{0,0,1},
-//						-M_PI/16,
-//						_modelVertices,
-//						_modelIndices);
 
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
 
@@ -916,11 +771,150 @@ void GCodeGeometry::updateData()
 				 QQuick3DGeometry::Attribute::U32Type);
 }
 
-void GCodeGeometry::setRectProfile(const Real width, const Real height)
+
+void GCodeGeometry::generateSubPathStep(const ExtrPoint& prevPoint,
+										const Vector4f& pathStep,
+										QByteArray& modelVertices,
+										QByteArray& modelIndices)
 {
-	const Point start = {-width/Real(2.0), -height/Real(2.0), Real(0.0)};
-	_profile = {start, start + Vector3f{0.0, height, 0.0}, start + Vector3f{width, height, 0.0}, start + Vector3f{width, 0.0, 0.0}};
-	_profileDiag = _profile[2] - _profile[0];
-};
+	const float length = pathStep.norm();
+	assert(length > FLT_MIN);
+
+	// VERTICES
+	static const Indices cubeMeshVertexIndices = {0,1,2,3,4,5,6,7};
+
+	// QUADS
+	static const std::vector<Indices> cubeMeshQuadIndices = {{0,1,2,0,2,3}, // bottom
+															 //{0,3,7,7,4,0}, // back
+															 //{1,2,6,6,5,1}, // front
+															 {4,5,6,6,7,4}, // top
+															 {0,1,5,5,4,0}, // left
+															 {3,2,6,6,7,3}}; // right
+
+	static const uint32_t numAddedVertices = uint32_t(cubeMeshVertexIndices.size());
+	static const uint32_t numAddedIndices = std::accumulate(cubeMeshQuadIndices.begin(), cubeMeshQuadIndices.end(), 0u,
+															[](uint32_t acc, const Indices& indices){ return indices.size() + acc; });
+
+	const uint32_t prevVerticesSize = uint32_t(modelVertices.size());
+	const uint32_t prevIndicesSize = uint32_t(modelIndices.size());
+
+	const uint32_t newVertexIndex = prevVerticesSize/static_cast<uint32_t>(stride());
+
+	modelVertices.resize(prevVerticesSize + (numAddedVertices * static_cast<int64_t>(stride())));
+	modelIndices.resize(prevIndicesSize + (numAddedIndices * sizeof(uint32_t)));
+
+	float* coordsPtr = reinterpret_cast<float*>(&(modelVertices[prevVerticesSize]));
+	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(&(modelIndices[prevIndicesSize]));
+
+	const Matrix3f scale{{_profileDiag.x(), 0,      0               },
+						 {0,                length, 0               },
+						 {0,                0,      _profileDiag.y()}};
+
+	//	const Vector3f rotationAxis = (Vector3f{0,1,0}.cross(pathStep)).normalized();
+	//	const AngleAxisf rotation(std::acosf(Vector3f{0,1,0}.dot(pathStep.normalized())), rotationAxis);
+	const Eigen::Quaternionf rotation = Quaternionf::FromTwoVectors(Vector3f{0,1,0}, pathStep);
+
+	Vertices vertices = _cubeVertices;
+
+	std::for_each(vertices.begin(), vertices.end(), [&scale, &rotation, &prevPoint](Vector3f& v){
+		v = rotation*(scale*v) + prevPoint;
+	});
+
+	const auto setTriangleVertexCoords = [&coordsPtr, &vertices](const unsigned index) {
+		const Vertex vertex = vertices[index];
+		*coordsPtr++ = vertex.x();
+		*coordsPtr++ = vertex.y();
+		*coordsPtr++ = vertex.z();
+		updateBounds(coordsPtr - 3);
+	};
+
+	const auto setTriangleVertexIndex = [&indicesPtr, newVertexIndex](const unsigned appendedStructIndex) {
+		*indicesPtr++ = newVertexIndex + appendedStructIndex;
+	};
+
+	const auto setQuadVertexCoords = [setTriangleVertexCoords](const std::vector<uint32_t>& indices) {
+		std::for_each(indices.begin(), indices.end(), setTriangleVertexCoords);
+	};
+
+	const auto setQuadTriangleIndices = [setTriangleVertexIndex](const std::vector<uint32_t>& indices) {
+		std::for_each(indices.begin(), indices.end(), setTriangleVertexIndex);
+	};
+
+	setQuadVertexCoords(cubeMeshVertexIndices);
+	std::for_each(cubeMeshQuadIndices.begin(), cubeMeshQuadIndices.end(), setQuadTriangleIndices);
+
+	// Remember how many vertices and indices are added in this structure.
+	_numTotalPathStepVertices.push_back(_numTotalPathStepVertices.back() + numAddedVertices);
+	_numTotalPathStepIndices.push_back(_numTotalPathStepIndices.back() + numAddedIndices);
+	++_numPathStepsUsed;
+}
+
+void GCodeGeometry::generateSubPathTurn(const ExtrPoint& center,
+										const Vector3f& radiusStart,
+										const Vector3f& axis,
+										const float angle,
+										QByteArray& modelVertices,
+										QByteArray& modelIndices)
+{
+	//	Chronograph chrono(__FUNCTION__);
+	static const uint32_t numStepsPerFullCircle = 20;
+	static const float anglePerStep = 2.0f*float(M_PI)/numStepsPerFullCircle;
+	uint16_t numAngleSteps = static_cast<uint16_t>(std::abs(angle)/anglePerStep);
+	if (numAngleSteps < 1)
+	{
+		numAngleSteps = 1;
+	}
+
+	const std::pair<Vertices, Indices> cylinderPieGeometry = generateCylinderPieSection(center, radiusStart, axis, angle, _profileDiag.y(), numAngleSteps);
+
+	//	std::for_each(cylinderPieGeometry.first.begin(), cylinderPieGeometry.first.end(), [](const Vertex& v) {
+	//		std::cout << " ### " << __FUNCTION__ << " vertex:" << v.x() << "," << v.y() << "," << v.z() << std::endl;
+	//	});
+
+	//	std::for_each(cylinderPieGeometry.second.begin(), cylinderPieGeometry.second.end(), [](const Index& v) {
+	//		std::cout << " ### " << __FUNCTION__ << " index:" << v << std::endl;
+	//	});
+
+	const Vertices& cylinderPieVertices = cylinderPieGeometry.first;
+	const Indices& cylinderPieIndices = cylinderPieGeometry.second;
+
+	const uint32_t prevVerticesSize = uint32_t(modelVertices.size());
+	const uint32_t prevIndicesSize = uint32_t(modelIndices.size());
+
+	const uint32_t numCircleGeometryVertices = uint32_t(cylinderPieVertices.size());
+	const uint32_t numCircleGeometryindices = uint32_t(cylinderPieIndices.size());
+
+	assert(std::numeric_limits<uint32_t>::max() >= prevVerticesSize + (numCircleGeometryVertices * static_cast<uint32_t>(stride())));
+	assert(std::numeric_limits<uint32_t>::max() >= prevIndicesSize + (numCircleGeometryindices * sizeof(uint32_t)));
+
+	modelVertices.resize(prevVerticesSize + (numCircleGeometryVertices * static_cast<uint32_t>(stride())));
+	modelIndices.resize(prevIndicesSize  + (numCircleGeometryindices  * sizeof(uint32_t)));
+
+	float* coordsPtr = reinterpret_cast<float*>(&(modelVertices.data()[prevVerticesSize]));
+	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(&(modelIndices.data()[prevIndicesSize]));
+	const uint32_t newMeshVertexIndex = prevVerticesSize/static_cast<uint32_t>(stride());
+
+	//	std::cout << " ### " << __FUNCTION__ << " newMeshVertexIndex:" << newMeshVertexIndex << std::endl;
+
+	for(uint32_t v=0; v<numCircleGeometryVertices; ++v)
+	{
+		const Vertex vertex = cylinderPieVertices[v];
+		*coordsPtr++ = vertex.x();
+		*coordsPtr++ = vertex.y();
+		*coordsPtr++ = vertex.z();
+	}
+
+	for(uint32_t i=0; i<numCircleGeometryindices; ++i)
+	{
+		*indicesPtr++ = newMeshVertexIndex + cylinderPieIndices[i];
+	}
+
+	// Remember how many vertices and indices are added in this structure.
+	_numTotalPathStepVertices.push_back(_numTotalPathStepVertices.back() + numCircleGeometryVertices);
+	_numTotalPathStepIndices.push_back(_numTotalPathStepIndices.back() + numCircleGeometryindices);
+	++_numPathStepsUsed;
+}
+
+#endif
 
 QT_END_NAMESPACE

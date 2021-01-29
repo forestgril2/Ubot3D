@@ -14,9 +14,9 @@
 
 using Real = float;
 using Vertex = Eigen::Vector3f;
-using Point = Eigen::Vector3f;
+using ExtrPoint = Eigen::Vector4f;
 using Vertices = std::vector<Vertex>;
-using Points = std::vector<Point>;
+using ExtrPath = std::vector<ExtrPoint>;
 using Indices = std::vector<uint32_t>;
 
 namespace gpr
@@ -39,15 +39,15 @@ class GCodeGeometry : public QQuick3DGeometry
 public:
 	GCodeGeometry();
 
-	QString getInputFile() const;
 	void setInputFile(const QString& url);
+	QString getInputFile() const;
 
     void setBounds(const QVector3D &min, const QVector3D &max);
     QVector3D minBounds() const;
 	QVector3D maxBounds() const;
 
-	bool isPicked() const;
 	void setPicked(const bool isPicked);
+	bool isPicked() const;
 
 	void setNumSubPaths(const uint32_t num);
 	uint32_t getNumSubPaths() const;
@@ -72,38 +72,40 @@ signals:
 
 private:
 	void loadGCodeProgram();
-	void setRectProfile(const Real width, const Real height);
+	Eigen::Vector2f calculateProfile(const float pathStepLength, const float extrusionLength, const float profileHeight);
 	void createExtruderPaths(const gpr::gcode_program& gcodeProgram);
 	size_t calcVerifyModelNumbers();
     void updateData();
-	void generateSubPathTurn(const Point& center,
+	void generateSubPathTurn(const ExtrPoint& center,
 							 const Eigen::Vector3f& radiusStart,
 							 const Eigen::Vector3f& axis, const float angle,
 							 QByteArray& modelVertices,
 							 QByteArray& modelIndices);
-	void generateSubPathStep(const Point& prevPoint,
-							 const Eigen::Vector3f& pathStep,
+	void generateSubPathStep(const ExtrPoint& prevPoint,
+							 const Eigen::Vector4f& pathStep,
 							 QByteArray& modelVertices,
 							 QByteArray& modelIndices);
 	void generate();
-	void dumpSubPath(const std::string& blockString, const Points& subPath);
+	void dumpSubPath(const std::string& blockString, const ExtrPath& subPath);
 
 	bool _isPicked = false;
 	bool _wasGenerated = false;
 
 	uint32_t _numSubPaths;
 	uint32_t _maxNumPointsInSubPath;
-	std::vector<Points> _extruderSubPaths;            /** Vectors of points along the center of the filament path. */
+	std::vector<ExtrPath> _extruderSubPaths;            /** Vectors of points along the center of the filament path. */
 	uint32_t _numPathStepsUsed;
 	QByteArray _modelIndices;
 	QByteArray _modelVertices;
 	std::vector<uint32_t> _numTotalPathStepVertices; /** Remember how many vertices are added in each consecutive path step. */
 	std::vector<uint32_t> _numTotalPathStepIndices;  /** Remember how many indices are added in each consecutive path step. */
 	Vertices _profile;                               /** Defines a cross section of the filament path boundary (along the z-direction). */
-	Eigen::Vector3f _profileDiag;                    /** Defines a cross section of the filament path boundary (along the z-direction). */
+	float _filamentCrossArea;                        /** Filament cross-section area in mm^2. */
 
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
 	QString _inputFile;
+	void reset();
+		bool verifyEnoughPoints(const ExtrPath& subPath);
 };
