@@ -71,21 +71,27 @@ signals:
 	void numPathPointsStepsChanged();
 
 private:
+	void reset();
+	void updateData();
 	void loadGCodeProgram();
-	Eigen::Vector2f calculateProfile(const float pathStepLength, const float extrusionLength, const float profileHeight);
+	void generate();
+	Eigen::Vector3f calculateSubpathCuboid(const ExtrPoint& pathStart,
+											   const ExtrPoint& pathEnd,
+											   const float pathBaseLevelZ);
 	void createExtruderPaths(const gpr::gcode_program& gcodeProgram);
 	size_t calcVerifyModelNumbers();
-    void updateData();
+	bool verifyEnoughPoints(const ExtrPath& subPath);
 	void generateSubPathTurn(const ExtrPoint& center,
 							 const Eigen::Vector3f& radiusStart,
-							 const Eigen::Vector3f& axis, const float angle,
+							 const Eigen::Vector3f& axis,
+							 const float angle,
+							 const float height,
 							 QByteArray& modelVertices,
 							 QByteArray& modelIndices);
-	void generateSubPathStep(const ExtrPoint& prevPoint,
-							 const Eigen::Vector4f& pathStep,
+	void generateSubPathStep(const Eigen::Vector3f& prevPoint,
+							 const Eigen::Vector3f& pathStep, const Eigen::Vector3f& cuboid,
 							 QByteArray& modelVertices,
 							 QByteArray& modelIndices);
-	void generate();
 	void dumpSubPath(const std::string& blockString, const ExtrPath& subPath);
 
 	bool _isPicked = false;
@@ -99,13 +105,10 @@ private:
 	QByteArray _modelVertices;
 	std::vector<uint32_t> _numTotalPathStepVertices; /** Remember how many vertices are added in each consecutive path step. */
 	std::vector<uint32_t> _numTotalPathStepIndices;  /** Remember how many indices are added in each consecutive path step. */
-	Vertices _profile;                               /** Defines a cross section of the filament path boundary (along the z-direction). */
 	float _filamentCrossArea;                        /** Filament cross-section area in mm^2. */
 
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
 	QString _inputFile;
-	void reset();
-		bool verifyEnoughPoints(const ExtrPath& subPath);
 };

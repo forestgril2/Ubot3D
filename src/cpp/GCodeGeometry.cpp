@@ -107,16 +107,18 @@ static void dumpVector3f(const Vector3f& v, const std::string& name = "")
 
 #define ENABLE_GENERATION_CODE
 
-Eigen::Vector2f GCodeGeometry::calculateProfileDiagonal(const float pathStepLength, const float extrusionLength, const float profileHeight)
-{
-	assert(_profileHeight > 0);
+Vector3f GCodeGeometry::calculateSubpathCuboid(const ExtrPoint& pathStart, const ExtrPoint& pathEnd, const float pathBaseLevelZ)
+{// x is for width, y is for height, z is for length of the cuboid
+	const float height = pathStart.z() - pathBaseLevelZ;
+	const Vector4f pathStep = pathEnd - pathStart;
+	const float length = pathStep.head<3>().norm();
 	assert(pathStepLength > 0);
 
-	const float profileWidth = (_filamentCrossArea * extrusionLength) / (profileHeight * pathStepLength);
+	if (pathStep.w() <= 0)
+		return {0,0,length};
 
-	const Eigen::Vector2f start = {-profileWidth/Real(2.0), -profileHeight/Real(2.0)};
-	_profile = {start, start + Vector2f{0.0, profileHeight}, start + Vector2f{profileWidth, profileHeight}, start + Vector2f{profileWidth, 0.0}};
-	return _profile[2] - _profile[0];
+	const float width = (_filamentCrossArea * pathStep.w()) / (height * length);
+	return {width, height, length};
 };
 
 static std::pair<Vertices, Indices> generateCylinderPieSection(const ExtrPoint& center,
@@ -226,7 +228,6 @@ GCodeGeometry::GCodeGeometry() :
 	_modelIndices({}),
 	_modelVertices({}),
 	_filamentCrossArea(1.75f*1.75f*float(M_PI_4)), // for filament cross section diameter 1.75mm
-	_profileHeight(0.0),
 	_inputFile("")
 //	_inputFile("C:/Projects/Ubot3D/CE3_mandoblasterlow.gcode"),
 //	_inputFile("C:/ProjectsData/stl_files/TEST.gcode")
@@ -254,9 +255,9 @@ GCodeGeometry::GCodeGeometry() :
 void GCodeGeometry::dumpSubPath(const std::string& blockString, const ExtrPath& subPath)
 {
 //	std::ofstream pathFile("path" + std::to_string(_extruderPaths.size()) + ".txt");
-//	for (const Vector3f& point : subPath)
+//	for (const ExtrPoint& point : subPath)
 //	{
-//		pathFile << "[" << point.x() << "," << point.y() << "," << point.z() << "]" << std::endl;
+//		pathFile << "[" << point.x() << "," << point.y() << "," << point.z() << "," << point.w() << "]" << std::endl;
 //	}
 //	pathFile << blockString << std::endl;
 //	pathFile.close();
@@ -663,19 +664,17 @@ void GCodeGeometry::generate()
 		lastStartPoint = subPath[0];
 
 		// Profile recalculation for the beginning of the subpath.
-		const float firstStepLength = (subPath[1].head<3>() - lastStartPoint.head<3>()).norm();
-		const float extrusionLength = subPath[1].w() - lastStartPoint.w();
-		Eigen::Vector2f profileDiag = calculateProfileDiagonal(firstStepLength, extrusionLength, lastStartPoint.z() - previousLayerTop);
-
-		// TODO: The turn radius is calculated based on a certain simplification.
-		const float turnRadius = 0.5f*profileDiag.x();
+		Vector3f subPathCuboid = calculateSubpathCuboid(lastStartPoint, subPath[1], previousLayerTop);
 
 		// Prepend the first subPath point with half of a cylinder.
-		const Vector3f dirAtBeginning = (subPath[1] - lastStartPoint).normalized();
+		const Vector3f dirAtBeginning = (subPath[1] - lastStartPoint).head<3>().normalized();
 		static const Vector3f upVector{0,0,1};
-		const Vector3f rightToDir = dirAtBeginning.cross(upVector);
-		const Vector3f turnAxis = rightToDir.cross(dirAtBeginning);
-		generateSubPathTurn(lastStartPoint,  turnRadius*rightToDir, turnAxis, -float(M_PI), _modelVertices, _modelIndices);
+		Vector3f rightToDir = dirAtBeginning.cross(upVector);
+		Vector3f turnAxis = rightToDir.cross(dirAtBeginning);
+		// TODO: The turn radius is calculated based on a certain simplification.
+		generateSubPathTurn(lastStartPoint,
+							0.5f * subPathCuboid.x() * rightToDir,
+							turnAxis, -float(M_PI), subPathCuboid.y(), _modelVertices, _modelIndices);
 
 		// Start iterating from the second point.
 		const uint32_t numSubPathPoints = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size())) -1;
@@ -684,34 +683,44 @@ void GCodeGeometry::generate()
 			const ExtrPoint& currPoint = subPath[subPathPointIndex];
 			const ExtrPoint& nextPoint = subPath[subPathPointIndex +1];
 			const Vector4f pathStep = currPoint - lastStartPoint;
-			generateSubPathStep(lastStartPoint, pathStep, _modelVertices, _modelIndices);
+
+			subPathCuboid = calculateSubpathCuboid(lastStartPoint, currPoint, previousLayerTop);
+			generateSubPathStep(lastStartPoint.head<3>(), pathStep.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
 
 			// Insert a cylinder section (pie) between two path steps, forget about w==filament extrusion length.
-			const Vector4f prevDirection = (pathStep*Vector4f{1,1,1,0}).normalized();
-			const Vector4f nextDirection = ((nextPoint - currPoint)*Vector4f{1,1,1,0}).normalized();
+			const Vector3f prevDirection = pathStep.head<3>().normalized();
+			const Vector3f nextDirection = (nextPoint - currPoint).head<3>().normalized();
 
 			const Vector3f turnAxis = prevDirection.cross(nextDirection).normalized();
 			const float turnAngle = std::acosf(prevDirection.dot(nextDirection));
 			if (!approximatelyEqual(turnAngle, 0, FLT_EPSILON))
 			{
 				//TODO: Watch out - HACKING a bit.
-				const Vector3f bottomShift = profileDiag.y()*turnAxis*(turnAxis.dot(upVector) > 0 ? 0 : 1);
-				generateSubPathTurn(currPoint - bottomShift, turnRadius * prevDirection.cross(turnAxis), turnAxis, turnAngle, _modelVertices, _modelIndices);
+				const Vector3f bottomShift = subPathCuboid.y() * turnAxis * (turnAxis.dot(upVector) > 0 ? 0 : 1);
+				generateSubPathTurn(currPoint - ExtrPoint{bottomShift.x(), bottomShift.y(), bottomShift.z(), 0},
+									0.5f * subPathCuboid.x() * prevDirection.cross(turnAxis),
+									turnAxis, turnAngle, subPathCuboid.y(), _modelVertices, _modelIndices);
 			}
 
 			lastStartPoint = currPoint;
 		}
+
 		// The last point should be generated differently.
 		const ExtrPoint& currPoint = subPath[numSubPathPoints];
-		const Vector3f pathStep = currPoint - lastStartPoint;
-		generateSubPathStep(lastStartPoint, pathStep, _modelVertices, _modelIndices);
+		const Vector4f pathStep = currPoint - lastStartPoint;
+
+		// Profile recalculation for the end of the subpath.
+		subPathCuboid = calculateSubpathCuboid(lastStartPoint, pathStep, previousLayerTop);
+		generateSubPathStep(lastStartPoint.head<3>(), pathStep.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
 
 		// Append a half circle to the end of the subPath.
-		const Vector3f dirAtEnd = (currPoint - lastStartPoint).normalized();
+		const Vector3f dirAtEnd = (currPoint - lastStartPoint).head<3>().normalized();
 		rightToDir = dirAtEnd.cross(upVector);
 		turnAxis = rightToDir.cross(dirAtEnd);
 
-		generateSubPathTurn(currPoint, turnRadius*rightToDir, turnAxis, float(M_PI), _modelVertices, _modelIndices);
+		generateSubPathTurn(currPoint,
+							0.5f * subPathCuboid.x() * rightToDir,
+							turnAxis, float(M_PI), subPathCuboid.y(), _modelVertices, _modelIndices);
 
 		lastStartPoint = currPoint;
 	}
@@ -772,13 +781,13 @@ void GCodeGeometry::updateData()
 }
 
 
-void GCodeGeometry::generateSubPathStep(const ExtrPoint& prevPoint,
-										const Vector4f& pathStep,
+void GCodeGeometry::generateSubPathStep(const Vector3f& prevPoint,
+										const Vector3f& pathStep,
+										const Vector3f& cuboid,
 										QByteArray& modelVertices,
 										QByteArray& modelIndices)
 {
-	const float length = pathStep.norm();
-	assert(length > FLT_MIN);
+	assert(cuboid.z() > FLT_MIN);
 
 	// VERTICES
 	static const Indices cubeMeshVertexIndices = {0,1,2,3,4,5,6,7};
@@ -806,18 +815,18 @@ void GCodeGeometry::generateSubPathStep(const ExtrPoint& prevPoint,
 	float* coordsPtr = reinterpret_cast<float*>(&(modelVertices[prevVerticesSize]));
 	uint32_t* indicesPtr = reinterpret_cast<uint32_t*>(&(modelIndices[prevIndicesSize]));
 
-	const Matrix3f scale{{_profileDiag.x(), 0,      0               },
-						 {0,                length, 0               },
-						 {0,                0,      _profileDiag.y()}};
-
-	//	const Vector3f rotationAxis = (Vector3f{0,1,0}.cross(pathStep)).normalized();
-	//	const AngleAxisf rotation(std::acosf(Vector3f{0,1,0}.dot(pathStep.normalized())), rotationAxis);
+	// Rotate the cuboid from direction upwards to direction along the path.
 	const Eigen::Quaternionf rotation = Quaternionf::FromTwoVectors(Vector3f{0,1,0}, pathStep);
+
+	// Watch out! Our cuboid is rotated to lay parallel to the z=0 plane, so it y becomes z, and vice-versa.
+	const Matrix3f scale{{cuboid.x(), 0,          0          },
+						 {0,          cuboid.z(), 0          },
+						 {0,          0,          cuboid.y()}};
 
 	Vertices vertices = _cubeVertices;
 
 	std::for_each(vertices.begin(), vertices.end(), [&scale, &rotation, &prevPoint](Vector3f& v){
-		v = rotation*(scale*v) + prevPoint;
+		v = rotation * (scale * v) + prevPoint;
 	});
 
 	const auto setTriangleVertexCoords = [&coordsPtr, &vertices](const unsigned index) {
@@ -853,6 +862,7 @@ void GCodeGeometry::generateSubPathTurn(const ExtrPoint& center,
 										const Vector3f& radiusStart,
 										const Vector3f& axis,
 										const float angle,
+										const float height,
 										QByteArray& modelVertices,
 										QByteArray& modelIndices)
 {
@@ -865,7 +875,7 @@ void GCodeGeometry::generateSubPathTurn(const ExtrPoint& center,
 		numAngleSteps = 1;
 	}
 
-	const std::pair<Vertices, Indices> cylinderPieGeometry = generateCylinderPieSection(center, radiusStart, axis, angle, _profileDiag.y(), numAngleSteps);
+	const std::pair<Vertices, Indices> cylinderPieGeometry = generateCylinderPieSection(center, radiusStart, axis, angle, height, numAngleSteps);
 
 	//	std::for_each(cylinderPieGeometry.first.begin(), cylinderPieGeometry.first.end(), [](const Vertex& v) {
 	//		std::cout << " ### " << __FUNCTION__ << " vertex:" << v.x() << "," << v.y() << "," << v.z() << std::endl;
