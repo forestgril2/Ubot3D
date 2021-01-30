@@ -118,6 +118,8 @@ Vector3f GCodeGeometry::calculateSubpathCuboid(const ExtrPoint& pathStart, const
 		return {0,0,length};
 
 	const float width = (_filamentCrossArea * pathStep.w()) / (height * length);
+//	std::cout << " ### " << __FUNCTION__ << " pathBaseLevelZ,pathStart.z():" << pathBaseLevelZ << "," << pathStart.z() << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " width,height,length,pathStep.w():" << width << ", " << height << ", " << length << ", " << pathStep.w() << std::endl;
 	return {width, height, length};
 };
 
@@ -254,13 +256,13 @@ GCodeGeometry::GCodeGeometry() :
 
 void GCodeGeometry::dumpSubPath(const std::string& blockString, const ExtrPath& subPath)
 {
-//	std::ofstream pathFile("path" + std::to_string(_extruderPaths.size()) + ".txt");
-//	for (const ExtrPoint& point : subPath)
-//	{
-//		pathFile << "[" << point.x() << "," << point.y() << "," << point.z() << "," << point.w() << "]" << std::endl;
-//	}
-//	pathFile << blockString << std::endl;
-//	pathFile.close();
+	std::ofstream pathFile("path" + std::to_string(_extruderSubPaths.size()) + ".txt");
+	for (const ExtrPoint& point : subPath)
+	{
+		pathFile << "[" << point.x() << "," << point.y() << "," << point.z() << "," << point.w() << "]" << std::endl;
+	}
+	pathFile << blockString << std::endl;
+	pathFile.close();
 }
 
 void GCodeGeometry::setInputFile(const QString& url)
@@ -632,12 +634,12 @@ bool GCodeGeometry::verifyEnoughPoints(const ExtrPath& subPath)
 
 void GCodeGeometry::generate()
 {
+	Chronograph chronograph(__FUNCTION__, true);
+
 	if (_wasGenerated)
 	{
 		return;
 	}
-
-	Chronograph chronograph(__FUNCTION__, true);
 
 	reset();
 
@@ -648,7 +650,7 @@ void GCodeGeometry::generate()
 	float previousLayerTop = 0.0f;
 
 	//Remember start point to know the direction and level, from which extruder head arrives in next subpath.
-	ExtrPoint lastStartPoint;
+	ExtrPoint lastStartPoint{0,0,0,0};
 
 	for (const ExtrPath& subPath : _extruderSubPaths)
 	{// For every subPath - which is a set of consecutive extrusion points - generate a corresponding contiguous geometry.
@@ -710,10 +712,10 @@ void GCodeGeometry::generate()
 		const Vector4f pathStep = currPoint - lastStartPoint;
 
 		// Profile recalculation for the end of the subpath.
-		subPathCuboid = calculateSubpathCuboid(lastStartPoint, pathStep, previousLayerTop);
-		generateSubPathStep(lastStartPoint.head<3>(), pathStep.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
+		subPathCuboid = calculateSubpathCuboid(lastStartPoint, currPoint, previousLayerTop);
+		generateSubPathStep(lastStartPoint.head<3>(), currPoint.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
 
-		// Append a half circle to the end of the subPath.
+		// Append a semi-circle cylinder half to the end of the subPath.
 		const Vector3f dirAtEnd = (currPoint - lastStartPoint).head<3>().normalized();
 		rightToDir = dirAtEnd.cross(upVector);
 		turnAxis = rightToDir.cross(dirAtEnd);

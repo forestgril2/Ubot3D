@@ -38,13 +38,17 @@ Window {
         anchors.fill: parent
         camera: camera
 
+        property var gcodeModel
         property vector3d gcodeModelCenter: Qt.vector3d(0, 0, 0)
 
         Component.onCompleted: {
-            console.log(" ### ComponentComplete")
-//            view3d.gcodeModelCenter = getModelCenter(gcodeModel)
-//            camera.lookAtModel(gcodeModel)
-            modelControls.resetSliders()
+            if (gcodeModel) {
+                camera.lookAtModel(gcodeModel)
+                modelControls.resetSliders()
+            }
+            else {
+                camera.lookAtPoint(Qt.vector3d(50,50,0))
+            }
         }
 
         Ubot3DCameraWasdController {
@@ -57,23 +61,19 @@ Window {
         PerspectiveCamera {
             id: camera
 
-            property vector3d initDistToModel: Qt.vector3d(0, -75, 50)
+            property vector3d initDistToModel: Qt.vector3d(-150, -150, 100)
 
             fieldOfView: 45
             clipNear: 0.1
             clipFar: 1000.0
             position: sceneCenter.plus(initDistToModel)
 
-
-            function lookAtModel(model)
+            function lookAtPoint(point)
             {
-                var modelCenter = getModelCenter(model)
-                console.log(" ### lookAtModel: " + model.objectName + ", modelCenter: " + modelCenter);
-//                console.log(" ### " + gcodeModel.objectName + " modelLoaded with paths: " + gcodeGeometry.numSubPaths + ", max points in subPath: " + gcodeGeometry.numPointsInSubPath)
-                var direction = modelCenter.minus(camera.position)
+                var direction = point.minus(camera.position)
                 var upDirection = Qt.vector3d(0,0,1)
-                var lookAtModelCenterRotation = stlModel.geometry.getRotationFromDirection(direction, upDirection)
-                camera.rotation = lookAtModelCenterRotation
+                var lookAtRotation = geometryManipulations.geometry.getRotationFromDirection(direction, upDirection)
+                camera.rotation = lookAtRotation
             }
         }
 
@@ -113,19 +113,23 @@ Window {
             ]
         }
 
+        StlModel {
+            id: geometryManipulations
+        }
+
         Repeater3D {
             id: gcodeModels
-            property var gcodeGeometry: (model == [] ? null : objectAt(0).geometry)
+            property var gcodeGeometry: (objectAt(0) === null ? null : objectAt(0).geometry)
 
             delegate: Model {
-                id: gcodeModel
+                id: thisModel
 
                 property bool isPicked: false
                 position: Qt.vector3d(0, 0, 0)
                 objectName: "gCode geometry"
                 pickable: true
                 rotation: modelControls.commonRotationCheckBox.checked ?
-                              stlModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
+                              geometryManipulations.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
                               Qt.quaternion(0,0,0,0)
 
                 geometry: GCodeGeometry {
@@ -137,6 +141,8 @@ Window {
 
                         console.log(" ### gcodeModels.gcodeGeometry.inputFile:" + gcodeModels.gcodeGeometry.inputFile)
                         console.log(" ### gcodeModels.gcodeGeometry.numSubPaths:" + gcodeModels.gcodeGeometry.numSubPaths)
+
+                        view3d.gcodeModel = thisModel
                     }
                 }
                 materials: [
@@ -208,7 +214,6 @@ Window {
             }
         }
     }
-
 
     function getModelCenter(model) {
         return model.geometry.minBounds.plus(model.geometry.maxBounds).times(0.5)
