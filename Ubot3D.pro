@@ -85,9 +85,9 @@ INCLUDEPATH += $$PWD/../assimp-5.0.1/build/include
 DEPENDPATH += $$PWD/../assimp-5.0.1/include
 DEPENDPATH += $$PWD/../assimp-5.0.1/build/include
 
-INCLUDEPATH += D:\Projects\qt6-build-dev\qtbase\include\QtQuick3DUtils\6.0.0
-INCLUDEPATH += D:\Projects\qt6-build-dev\qtbase\include\QtGui\6.0.0
-INCLUDEPATH += D:\Projects\qt6-build-dev\qtbase\include\QtQuick3DAssetImport\6.0.0
+INCLUDEPATH += D:\Projects\qt6-build-release-a80e52\qtbase\include\QtQuick3DUtils\6.0.1
+INCLUDEPATH += D:\Projects\qt6-build-release-a80e52\qtbase\include\QtGui\6.0.1
+INCLUDEPATH += D:\Projects\qt6-build-release-a80e52\qtbase\include\QtQuick3DAssetImport\6.0.1
 
 #QT += quick3dassetimport-private quick3dutils-private shadertools-private quick-private
 

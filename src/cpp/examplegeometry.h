@@ -7,8 +7,8 @@
 
 #include <qqml.h>
 
-#include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrenderray_p.h>
-#include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
+//#include <D:\Projects\qt6-a80e52\qtquick3d\src\runtimerender\qssgrenderray_p.h>
+//#include <D:\Projects\qt6-a80e52\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 
 class ExampleTriangleGeometry : public QQuick3DGeometry
 {
@@ -108,8 +108,8 @@ private:
 
 	bool _isPicked = false;
 
-	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
-	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
+//	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
+//	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
 	QString _inputFile;
 //	QString _inputFile = "C:/ProjectsData/stl_files/mandoblasterlow.stl";

@@ -9,9 +9,6 @@
 
 #include <qqml.h>
 
-#include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrenderray_p.h>
-#include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
-
 using Real = float;
 using Vertex = Eigen::Vector3f;
 using ExtrPoint = Eigen::Vector4f;
@@ -106,9 +103,6 @@ private:
 	std::vector<uint32_t> _numTotalPathStepVertices; /** Remember how many vertices are added in each consecutive path step. */
 	std::vector<uint32_t> _numTotalPathStepIndices;  /** Remember how many indices are added in each consecutive path step. */
 	float _filamentCrossArea;                        /** Filament cross-section area in mm^2. */
-
-	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
-	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
 	QString _inputFile;
 };

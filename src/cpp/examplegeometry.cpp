@@ -21,8 +21,8 @@
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrendernode_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrendermesh_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshutilities.cpp>
-#include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrenderray_p.h>
-#include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
+#include <D:\Projects\qt6-a80e52\qtquick3d\src\runtimerender\qssgrenderray_p.h>
+#include <D:\Projects\qt6-a80e52\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrendermodel_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\utils\qssgoption_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrenderlayer_p.h>
