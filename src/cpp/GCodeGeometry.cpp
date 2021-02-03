@@ -112,7 +112,7 @@ Vector3f GCodeGeometry::calculateSubpathCuboid(const ExtrPoint& pathStart, const
 	const float height = pathStart.z() - pathBaseLevelZ;
 	const Vector4f pathStep = pathEnd - pathStart;
 	const float length = pathStep.head<3>().norm();
-	assert(pathStepLength > 0);
+	assert(length > 0);
 
 	if (pathStep.w() <= 0)
 		return {0,0,length};
@@ -657,6 +657,11 @@ void GCodeGeometry::generate()
 		if (!verifyEnoughPoints(subPath))
 			continue;
 
+//		std::cout << " ### " << __FUNCTION__ << " subPath:" << "" << "," << "" << std::endl;
+//		std::for_each(subPath.begin(), subPath.end(), [](const ExtrPoint& p) {
+//			std::cout << " ### " << "ExtrPoint" << " :" << p.x() << "," << p.y() << "," << p.z() << "," << p.w() << std::endl;
+//		});
+
 		if (!approximatelyEqual(lastStartPoint.z(), subPath[0].z(), FLT_EPSILON))
 		{// This means, that layer top level has changed with this subpath.
 			previousLayerTop = lastStartPoint.z();
@@ -666,21 +671,21 @@ void GCodeGeometry::generate()
 		lastStartPoint = subPath[0];
 
 		// Profile recalculation for the beginning of the subpath.
-		Vector3f subPathCuboid = calculateSubpathCuboid(lastStartPoint, subPath[1], previousLayerTop);
+		Vector3f subPathCuboid = calculateSubpathCuboid(subPath[0], subPath[1], previousLayerTop);
 
 		// Prepend the first subPath point with half of a cylinder.
-		const Vector3f dirAtBeginning = (subPath[1] - lastStartPoint).head<3>().normalized();
+		const Vector3f dirAtBeginning = (subPath[1] - subPath[0]).head<3>().normalized();
 		static const Vector3f upVector{0,0,1};
 		Vector3f rightToDir = dirAtBeginning.cross(upVector);
 		Vector3f turnAxis = rightToDir.cross(dirAtBeginning);
 		// TODO: The turn radius is calculated based on a certain simplification.
-		generateSubPathTurn(lastStartPoint,
+		generateSubPathTurn(subPath[0],
 							0.5f * subPathCuboid.x() * rightToDir,
 							turnAxis, -float(M_PI), subPathCuboid.y(), _modelVertices, _modelIndices);
 
-		// Start iterating from the second point.
-		const uint32_t numSubPathPoints = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size())) -1;
-		for (uint32_t subPathPointIndex = 1; subPathPointIndex < numSubPathPoints; ++subPathPointIndex)
+		// Start iterating from the second point, end before the last one.
+		const uint32_t numSubPathPoints = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size()));
+		for (uint32_t subPathPointIndex = 1; subPathPointIndex < numSubPathPoints -1; ++subPathPointIndex)
 		{
 			const ExtrPoint& currPoint = subPath[subPathPointIndex];
 			const ExtrPoint& nextPoint = subPath[subPathPointIndex +1];
@@ -708,12 +713,12 @@ void GCodeGeometry::generate()
 		}
 
 		// The last point should be generated differently.
-		const ExtrPoint& currPoint = subPath[numSubPathPoints];
+		const ExtrPoint& currPoint = subPath[numSubPathPoints -1];
 		const Vector4f pathStep = currPoint - lastStartPoint;
 
 		// Profile recalculation for the end of the subpath.
 		subPathCuboid = calculateSubpathCuboid(lastStartPoint, currPoint, previousLayerTop);
-		generateSubPathStep(lastStartPoint.head<3>(), currPoint.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
+		generateSubPathStep(lastStartPoint.head<3>(), pathStep.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
 
 		// Append a semi-circle cylinder half to the end of the subPath.
 		const Vector3f dirAtEnd = (currPoint - lastStartPoint).head<3>().normalized();
