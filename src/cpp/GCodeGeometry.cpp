@@ -118,8 +118,7 @@ Vector3f GCodeGeometry::calculateSubpathCuboid(const ExtrPoint& pathStart, const
 		return {0,0,length};
 
 	const float width = (_filamentCrossArea * pathStep.w()) / (height * length);
-//	std::cout << " ### " << __FUNCTION__ << " pathBaseLevelZ,pathStart.z():" << pathBaseLevelZ << "," << pathStart.z() << std::endl;
-	std::cout << " ### " << __FUNCTION__ << " width,height,length,pathStep.w():" << width << ", " << height << ", " << length << ", " << pathStep.w() << std::endl;
+
 	return {width, height, length};
 };
 
@@ -589,8 +588,8 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 			lastAbsCoords = blockAbsCoords;
 		}
 
-		if (isExtruderOn)
-		{
+		if (isExtruderOn && (subPath.size() == 0 || lastAbsCoords != subPath.back()))
+		{// Ignore movements without extrusion and identical extruder path coordinates.
 			subPath.push_back(lastAbsCoords);
 		}
 	}
@@ -663,7 +662,8 @@ void GCodeGeometry::generate()
 //		});
 
 		if (!approximatelyEqual(lastStartPoint.z(), subPath[0].z(), FLT_EPSILON))
-		{// This means, that layer top level has changed with this subpath.
+		{// TODO: IMPORTANT! This condition is bad. It was supposed to mean, that layer top level has changed with this subpath.
+		 //       But it may also happen in the beginning. Maybe should be based on comments?
 			previousLayerTop = lastStartPoint.z();
 		}
 
