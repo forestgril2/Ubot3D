@@ -417,6 +417,11 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 	Chronograph chronograph(__FUNCTION__, true);
 
 	ExtrPath subPath;
+
+	// Layer bottom at start is just the bed level.
+	_layerBottoms.clear();
+	_layerBottoms.push_back({0u, 0.0f});
+
 	_extruderSubPaths.clear();
 	_extruderSubPaths.push_back(ExtrPath());
 
@@ -426,8 +431,6 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 	bool isAbsoluteMode = true;
 	unsigned blockCount = 0;
 	const unsigned blockCountLimit = 5220800;
-//	const unsigned blockCountLimit = 52208;
-//	const unsigned blockCountLimit = 255;
 	std::string blockString;
 
 	ExtrPoint lastAbsCoords(0,0,0,0);
@@ -497,11 +500,21 @@ void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
 		{
 			switch(chunk.tp())
 			{
-				case gpr::CHUNK_TYPE_COMMENT:
 				case gpr::CHUNK_TYPE_PERCENT:
 				case gpr::CHUNK_TYPE_WORD:
 					break;
 
+				case gpr::CHUNK_TYPE_COMMENT:
+				{
+					const std::string comment = chunk.get_comment_text();
+					if (comment._Starts_with("LAYER:") && (0 != comment.compare("LAYER:0")))
+					{// First layer has bed level (0.0f), like all preparation steps. We enter here only for layers 1+
+						const ExtrPath& previousSubPath = _extruderSubPaths[_extruderSubPaths.size() -2];
+						const ExtrPoint& previousLayerLastPoint = previousSubPath[previousSubPath.size() -1];
+						_layerBottoms.push_back({_extruderSubPaths.size(), previousLayerLastPoint.z()});
+					}
+					break;
+				}
 				case gpr::CHUNK_TYPE_WORD_ADDRESS:
 				{
 					const gpr::addr& adddres = chunk.get_address();
@@ -632,14 +645,17 @@ bool GCodeGeometry::verifyEnoughPoints(const ExtrPath& subPath)
 	return false;
 }
 
-std::optional<float> GCodeGeometry::getLayerBottom(const ExtrPoint& lastStartPoint, const ExtrPath& subPath)
+float GCodeGeometry::getLayerBottom(const uint32_t layerIndex)
 {// TODO: Ideally, this function should look down below from the current nozzle level and detect the previous layer.
-	if (!approximatelyEqual(lastStartPoint.z(), subPath[0].z(), FLT_EPSILON))
-	{// TODO: IMPORTANT! This condition is bad. It was supposed to mean, that layer top level has changed with this subpath.
-	 //       But it may also happen in the beginning. Maybe should be based on comments?
-		return lastStartPoint.z();
-	}
-	return {};
+	return _layerBottoms[layerIndex].second;
+}
+
+void GCodeGeometry::logSubPath(const ExtrPath& subPath)
+{
+	std::cout << " ### " << __FUNCTION__ << " subPath:" << "" << "," << "" << std::endl;
+	std::for_each(subPath.begin(), subPath.end(), [](const ExtrPoint& p) {
+		std::cout << " ### " << "ExtrPoint" << " :" << p.x() << "," << p.y() << "," << p.z() << "," << p.w() << std::endl;
+	});
 }
 
 void GCodeGeometry::generate()
@@ -656,87 +672,89 @@ void GCodeGeometry::generate()
 	if (calcVerifyModelNumbers() < 1)
 		return;
 
-	// Previous layer top at start is just the bed level.
-	float layerBottom = 0.0f;
-
 	//Remember start point to know the direction and level, from which extruder head arrives in next subpath.
 	ExtrPoint lastStartPoint{0,0,0,0};
 
-	for (const ExtrPath& subPath : _extruderSubPaths)
-	{// For every subPath - which is a set of consecutive extrusion points - generate a corresponding contiguous geometry.
-		if (!verifyEnoughPoints(subPath))
-			continue;
+	for (uint32_t layerIndex=0; layerIndex<_layerBottoms.size(); ++layerIndex)
+	{// For every model layer.
+		const float layerBottom = getLayerBottom(layerIndex);
 
-//		std::cout << " ### " << __FUNCTION__ << " subPath:" << "" << "," << "" << std::endl;
-//		std::for_each(subPath.begin(), subPath.end(), [](const ExtrPoint& p) {
-//			std::cout << " ### " << "ExtrPoint" << " :" << p.x() << "," << p.y() << "," << p.z() << "," << p.w() << std::endl;
-//		});
+		uint32_t subPathIndex = _layerBottoms[layerIndex].first;
+		const uint32_t nextLayerSubPathIndex = (layerIndex < _layerBottoms.size() -1) ?
+												   _layerBottoms[layerIndex +1].first :
+												   uint32_t(_extruderSubPaths.size());
 
-		layerBottom = getLayerBottom(lastStartPoint, subPath).value_or(layerBottom);
+		for (; subPathIndex<nextLayerSubPathIndex; ++subPathIndex)
+		{// For every layer subPath - which is a set of consecutive extrusion points - generate a corresponding contiguous geometry.
+			const ExtrPath& subPath = _extruderSubPaths[subPathIndex];
 
-		// To get a path step with known length, remember the first point of new subPath
-		lastStartPoint = subPath[0];
+			if (!verifyEnoughPoints(subPath))
+				continue;
 
-		// Profile recalculation for the beginning of the subpath.
-		Vector3f subPathCuboid = calculateSubpathCuboid(subPath[0], subPath[1], layerBottom);
+			// To get a path step with known length, remember the first point of new subPath
+			lastStartPoint = subPath[0];
 
-		// Prepend the first subPath point with half of a cylinder.
-		const Vector3f dirAtBeginning = (subPath[1] - subPath[0]).head<3>().normalized();
-		static const Vector3f upVector{0,0,1};
-		Vector3f rightToDir = dirAtBeginning.cross(upVector);
-		Vector3f turnAxis = rightToDir.cross(dirAtBeginning);
-		// TODO: The turn radius is calculated based on a certain simplification.
-		generateSubPathTurn(subPath[0],
-							0.5f * subPathCuboid.x() * rightToDir,
-							turnAxis, -float(M_PI), subPathCuboid.y(), _modelVertices, _modelIndices);
+			// Profile recalculation for the beginning of the subpath.
+			Vector3f subPathCuboid = calculateSubpathCuboid(subPath[0], subPath[1], layerBottom);
 
-		// Start iterating from the second point, end before the last one.
-		const uint32_t numSubPathPoints = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size()));
-		for (uint32_t subPathPointIndex = 1; subPathPointIndex < numSubPathPoints -1; ++subPathPointIndex)
-		{
-			const ExtrPoint& currPoint = subPath[subPathPointIndex];
-			const ExtrPoint& nextPoint = subPath[subPathPointIndex +1];
+			// Prepend the first subPath point with half of a cylinder.
+			const Vector3f dirAtBeginning = (subPath[1] - subPath[0]).head<3>().normalized();
+			static const Vector3f upVector{0,0,1};
+			Vector3f rightToDir = dirAtBeginning.cross(upVector);
+			Vector3f turnAxis = rightToDir.cross(dirAtBeginning);
+			// TODO: The turn radius is calculated based on a certain simplification.
+			generateSubPathTurn(subPath[0],
+					0.5f * subPathCuboid.x() * rightToDir,
+					turnAxis, -float(M_PI), subPathCuboid.y(), _modelVertices, _modelIndices);
+
+			// Start iterating from the second point, end before the last one.
+			const uint32_t numSubPathPoints = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size()));
+			for (uint32_t subPathPointIndex = 1; subPathPointIndex < numSubPathPoints -1; ++subPathPointIndex)
+			{
+				const ExtrPoint& currPoint = subPath[subPathPointIndex];
+				const ExtrPoint& nextPoint = subPath[subPathPointIndex +1];
+				const Vector4f pathStep = currPoint - lastStartPoint;
+
+				subPathCuboid = calculateSubpathCuboid(lastStartPoint, currPoint, layerBottom);
+				generateSubPathStep(lastStartPoint.head<3>(), pathStep.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
+
+				// Insert a cylinder section (pie) between two path steps, forget about w==filament extrusion length.
+				const Vector3f prevDirection = pathStep.head<3>().normalized();
+				const Vector3f nextDirection = (nextPoint - currPoint).head<3>().normalized();
+
+				const Vector3f turnAxis = prevDirection.cross(nextDirection).normalized();
+				const float turnAngle = std::acosf(prevDirection.dot(nextDirection));
+				if (!approximatelyEqual(turnAngle, 0, FLT_EPSILON))
+				{
+					//TODO: Watch out - HACKING a bit.
+					const Vector3f bottomShift = subPathCuboid.y() * turnAxis * (turnAxis.dot(upVector) > 0 ? 0 : 1);
+					generateSubPathTurn(currPoint - ExtrPoint{bottomShift.x(), bottomShift.y(), bottomShift.z(), 0},
+										0.5f * subPathCuboid.x() * prevDirection.cross(turnAxis),
+										turnAxis, turnAngle, subPathCuboid.y(), _modelVertices, _modelIndices);
+				}
+
+				lastStartPoint = currPoint;
+			}
+
+			// The last point should be generated differently.
+			const ExtrPoint& currPoint = subPath[numSubPathPoints -1];
 			const Vector4f pathStep = currPoint - lastStartPoint;
 
+			// Profile recalculation for the end of the subpath.
 			subPathCuboid = calculateSubpathCuboid(lastStartPoint, currPoint, layerBottom);
 			generateSubPathStep(lastStartPoint.head<3>(), pathStep.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
 
-			// Insert a cylinder section (pie) between two path steps, forget about w==filament extrusion length.
-			const Vector3f prevDirection = pathStep.head<3>().normalized();
-			const Vector3f nextDirection = (nextPoint - currPoint).head<3>().normalized();
+			// Append a semi-circle cylinder half to the end of the subPath.
+			const Vector3f dirAtEnd = (currPoint - lastStartPoint).head<3>().normalized();
+			rightToDir = dirAtEnd.cross(upVector);
+			turnAxis = rightToDir.cross(dirAtEnd);
 
-			const Vector3f turnAxis = prevDirection.cross(nextDirection).normalized();
-			const float turnAngle = std::acosf(prevDirection.dot(nextDirection));
-			if (!approximatelyEqual(turnAngle, 0, FLT_EPSILON))
-			{
-				//TODO: Watch out - HACKING a bit.
-				const Vector3f bottomShift = subPathCuboid.y() * turnAxis * (turnAxis.dot(upVector) > 0 ? 0 : 1);
-				generateSubPathTurn(currPoint - ExtrPoint{bottomShift.x(), bottomShift.y(), bottomShift.z(), 0},
-									0.5f * subPathCuboid.x() * prevDirection.cross(turnAxis),
-									turnAxis, turnAngle, subPathCuboid.y(), _modelVertices, _modelIndices);
-			}
+			generateSubPathTurn(currPoint,
+								0.5f * subPathCuboid.x() * rightToDir,
+								turnAxis, float(M_PI), subPathCuboid.y(), _modelVertices, _modelIndices);
 
 			lastStartPoint = currPoint;
 		}
-
-		// The last point should be generated differently.
-		const ExtrPoint& currPoint = subPath[numSubPathPoints -1];
-		const Vector4f pathStep = currPoint - lastStartPoint;
-
-		// Profile recalculation for the end of the subpath.
-		subPathCuboid = calculateSubpathCuboid(lastStartPoint, currPoint, layerBottom);
-		generateSubPathStep(lastStartPoint.head<3>(), pathStep.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
-
-		// Append a semi-circle cylinder half to the end of the subPath.
-		const Vector3f dirAtEnd = (currPoint - lastStartPoint).head<3>().normalized();
-		rightToDir = dirAtEnd.cross(upVector);
-		turnAxis = rightToDir.cross(dirAtEnd);
-
-		generateSubPathTurn(currPoint,
-							0.5f * subPathCuboid.x() * rightToDir,
-							turnAxis, float(M_PI), subPathCuboid.y(), _modelVertices, _modelIndices);
-
-		lastStartPoint = currPoint;
 	}
 
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
