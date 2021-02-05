@@ -90,6 +90,7 @@ private:
 							 QByteArray& modelVertices,
 							 QByteArray& modelIndices);
 	void dumpSubPath(const std::string& blockString, const ExtrPath& subPath);
+	std::optional<float> getLayerBottom(const ExtrPoint& lastStartPoint, const ExtrPath& subPath);
 
 	bool _isPicked = false;
 	bool _wasGenerated = false;

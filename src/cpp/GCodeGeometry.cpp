@@ -4,13 +4,14 @@
 #include <QVector3D>
 #include <QQuaternion>
 
+#include <algorithm>
 #include <assert.h>
+#include <chrono>
 #include <cstdio>
 #include <iostream>
 #include <fstream>
+#include <optional>
 #include <string>
-#include <algorithm>
-#include <chrono>
 
 #include <Chronograph.h>
 
@@ -631,6 +632,16 @@ bool GCodeGeometry::verifyEnoughPoints(const ExtrPath& subPath)
 	return false;
 }
 
+std::optional<float> GCodeGeometry::getLayerBottom(const ExtrPoint& lastStartPoint, const ExtrPath& subPath)
+{// TODO: Ideally, this function should look down below from the current nozzle level and detect the previous layer.
+	if (!approximatelyEqual(lastStartPoint.z(), subPath[0].z(), FLT_EPSILON))
+	{// TODO: IMPORTANT! This condition is bad. It was supposed to mean, that layer top level has changed with this subpath.
+	 //       But it may also happen in the beginning. Maybe should be based on comments?
+		return lastStartPoint.z();
+	}
+	return {};
+}
+
 void GCodeGeometry::generate()
 {
 	Chronograph chronograph(__FUNCTION__, true);
@@ -646,7 +657,7 @@ void GCodeGeometry::generate()
 		return;
 
 	// Previous layer top at start is just the bed level.
-	float previousLayerTop = 0.0f;
+	float layerBottom = 0.0f;
 
 	//Remember start point to know the direction and level, from which extruder head arrives in next subpath.
 	ExtrPoint lastStartPoint{0,0,0,0};
@@ -661,17 +672,13 @@ void GCodeGeometry::generate()
 //			std::cout << " ### " << "ExtrPoint" << " :" << p.x() << "," << p.y() << "," << p.z() << "," << p.w() << std::endl;
 //		});
 
-		if (!approximatelyEqual(lastStartPoint.z(), subPath[0].z(), FLT_EPSILON))
-		{// TODO: IMPORTANT! This condition is bad. It was supposed to mean, that layer top level has changed with this subpath.
-		 //       But it may also happen in the beginning. Maybe should be based on comments?
-			previousLayerTop = lastStartPoint.z();
-		}
+		layerBottom = getLayerBottom(lastStartPoint, subPath).value_or(layerBottom);
 
 		// To get a path step with known length, remember the first point of new subPath
 		lastStartPoint = subPath[0];
 
 		// Profile recalculation for the beginning of the subpath.
-		Vector3f subPathCuboid = calculateSubpathCuboid(subPath[0], subPath[1], previousLayerTop);
+		Vector3f subPathCuboid = calculateSubpathCuboid(subPath[0], subPath[1], layerBottom);
 
 		// Prepend the first subPath point with half of a cylinder.
 		const Vector3f dirAtBeginning = (subPath[1] - subPath[0]).head<3>().normalized();
@@ -691,7 +698,7 @@ void GCodeGeometry::generate()
 			const ExtrPoint& nextPoint = subPath[subPathPointIndex +1];
 			const Vector4f pathStep = currPoint - lastStartPoint;
 
-			subPathCuboid = calculateSubpathCuboid(lastStartPoint, currPoint, previousLayerTop);
+			subPathCuboid = calculateSubpathCuboid(lastStartPoint, currPoint, layerBottom);
 			generateSubPathStep(lastStartPoint.head<3>(), pathStep.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
 
 			// Insert a cylinder section (pie) between two path steps, forget about w==filament extrusion length.
@@ -717,7 +724,7 @@ void GCodeGeometry::generate()
 		const Vector4f pathStep = currPoint - lastStartPoint;
 
 		// Profile recalculation for the end of the subpath.
-		subPathCuboid = calculateSubpathCuboid(lastStartPoint, currPoint, previousLayerTop);
+		subPathCuboid = calculateSubpathCuboid(lastStartPoint, currPoint, layerBottom);
 		generateSubPathStep(lastStartPoint.head<3>(), pathStep.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
 
 		// Append a semi-circle cylinder half to the end of the subPath.
