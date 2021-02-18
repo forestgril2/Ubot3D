@@ -61,7 +61,13 @@ Row {
             height: 70
 
             onPressed: {
-                stlModel.snapToFloor()
+                var numModels = stlModels.count
+
+                for (var i = 0; i < numModels; i++)
+                {
+                    var stlModel = stlModels.objectAt(i);
+                    stlModel.snapToFloor()
+                }
             }
 
         }

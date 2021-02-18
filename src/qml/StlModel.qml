@@ -42,10 +42,14 @@ Model {
             snapToFloor.wasPressed = false;
 
             console.log("snapToFloor pressed")
-            rootModel.position = rootModel.position.minus(Qt.vector3d(0,0, triangleModel.geometry.minBounds.z))
+            move(Qt.vector3d(0,0, -rootModel.geometry.minBounds.z))
         }
         else {
             console.log("snapToFloor already pressed")
         }
+    }
+
+    function move(offset) {
+        rootModel.position = rootModel.position.plus(offset)
     }
 }

@@ -33,35 +33,44 @@ MouseArea {
             doubleClicked(mouse)
             return
         }
-
 //        console.log(" ### onClicked")
         doubleClickTimer.start()
 
         var originAndRay = getOriginAndRay(mouse.x, mouse.y)
-        stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
-        //            console.log(" getOriginAndRay: " + originAndRay.origin + "," + originAndRay.ray)
 
-        //            console.log(" triangleModel.bounds : " + triangleModel.bounds)
-        // Get screen coordinates of the click
-        pickDebugs.pickPosition.text = "Screen Position: (" + mouse.x + ", " + mouse.y + ")"
-        var result = view3d.pick(mouse.x, mouse.y);
-        if (result.objectHit) {
-            var pickedObject = result.objectHit;
-            // Toggle the isPicked property for the model
-            pickedObject.isPicked = !pickedObject.isPicked;
-            // Get picked model name
-            pickDebugs.pickName.text = "Last Pick: " + pickedObject.objectName;
-            // Get other pick specifics
-            pickDebugs.uvPosition.text = "UV Position: ("
-                    + result.uvPosition.x.toFixed(2) + ", "
-                    + result.uvPosition.y.toFixed(2) + ")";
-            pickDebugs.distance.text = "Distance: " + result.distance.toFixed(2);
-            pickDebugs.scenePosition.text = "World Position: ("
-                    + result.scenePosition.x.toFixed(2) + ", "
-                    + result.scenePosition.y.toFixed(2) + ")";
-        }
-        else {
-            pickDebugs.pickName.text = "Last Pick: None";
+        var numModels = stlModels.count
+
+        for (var i = 0; i < numModels; i++)
+        {
+            var stlModel = stlModels.objectAt(i);
+
+            stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
+            //            console.log(" getOriginAndRay: " + originAndRay.origin + "," + originAndRay.ray)
+
+            //            console.log(" triangleModel.bounds : " + triangleModel.bounds)
+            // Get screen coordinates of the click
+            pickDebugs.pickPosition.text = "Screen Position: (" + mouse.x + ", " + mouse.y + ")"
+            var result = view3d.pick(mouse.x, mouse.y);
+            if (result.objectHit) {
+                var pickedObject = result.objectHit;
+                // Toggle the isPicked property for the model
+                pickedObject.isPicked = !pickedObject.isPicked;
+                // Get picked model name
+                pickDebugs.pickName.text = "Last Pick: " + pickedObject.objectName;
+                // Get other pick specifics
+                pickDebugs.uvPosition.text = "UV Position: ("
+                        + result.uvPosition.x.toFixed(2) + ", "
+                        + result.uvPosition.y.toFixed(2) + ")";
+                pickDebugs.distance.text = "Distance: " + result.distance.toFixed(2);
+                pickDebugs.scenePosition.text = "World Position: ("
+                        + result.scenePosition.x.toFixed(2) + ", "
+                        + result.scenePosition.y.toFixed(2) + ")";
+            }
+            else {
+                pickDebugs.pickName.text = "Last Pick: None";
+            }
         }
     }
+
+
 }
