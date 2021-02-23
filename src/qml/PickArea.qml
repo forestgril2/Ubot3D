@@ -3,7 +3,9 @@ import QtQml 2.15
 
 MouseArea {
     anchors.fill: view3d
-    signal modelDragged
+    signal modelDragged(vector3d coords)
+
+    property bool isDraggingModelGroup: false
 
     onDoubleClicked: {
         console.log(" ### onDoubleClicked")
@@ -41,8 +43,7 @@ MouseArea {
 
         var numModels = stlModels.count
 
-        for (var i = 0; i < numModels; i++)
-        {
+        for (var i = 0; i < numModels; i++) {
             var stlModel = stlModels.objectAt(i);
 
             var modelIntersection = stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
@@ -83,8 +84,28 @@ MouseArea {
     }
 
     onPressed: {
-        // Find out, if we are pressing an object.
-        // If so, remember the point of press and send modelDragged() signal with coordinates
+        var originAndRay = getOriginAndRay(mouse.x, mouse.y)
+        var numModels = stlModels.count
+
+        for (var i = 0; i < numModels; i++)
+        {// Find out, if we are pressing an object.
+            var stlModel = stlModels.objectAt(i);
+
+            var modelIntersection = stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
+            if (modelIntersection.isHit)
+            {// If so, remember the point of press and send modelDragged() signal with coordinates
+                modelDragged(modelIntersection.intersection)
+            }
+
+            var planeIntersection = helper3D.calculator.getLinePlaneIntersection(originAndRay.ray,
+                                                                                 originAndRay.origin,
+                                                                                 Qt.vector3d(0,0,1),
+                                                                                 modelIntersection.intersection);
+
+            console.log(" planeIntersection.isHit: " + planeIntersection.isHit)
+            console.log(" planeIntersection.intersection: " + planeIntersection.intersection)
+        }
+
 
     }
 
@@ -93,11 +114,12 @@ MouseArea {
     }
 
     onReleased: {
-        // Set state of PickArea to isDraggingModelGroup = false;
+        isDraggingModelGroup = false
     }
 
     onModelDragged: {
-        // Set state of PickArea to isDraggingModelGroup = true;
+        isDraggingModelGroup = true
+        console.log(" ### dragging model group from:" + coords)
     }
 
     onMouseXChanged: {
