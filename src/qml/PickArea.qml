@@ -45,13 +45,14 @@ MouseArea {
         {
             var stlModel = stlModels.objectAt(i);
 
-            var intersection = stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
-            console.log(" ### intersection:" + intersection)
+            var modelIntersection = stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
+            console.log(" ### modelIntersection.intersection:" + modelIntersection.intersection)
+            console.log(" ### modelIntersection.isHit:" + modelIntersection.isHit)
 
             var planeIntersection = helper3D.calculator.getLinePlaneIntersection(originAndRay.ray,
                                                                                  originAndRay.origin,
                                                                                  Qt.vector3d(0,0,1),
-                                                                                 intersection);
+                                                                                 modelIntersection.intersection);
 
             console.log(" planeIntersection.isHit: " + planeIntersection.isHit)
             console.log(" planeIntersection.intersection: " + planeIntersection.intersection)

@@ -171,19 +171,17 @@ QVariantMap ExampleTriangleGeometry::getLinePlaneIntersection(const QVector3D& r
 															  const QVector3D& planeNormal,
 															  const QVector3D& planeCoord)
 {
-	// get d value
-	float d = QVector3D::dotProduct(planeNormal, planeCoord);
 
 	if (qFuzzyIsNull(QVector3D::dotProduct(planeNormal, ray)))
 	{// No intersection, the line is parallel to the plane
 		return QVariantMap{{"intersection", QVector3D()}, {"isHit", false}};
 	}
 
+	float d = QVector3D::dotProduct(planeNormal, planeCoord);
 	// Compute the parameter for the directed line ray intersecting the plane
 	float lineParam = (d - QVector3D::dotProduct(planeNormal, origin))/
 					  QVector3D::dotProduct(planeNormal, ray);
 
-	// output contact point
 	return QVariantMap{{"intersection", origin + ray.normalized()*lineParam}, {"isHit", true}};
 }
 
@@ -204,15 +202,16 @@ void ExampleTriangleGeometry::exportModelToSTL(const QString& filePath)
 
 }
 
-QVector3D ExampleTriangleGeometry::getPick(const QVector3D& origin,
+QVariantMap ExampleTriangleGeometry::getPick(const QVector3D& origin,
 										   const QVector3D& direction,
 										   const QMatrix4x4& globalTransform)
 {
 	Chronograph chronograph(__FUNCTION__);
+	QVariantMap noHit{{"intersection", QVector3D()}, {"isHit", false}};
 	if (vertexData().size() == 0)
 	{
 		std::cout << " ### " << __FUNCTION__ << " WARNING vertex buffer empty, returning empty pick" << std::endl;
-		return QVector3D();
+		return noHit;
 	}
 
 	QSSGRenderRay hitRay(origin, direction);
@@ -292,13 +291,15 @@ QVector3D ExampleTriangleGeometry::getPick(const QVector3D& origin,
 									   return (origin - intersection.scenePosition).lengthSquared();
 								 });
 
-		return intersections[static_cast<uint32_t>(
-				std::distance(distancesToOrigin.begin(),
-							  std::min_element(distancesToOrigin.begin(),
-											   distancesToOrigin.end())))].scenePosition;
+		const QVector3D intersection = intersections[static_cast<uint32_t>(
+										   std::distance(distancesToOrigin.begin(),
+														 std::min_element(distancesToOrigin.begin(),
+																		  distancesToOrigin.end())))].scenePosition;
+
+		return QVariantMap{{"intersection", intersection}, {"isHit", true}};
 	}
 
-	return QVector3D();
+	return noHit;
 }
 
 QString ExampleTriangleGeometry::getInputFile() const

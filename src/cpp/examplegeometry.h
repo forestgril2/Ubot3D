@@ -50,9 +50,9 @@ public:
 		QVector3D pickPos;
 	};
 
-	Q_INVOKABLE QVector3D getPick(const QVector3D& origin,
-								   const QVector3D& direction,
-								   const QMatrix4x4& globalTransform);
+	Q_INVOKABLE QVariantMap getPick(const QVector3D& origin,
+									const QVector3D& direction,
+									const QMatrix4x4& globalTransform);
 
 
 	QString getInputFile() const;
