@@ -72,7 +72,7 @@ Window {
             {
                 var direction = point.minus(camera.position)
                 var upDirection = Qt.vector3d(0,0,1)
-                var lookAtRotation = geometryManipulations.geometry.getRotationFromDirection(direction, upDirection)
+                var lookAtRotation = helper3D.calculator.getRotationFromDirection(direction, upDirection)
                 camera.rotation = lookAtRotation
             }
         }
@@ -114,7 +114,8 @@ Window {
         }
 
         StlModel {
-            id: geometryManipulations
+            id: helper3D
+            property alias calculator: helper3D.geometry
         }
 
         Repeater3D {
@@ -129,7 +130,7 @@ Window {
                 objectName: "gCode geometry"
                 pickable: true
                 rotation: modelControls.commonRotationCheckBox.checked ?
-                              geometryManipulations.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
+                              helper3D.calculator.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
                               Qt.quaternion(0,0,0,0)
 
                 geometry: GCodeGeometry {

@@ -34,7 +34,7 @@ MouseArea {
             doubleClicked(mouse)
             return
         }
-//        console.log(" ### onClicked")
+
         doubleClickTimer.start()
 
         var originAndRay = getOriginAndRay(mouse.x, mouse.y)
@@ -48,7 +48,13 @@ MouseArea {
             var intersection = stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
             console.log(" ### intersection:" + intersection)
 
-            //            console.log(" getOriginAndRay: " + originAndRay.origin + "," + originAndRay.ray)
+            var planeIntersection = helper3D.calculator.getLinePlaneIntersection(originAndRay.ray,
+                                                                                 originAndRay.origin,
+                                                                                 Qt.vector3d(0,0,1),
+                                                                                 intersection);
+
+            console.log(" planeIntersection.isHit: " + planeIntersection.isHit)
+            console.log(" planeIntersection.intersection: " + planeIntersection.intersection)
 
             //            console.log(" triangleModel.bounds : " + triangleModel.bounds)
             // Get screen coordinates of the click
@@ -76,6 +82,8 @@ MouseArea {
     }
 
     onPressed: {
+        // Find out, if we are pressing an object.
+        // If so, remember the point of press and send modelDragged() signal with coordinates
 
     }
 
@@ -84,10 +92,18 @@ MouseArea {
     }
 
     onReleased: {
-
+        // Set state of PickArea to isDraggingModelGroup = false;
     }
 
     onModelDragged: {
+        // Set state of PickArea to isDraggingModelGroup = true;
+    }
+
+    onMouseXChanged: {
+        // If we are isDraggingModelGroup = true
+    }
+
+    onMouseYChanged: {
 
     }
 }

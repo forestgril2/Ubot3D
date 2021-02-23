@@ -166,10 +166,31 @@ float ExampleTriangleGeometry::getRotationAngle(const QQuaternion& rotation)
 	return angle;
 }
 
+QVariantMap ExampleTriangleGeometry::getLinePlaneIntersection(const QVector3D& ray,
+															  const QVector3D& origin,
+															  const QVector3D& planeNormal,
+															  const QVector3D& planeCoord)
+{
+	// get d value
+	float d = QVector3D::dotProduct(planeNormal, planeCoord);
+
+	if (qFuzzyIsNull(QVector3D::dotProduct(planeNormal, ray)))
+	{// No intersection, the line is parallel to the plane
+		return QVariantMap{{"intersection", QVector3D()}, {"isHit", false}};
+	}
+
+	// Compute the parameter for the directed line ray intersecting the plane
+	float lineParam = (d - QVector3D::dotProduct(planeNormal, origin))/
+					  QVector3D::dotProduct(planeNormal, ray);
+
+	// output contact point
+	return QVariantMap{{"intersection", origin + ray.normalized()*lineParam}, {"isHit", true}};
+}
+
 void ExampleTriangleGeometry::exportModelToSTL(const QString& filePath)
 {
 
-		// And have it read the given file with some example postprocessing
+	// And have it read the given file with some example postprocessing
 	// Usually - if speed is not the most important aspect for you - you'll
 	// probably to request more postprocessing than we do in this example.
 	if (AI_SUCCESS == exporter.Export(scene, "stl", filePath.toStdString()))
