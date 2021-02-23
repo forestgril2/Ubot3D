@@ -4,8 +4,10 @@
 #include <QVector3D>
 #include <QQuaternion>
 
+#include <algorithm>
 #include <cstdio>
 #include <iostream>
+#include <iterator>
 #include <string>
 
 // ASSIMP LIBRARY INCLUDE
@@ -181,15 +183,15 @@ void ExampleTriangleGeometry::exportModelToSTL(const QString& filePath)
 
 }
 
-ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVector3D& origin,
-																	 const QVector3D& direction,
-																	 const QMatrix4x4& globalTransform)
+QVector3D ExampleTriangleGeometry::getPick(const QVector3D& origin,
+										   const QVector3D& direction,
+										   const QMatrix4x4& globalTransform)
 {
 	Chronograph chronograph(__FUNCTION__);
 	if (vertexData().size() == 0)
 	{
 		std::cout << " ### " << __FUNCTION__ << " WARNING vertex buffer empty, returning empty pick" << std::endl;
-		return PickResult();
+		return QVector3D();
 	}
 
 	QSSGRenderRay hitRay(origin, direction);
@@ -259,9 +261,23 @@ ExampleTriangleGeometry::PickResult ExampleTriangleGeometry::getPick(const QVect
 	if (intersections.size() > 0)
 	{
 		setPicked(!_isPicked);
+
+		std::vector<float> distancesToOrigin;
+		distancesToOrigin.reserve(intersections.size());
+		std::transform(intersections.begin(),
+					   intersections.end(),
+					   std::back_inserter(distancesToOrigin),
+					   [&origin](const QSSGRenderRay::IntersectionResult& intersection) {
+									   return (origin - intersection.scenePosition).lengthSquared();
+								 });
+
+		return intersections[static_cast<uint32_t>(
+				std::distance(distancesToOrigin.begin(),
+							  std::min_element(distancesToOrigin.begin(),
+											   distancesToOrigin.end())))].scenePosition;
 	}
 
-	return PickResult();
+	return QVector3D();
 }
 
 QString ExampleTriangleGeometry::getInputFile() const

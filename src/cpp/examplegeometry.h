@@ -45,7 +45,7 @@ public:
 		QVector3D pickPos;
 	};
 
-	Q_INVOKABLE PickResult getPick(const QVector3D& origin,
+	Q_INVOKABLE QVector3D getPick(const QVector3D& origin,
 								   const QVector3D& direction,
 								   const QMatrix4x4& globalTransform);
 

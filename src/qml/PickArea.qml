@@ -3,6 +3,7 @@ import QtQml 2.15
 
 MouseArea {
     anchors.fill: view3d
+    signal modelDragged
 
     onDoubleClicked: {
         console.log(" ### onDoubleClicked")
@@ -44,7 +45,9 @@ MouseArea {
         {
             var stlModel = stlModels.objectAt(i);
 
-            stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
+            var intersection = stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
+            console.log(" ### intersection:" + intersection)
+
             //            console.log(" getOriginAndRay: " + originAndRay.origin + "," + originAndRay.ray)
 
             //            console.log(" triangleModel.bounds : " + triangleModel.bounds)
@@ -72,5 +75,19 @@ MouseArea {
         }
     }
 
+    onPressed: {
 
+    }
+
+    onPressAndHold: {
+
+    }
+
+    onReleased: {
+
+    }
+
+    onModelDragged: {
+
+    }
 }
