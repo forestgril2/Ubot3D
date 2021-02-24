@@ -3,9 +3,12 @@ import QtQml 2.15
 
 MouseArea {
     anchors.fill: view3d
-    signal modelDragged(vector3d coords)
+    signal modelDragged(var model, vector3d modelStartPos, vector3d pickCoords)
 
     property bool isDraggingModelGroup: false
+    property vector3d startPickPosition
+    property vector3d startModelPosition
+    property var draggedModel
 
     onDoubleClicked: {
         console.log(" ### onDoubleClicked")
@@ -94,7 +97,7 @@ MouseArea {
             var modelIntersection = stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
             if (modelIntersection.isHit)
             {// If so, remember the point of press and send modelDragged() signal with coordinates
-                modelDragged(modelIntersection.intersection)
+                modelDragged(stlModel, stlModel.position, modelIntersection.intersection)
             }
 
             var planeIntersection = helper3D.calculator.getLinePlaneIntersection(originAndRay.ray,
@@ -102,8 +105,6 @@ MouseArea {
                                                                                  Qt.vector3d(0,0,1),
                                                                                  modelIntersection.intersection);
 
-            console.log(" planeIntersection.isHit: " + planeIntersection.isHit)
-            console.log(" planeIntersection.intersection: " + planeIntersection.intersection)
         }
 
 
@@ -119,14 +120,20 @@ MouseArea {
 
     onModelDragged: {
         isDraggingModelGroup = true
-        console.log(" ### dragging model group from:" + coords)
+        startPickPosition = pickCoords
+        startModelPosition = modelStartPos
+        draggedModel = model
     }
 
-    onMouseXChanged: {
-        // If we are isDraggingModelGroup = true
-    }
+    onPositionChanged: {
+        if(isDraggingModelGroup) {
 
-    onMouseYChanged: {
-
+            var originAndRay = getOriginAndRay(mouse.x, mouse.y)
+            var planeIntersection = helper3D.calculator.getLinePlaneIntersection(originAndRay.ray,
+                                                                                 originAndRay.origin,
+                                                                                 Qt.vector3d(0,0,1),
+                                                                                 startPickPosition)
+            draggedModel.position = startModelPosition.plus(planeIntersection.intersection.minus(startPickPosition))
+        }
     }
 }
