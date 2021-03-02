@@ -5,21 +5,9 @@
 #include <QMatrix4x4>
 #include <QQuaternion>
 
-#include <Eigen/Core>
-
 #include <qqml.h>
 
-using Real = float;
-using Vertex = Eigen::Vector3f;
-using ExtrPoint = Eigen::Vector4f;
-using Vertices = std::vector<Vertex>;
-using ExtrPath = std::vector<ExtrPoint>;
-using Indices = std::vector<uint32_t>;
-
-namespace gpr
-{
-	class gcode_program;
-};
+#include <CommonDefs.h>
 
 class GCodeGeometry : public QQuick3DGeometry
 {
@@ -70,12 +58,11 @@ signals:
 private:
 	void reset();
 	void updateData();
-	void loadGCodeProgram();
+	void loadExtruderData();
 	void generate();
 	Eigen::Vector3f calculateSubpathCuboid(const ExtrPoint& pathStart,
 											   const ExtrPoint& pathEnd,
 											   const float pathBaseLevelZ);
-	void createExtruderPaths(const gpr::gcode_program& gcodeProgram);
 	size_t calcVerifyModelNumbers();
 	bool verifyEnoughPoints(const ExtrPath& subPath);
 	void generateSubPathTurn(const ExtrPoint& center,
@@ -90,23 +77,19 @@ private:
 							 QByteArray& modelVertices,
 							 QByteArray& modelIndices);
 	float getLayerBottom(const uint32_t layerIndex);
-
-	void dumpSubPath(const std::string& blockString, const ExtrPath& subPath);
 	void logSubPath(const ExtrPath& subPath);
 
 	bool _isPicked = false;
 	bool _wasGenerated = false;
 
-	uint32_t _numSubPaths;
-	uint32_t _maxNumPointsInSubPath;
-	std::vector<ExtrPath> _extruderSubPaths;                      /** Vectors of points along the center of the filament path. */
+	ExtruderData _extrData;
+
 	uint32_t _numPathStepsUsed;
+
 	QByteArray _modelIndices;
 	QByteArray _modelVertices;
-	std::vector<std::pair<uint32_t, float>> _layerBottoms;        /** Remember first index of subpath with given layer bottom. */
 	std::vector<uint32_t> _numTotalPathStepVertices;              /** Remember how many vertices are added in each consecutive path step. */
 	std::vector<uint32_t> _numTotalPathStepIndices;               /** Remember how many indices are added in each consecutive path step. */
-	float _filamentCrossArea;                                     /** Filament cross-section area in mm^2. */
 
 	QString _inputFile;
 };

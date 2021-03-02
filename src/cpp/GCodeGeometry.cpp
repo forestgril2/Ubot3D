@@ -15,8 +15,8 @@
 
 #include <Chronograph.h>
 
-#include <gcode_program.h>
-#include <parser.h>
+#include <GCodeProgramParser.h>
+
 
 #include <Eigen/Geometry>
 
@@ -113,12 +113,15 @@ Vector3f GCodeGeometry::calculateSubpathCuboid(const ExtrPoint& pathStart, const
 	const float height = pathStart.z() - pathBaseLevelZ;
 	const Vector4f pathStep = pathEnd - pathStart;
 	const float length = pathStep.head<3>().norm();
-	assert(length > 0);
+	if (length == 0.0)
+	{
+		assert(length > 0);
+	}
 
 	if (pathStep.w() <= 0)
 		return {0,0,length};
 
-	const float width = (_filamentCrossArea * pathStep.w()) / (height * length);
+	const float width = (_extrData.filamentCrossArea * pathStep.w()) / (height * length);
 
 	return {width, height, length};
 };
@@ -202,34 +205,19 @@ static void logBounds()
 	std::cout << " ### aiScene maxBound(x,y,z): [" << maxBound.x() << "," << maxBound.y() << "," << maxBound.z() << "]" << std::endl;
 }
 
-
-static gpr::gcode_program importGCodeFromFile(const std::string& file)
-{
-	Chronograph chronograph("Read gcode file contents", true);
-	std::ifstream t(file);
-	std::string file_contents((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
-	chronograph.log();
-
-	chronograph.start("Parse gcode");
-	return gpr::parse_gcode(file_contents);
-}
-
-void GCodeGeometry::loadGCodeProgram()
+void GCodeGeometry::loadExtruderData()
 {
 	Chronograph chrono(__FUNCTION__);
 	if (_inputFile.isEmpty())
 		return;
-	gpr::gcode_program gcodeProgram = importGCodeFromFile(_inputFile.toStdString());
-	createExtruderPaths(gcodeProgram);
+
+	_extrData = GCodeProgramParser::createExtruderData(_inputFile.toStdString());
 }
 
 GCodeGeometry::GCodeGeometry() :
-	_numSubPaths(0),
-	_extruderSubPaths({}),
 	_numPathStepsUsed(0),
 	_modelIndices({}),
 	_modelVertices({}),
-	_filamentCrossArea(1.75f*1.75f*float(M_PI_4)), // for filament cross section diameter 1.75mm
 	_inputFile("")
 //	_inputFile("C:/Projects/Ubot3D/CE3_mandoblasterlow.gcode"),
 //	_inputFile("C:/ProjectsData/stl_files/TEST.gcode")
@@ -239,7 +227,7 @@ GCodeGeometry::GCodeGeometry() :
 
 	setStride(static_cast<int32_t>(3 * sizeof(float)));
 
-	loadGCodeProgram();
+	loadExtruderData();
 	updateData();
 	update();
 	emit modelLoaded();
@@ -254,17 +242,6 @@ GCodeGeometry::GCodeGeometry() :
 	connect(this, &GCodeGeometry::numPathPointsStepsChanged, this, updateDataAndUpdate);
 }
 
-void GCodeGeometry::dumpSubPath(const std::string& blockString, const ExtrPath& subPath)
-{
-	std::ofstream pathFile("path" + std::to_string(_extruderSubPaths.size()) + ".txt");
-	for (const ExtrPoint& point : subPath)
-	{
-		pathFile << "[" << point.x() << "," << point.y() << "," << point.z() << "," << point.w() << "]" << std::endl;
-	}
-	pathFile << blockString << std::endl;
-	pathFile.close();
-}
-
 void GCodeGeometry::setInputFile(const QString& url)
 {
 	std::cout << "### " << __FUNCTION__ << ": " << url.toStdString() << std::endl;
@@ -274,16 +251,13 @@ void GCodeGeometry::setInputFile(const QString& url)
 	_inputFile = url;
 	_wasGenerated = false;
 
-	_extruderSubPaths.clear();
 	_modelIndices.clear();
 	_modelVertices.clear();
-	_maxNumPointsInSubPath = 0;
-	_numSubPaths = 0;
 
-	loadGCodeProgram();
+	loadExtruderData();
 
-	std::cout << "### " << __FUNCTION__ << "_extruderSubPaths.size(): " << _extruderSubPaths.size() << std::endl;
-	std::cout << "### " << __FUNCTION__ << "_numSubPaths: " << _numSubPaths << std::endl;
+	std::cout << "### " << __FUNCTION__ << "_extruderSubPaths.size(): " << _extrData.extruderPaths.size() << std::endl;
+	std::cout << "### " << __FUNCTION__ << "_numSubPaths: " << _extrData.numSubPaths << std::endl;
 
 	updateData();
 	update();
@@ -342,32 +316,32 @@ void GCodeGeometry::setPicked(const bool isPicked)
 
 void GCodeGeometry::setNumSubPaths(const unsigned num)
 {
-	if (_numSubPaths == num)
+	if (_extrData.numSubPaths == num)
 		return;
 
-	_numSubPaths = num;
+	_extrData.numSubPaths = num;
 
 	emit numSubPathsChanged();
 }
 
 unsigned GCodeGeometry::getNumSubPaths() const
 {
-	return _numSubPaths;
+	return _extrData.numSubPaths;
 }
 
 void GCodeGeometry::setNumPointsInSubPath(const unsigned num)
 {
-	if (_maxNumPointsInSubPath == num)
+	if (_extrData.maxNumPointsInSubPath == num)
 		return;
 
-	_maxNumPointsInSubPath = num;
+	_extrData.maxNumPointsInSubPath = num;
 
 	emit numPointsInSubPathChanged();
 }
 
 uint32_t GCodeGeometry::getNumPointsInSubPath() const
 {
-	return _maxNumPointsInSubPath;
+	return _extrData.maxNumPointsInSubPath;
 }
 
 void GCodeGeometry::setNumPathStepsUsed(const uint32_t num)
@@ -388,7 +362,7 @@ uint32_t GCodeGeometry::getNumPathPointsUsed() const
 
 size_t GCodeGeometry::calcVerifyModelNumbers()
 {
-	const size_t numSubPathsUsed = std::min<uint32_t>(static_cast<uint32_t>(_extruderSubPaths.size()), _numSubPaths);
+	const size_t numSubPathsUsed = std::min<uint32_t>(static_cast<uint32_t>(_extrData.extruderPaths.size()), _extrData.numSubPaths);
 	if (numSubPathsUsed == 0)
 	{
 		std::cout << "### " << __FUNCTION__ << ": numSubPathUsed == 0, return" << std::endl;
@@ -399,7 +373,7 @@ size_t GCodeGeometry::calcVerifyModelNumbers()
 	size_t numPathPoints = 0;
 	for (uint32_t subPathIndex = 0; subPathIndex < numSubPathsUsed; ++subPathIndex)
 	{
-		numPathPoints += std::min<uint32_t>(_maxNumPointsInSubPath, static_cast<uint32_t>(_extruderSubPaths[subPathIndex].size()));
+		numPathPoints += std::min<uint32_t>(_extrData.maxNumPointsInSubPath, static_cast<uint32_t>(_extrData.extruderPaths[subPathIndex].size()));
 	}
 	if (numPathPoints == 0)
 	{
@@ -411,216 +385,6 @@ size_t GCodeGeometry::calcVerifyModelNumbers()
 }
 
 #ifdef ENABLE_GENERATION_CODE
-
-void GCodeGeometry::createExtruderPaths(const gpr::gcode_program& gcodeProgram)
-{
-	Chronograph chronograph(__FUNCTION__, true);
-
-	ExtrPath subPath;
-
-	// Layer bottom at start is just the bed level.
-	_layerBottoms.clear();
-	_layerBottoms.push_back({0u, 0.0f});
-
-	_extruderSubPaths.clear();
-	_extruderSubPaths.push_back(ExtrPath());
-
-	unsigned maxPointsInSubPath = 0;
-
-	bool isExtruderOn = false;
-	bool isAbsoluteMode = true;
-	unsigned blockCount = 0;
-	const unsigned blockCountLimit = 5220800;
-	std::string blockString;
-
-	ExtrPoint lastAbsCoords(0,0,0,0);
-	ExtrPoint blockAbsCoords(0,0,0,0);
-	ExtrPoint* newCoordsPtr = &blockAbsCoords;
-	for (auto it = gcodeProgram.begin(); it != gcodeProgram.end() && blockCount < blockCountLimit; ++it, ++blockCount)
-	{
-		const auto& block = *it;
-		blockString = block.to_string();
-		ExtrPoint blockRelativeCoords(0,0,0,0);
-
-		auto setExtrusionOff = [this, &maxPointsInSubPath, &blockString, &subPath, &isExtruderOn]()
-		{// If we are setting extrusion off, swap created path with the empty one in path vector.
-			if (!isExtruderOn)
-				return;
-			isExtruderOn = false;
-
-			if (subPath.empty())
-				return;
-			maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPath.size());
-
-			dumpSubPath(blockString, subPath);
-
-			if (subPath.size() < 2)
-			{
-				static bool wasSubpathOfSmallSizeAnounced = false;
-				if (!wasSubpathOfSmallSizeAnounced)
-				{
-					std::cout << "### WARNING: subpath of size: " << subPath.size() << std::endl;
-					wasSubpathOfSmallSizeAnounced = true;
-				}
-
-				subPath.clear();
-				return;
-			}
-
-			std::swap(_extruderSubPaths.back(), subPath);
-			_extruderSubPaths.push_back(ExtrPath());
-		};
-
-		auto setExtrusionOn = [&subPath, &isExtruderOn](const ExtrPoint& lastAbsCoords)
-		{// If we are setting extrusion on, add new (empty) path to path vector.
-			if (isExtruderOn)
-				return;
-			isExtruderOn = true;
-			subPath.push_back(lastAbsCoords);
-		};
-
-		auto setAbsoluteModeOn = [&isAbsoluteMode, &newCoordsPtr, &blockAbsCoords]() {
-			if (isAbsoluteMode)
-				return;
-			isAbsoluteMode = true;
-			newCoordsPtr = &blockAbsCoords;
-		};
-
-		auto setAbsoluteModeOff = [&isAbsoluteMode, &newCoordsPtr, &blockRelativeCoords]() {
-			if (!isAbsoluteMode)
-				return;
-
-			isAbsoluteMode = false;
-			newCoordsPtr = &blockRelativeCoords;
-		};
-
-		Vector4i wichCoordsSetInBlock(0,0,0,0);
-
-		for (const gpr::chunk& chunk : block)
-		{
-			switch(chunk.tp())
-			{
-				case gpr::CHUNK_TYPE_PERCENT:
-				case gpr::CHUNK_TYPE_WORD:
-					break;
-
-				case gpr::CHUNK_TYPE_COMMENT:
-				{
-					const std::string comment = chunk.get_comment_text();
-					if (comment._Starts_with("LAYER:") && (0 != comment.compare("LAYER:0")))
-					{// First layer has bed level (0.0f), like all preparation steps. We enter here only for layers 1+
-						const ExtrPath& previousSubPath = _extruderSubPaths[_extruderSubPaths.size() -2];
-						const ExtrPoint& previousLayerLastPoint = previousSubPath[previousSubPath.size() -1];
-						_layerBottoms.push_back({_extruderSubPaths.size(), previousLayerLastPoint.z()});
-					}
-					break;
-				}
-				case gpr::CHUNK_TYPE_WORD_ADDRESS:
-				{
-					const gpr::addr& adddres = chunk.get_address();
-					const char& word = chunk.get_word();
-
-					switch(word)
-					{
-						// Header movements.
-						case 'G':
-							switch (adddres.tp())
-							{
-								case gpr::ADDRESS_TYPE_INTEGER:
-									switch (adddres.int_value())
-									{
-										case 0:
-											setExtrusionOff();
-											break;
-										case 1:
-											setExtrusionOn(lastAbsCoords);
-											break;
-										case 90:
-											setAbsoluteModeOn();
-											break;
-										case 91:
-											setAbsoluteModeOff();
-											break;
-										case 92:
-											//TODO: IMPLEMENT.
-											break;
-										default:
-											break;
-									}
-									break;
-
-								case gpr::ADDRESS_TYPE_DOUBLE:
-									assert(false);
-									break;
-							}
-							break;
-
-						// Path point coordinates.
-						case 'X':
-							newCoordsPtr->x() = float(adddres.double_value());
-							wichCoordsSetInBlock.x() = true;
-							break;
-						case 'Y':
-							newCoordsPtr->y() = float(adddres.double_value());
-							wichCoordsSetInBlock.y() = true;
-							break;
-						case 'Z':
-							newCoordsPtr->z() = float(adddres.double_value());
-							wichCoordsSetInBlock.z() = true;
-							break;
-
-						// Extruded length.
-						case 'E':
-							newCoordsPtr->w() = float(adddres.double_value());
-							wichCoordsSetInBlock.w() = true;
-							break;
-
-						default:
-							break;
-					}
-					break;
-				}
-			}
-		}
-
-		if (wichCoordsSetInBlock.isZero())
-			continue;
-
-		for (unsigned short i = 0; i < wichCoordsSetInBlock.size(); ++i)
-		{// If this coord is not set in this block, use the most recent for absolute coordinates.
-			if (wichCoordsSetInBlock[i] != 0 || !isAbsoluteMode)
-				continue;
-			blockAbsCoords[i] = lastAbsCoords[i];
-		}
-
-		if (!isAbsoluteMode)
-		{
-			lastAbsCoords += blockRelativeCoords;
-		}
-		else
-		{
-			lastAbsCoords = blockAbsCoords;
-		}
-
-		if (isExtruderOn && (subPath.size() == 0 || lastAbsCoords != subPath.back()))
-		{// Ignore movements without extrusion and identical extruder path coordinates.
-			subPath.push_back(lastAbsCoords);
-		}
-	}
-
-	if (!subPath.empty())
-	{
-		maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPath.size());
-		std::cout << " #### adding subPath no. " << _extruderSubPaths.size() -1<< ", maxPointsInSubPath: " << maxPointsInSubPath << std::endl;
-
-		dumpSubPath(blockString, subPath);
-
-		std::swap(_extruderSubPaths.back(), subPath);
-	}
-
-	_maxNumPointsInSubPath = maxPointsInSubPath;
-	_numSubPaths = _extruderSubPaths.size();
-}
 
 
 void GCodeGeometry::reset()
@@ -647,7 +411,7 @@ bool GCodeGeometry::verifyEnoughPoints(const ExtrPath& subPath)
 
 float GCodeGeometry::getLayerBottom(const uint32_t layerIndex)
 {// TODO: Ideally, this function should look down below from the current nozzle level and detect the previous layer.
-	return _layerBottoms[layerIndex].second;
+	return _extrData.layerBottoms[layerIndex].second;
 }
 
 void GCodeGeometry::logSubPath(const ExtrPath& subPath)
@@ -674,19 +438,21 @@ void GCodeGeometry::generate()
 
 	//Remember start point to know the direction and level, from which extruder head arrives in next subpath.
 	ExtrPoint lastStartPoint{0,0,0,0};
+	const std::vector<std::pair<uint32_t, float>>& layerBottoms = _extrData.layerBottoms;
+	const std::vector<ExtrPath>& extruderSubPaths = _extrData.extruderPaths;
 
-	for (uint32_t layerIndex=0; layerIndex<_layerBottoms.size(); ++layerIndex)
+	for (uint32_t layerIndex=0; layerIndex<layerBottoms.size(); ++layerIndex)
 	{// For every model layer.
 		const float layerBottom = getLayerBottom(layerIndex);
 
-		uint32_t subPathIndex = _layerBottoms[layerIndex].first;
-		const uint32_t nextLayerSubPathIndex = (layerIndex < _layerBottoms.size() -1) ?
-												   _layerBottoms[layerIndex +1].first :
-												   uint32_t(_extruderSubPaths.size());
+		uint32_t subPathIndex = layerBottoms[layerIndex].first;
+		const uint32_t nextLayerSubPathIndex = (layerIndex < layerBottoms.size() -1) ?
+												   layerBottoms[layerIndex +1].first :
+												   uint32_t(extruderSubPaths.size());
 
 		for (; subPathIndex<nextLayerSubPathIndex; ++subPathIndex)
 		{// For every layer subPath - which is a set of consecutive extrusion points - generate a corresponding contiguous geometry.
-			const ExtrPath& subPath = _extruderSubPaths[subPathIndex];
+			const ExtrPath& subPath = extruderSubPaths[subPathIndex];
 
 			if (!verifyEnoughPoints(subPath))
 				continue;
@@ -708,7 +474,7 @@ void GCodeGeometry::generate()
 					turnAxis, -float(M_PI), subPathCuboid.y(), _modelVertices, _modelIndices);
 
 			// Start iterating from the second point, end before the last one.
-			const uint32_t numSubPathPoints = std::min<uint32_t>(_maxNumPointsInSubPath, uint32_t(subPath.size()));
+			const uint32_t numSubPathPoints = std::min<uint32_t>(_extrData.maxNumPointsInSubPath, uint32_t(subPath.size()));
 			for (uint32_t subPathPointIndex = 1; subPathPointIndex < numSubPathPoints -1; ++subPathPointIndex)
 			{
 				const ExtrPoint& currPoint = subPath[subPathPointIndex];

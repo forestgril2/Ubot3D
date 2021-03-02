@@ -22,6 +22,7 @@ CONFIG += ordered
 SUBDIRS += src/cpp src/qml
 
 SOURCES += src/cpp/main.cpp \
+    src/cpp/GCodeProgramParser.cpp \
     src/cpp/examplegeometry.cpp \
     src/cpp/GCodeGeometry.cpp \
     src/cpp/Chronograph.cpp \
@@ -30,10 +31,12 @@ SOURCES += src/cpp/main.cpp \
 
 
 HEADERS +=  src/cpp/examplegeometry.h \
+        ../gpr/src/CommonDefs.h \
         src/cpp/GCodeGeometry.h \
         src/cpp/Chronograph.h \
         $$PWD/../gpr/src/gcode_program.h \
-        $$PWD/../gpr/src/parser.h
+        $$PWD/../gpr/src/parser.h \
+        src/cpp/GCodeProgramParser.h
 
 RESOURCES += \
     src/qml/qml.qrc \
