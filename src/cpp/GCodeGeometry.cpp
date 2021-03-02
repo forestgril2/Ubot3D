@@ -211,7 +211,8 @@ void GCodeGeometry::loadExtruderData()
 	if (_inputFile.isEmpty())
 		return;
 
-	_extrData = GCodeProgramParser::createExtruderData(_inputFile.toStdString());
+	GCodeProgramParser gCodeParser;
+	_extrData = gCodeParser.createExtruderData(_inputFile.toStdString());
 }
 
 GCodeGeometry::GCodeGeometry() :

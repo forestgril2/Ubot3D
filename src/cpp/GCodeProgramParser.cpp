@@ -20,86 +20,25 @@ ExtruderData GCodeProgramParser::createExtruderData(const std::string& inputFile
 
 	gpr::gcode_program gcodeProgram = importGCodeFromFile(inputFile);
 
-	ExtruderData data;
-	ExtrPath subPath;
-
-	std::vector<ExtrPath>& extruderPaths = data.extruderPaths;
+	extruderPaths.clear();
 	extruderPaths.push_back(ExtrPath());
 
 	std::vector<std::pair<uint32_t, float>>& layerBottoms = data.layerBottoms;
 	// Layer bottom at start is just the bed level.
 	layerBottoms.push_back({0u, 0.0f});
 
-	unsigned maxPointsInSubPath = 0;
-
-	bool isExtruderOn = false;
-	bool isAbsoluteMode = true;
 	unsigned blockCount = 0;
 	const unsigned blockCountLimit = 5220800;
-	std::string blockString;
 
 	ExtrPoint lastAbsCoords(0,0,0,0);
-	ExtrPoint blockAbsCoords(0,0,0,0);
-	ExtrPoint* newCoordsPtr = &blockAbsCoords;
+
 	for (auto it = gcodeProgram.begin();
 		 it != gcodeProgram.end() && blockCount < blockCountLimit;
 		 ++it, ++blockCount)
 	{
 		const auto& block = *it;
-		blockString = block.to_string();
-		ExtrPoint blockRelativeCoords(0,0,0,0);
-
-		auto setExtrusionOff = [&extruderPaths, &maxPointsInSubPath, &blockString, &subPath, &isExtruderOn]()
-		{// If we are setting extrusion off, swap created path with the empty one in path vector.
-			if (!isExtruderOn)
-				return;
-			isExtruderOn = false;
-
-			if (subPath.empty())
-				return;
-			maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPath.size());
-
-			dumpSubPath(blockString, subPath);
-
-			if (subPath.size() < 2)
-			{
-				static bool wasSubpathOfSmallSizeAnounced = false;
-				if (!wasSubpathOfSmallSizeAnounced)
-				{
-					std::cout << "### WARNING: subpath of size: " << subPath.size() << std::endl;
-					wasSubpathOfSmallSizeAnounced = true;
-				}
-
-				subPath.clear();
-				return;
-			}
-
-			std::swap(extruderPaths.back(), subPath);
-			extruderPaths.push_back(ExtrPath());
-		};
-
-		auto setExtrusionOn = [&subPath, &isExtruderOn](const ExtrPoint& lastAbsCoords)
-		{// If we are setting extrusion on, add new (empty) path to path vector.
-			if (isExtruderOn)
-				return;
-			isExtruderOn = true;
-			subPath.push_back(lastAbsCoords);
-		};
-
-		auto setAbsoluteModeOn = [&isAbsoluteMode, &newCoordsPtr, &blockAbsCoords]() {
-			if (isAbsoluteMode)
-				return;
-			isAbsoluteMode = true;
-			newCoordsPtr = &blockAbsCoords;
-		};
-
-		auto setAbsoluteModeOff = [&isAbsoluteMode, &newCoordsPtr, &blockRelativeCoords]() {
-			if (!isAbsoluteMode)
-				return;
-
-			isAbsoluteMode = false;
-			newCoordsPtr = &blockRelativeCoords;
-		};
+		blockStringCurr = block.to_string();
+		ExtrPoint blockCurrRelativeCoords(0,0,0,0);
 
 		Vector4i whichCoordsSetInBlock(0,0,0,0);
 
@@ -143,10 +82,10 @@ ExtruderData GCodeProgramParser::createExtruderData(const std::string& inputFile
 											setExtrusionOn(lastAbsCoords);
 											break;
 										case 90:
-											setAbsoluteModeOn();
+											setAbsoluteModeOn(blockCurrAbsCoords);
 											break;
 										case 91:
-											setAbsoluteModeOff();
+											setAbsoluteModeOff(blockCurrRelativeCoords);
 											break;
 										case 92:
 											//TODO: IMPLEMENT.
@@ -197,32 +136,32 @@ ExtruderData GCodeProgramParser::createExtruderData(const std::string& inputFile
 		{// updateBlockCoords(): If this coord is not set in this block, use the most recent for absolute coordinates.
 			if (whichCoordsSetInBlock[i] != 0 || !isAbsoluteMode)
 				continue;
-			blockAbsCoords[i] = lastAbsCoords[i];
+			blockCurrAbsCoords[i] = lastAbsCoords[i];
 		}
 
 		if (!isAbsoluteMode)
 		{
-			lastAbsCoords += blockRelativeCoords;
+			lastAbsCoords += blockCurrRelativeCoords;
 		}
 		else
 		{
-			lastAbsCoords = blockAbsCoords;
+			lastAbsCoords = blockCurrAbsCoords;
 		}
 
-		if (isExtruderOn && (subPath.size() == 0 || lastAbsCoords != subPath.back()))
+		if (isExtruderOn && (subPathCurr.size() == 0 || lastAbsCoords != subPathCurr.back()))
 		{// Ignore movements without extrusion and identical extruder path coordinates.
-			subPath.push_back(lastAbsCoords);
+			subPathCurr.push_back(lastAbsCoords);
 		}
 	}
 
-	if (!subPath.empty())
+	if (!subPathCurr.empty())
 	{
-		maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPath.size());
+		maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPathCurr.size());
 		std::cout << " #### adding subPath no. " << extruderPaths.size() -1<< ", maxPointsInSubPath: " << maxPointsInSubPath << std::endl;
 
-		dumpSubPath(blockString, subPath);
+//		dumpSubPath(blockStringCurr, subPathCurr);
 
-		std::swap(extruderPaths.back(), subPath);
+		std::swap(extruderPaths.back(), subPathCurr);
 	}
 
 	data.maxNumPointsInSubPath = maxPointsInSubPath;
@@ -240,4 +179,58 @@ void GCodeProgramParser::dumpSubPath(const std::string& blockString, const ExtrP
 	}
 	pathFile << blockString << std::endl;
 	pathFile.close();
+}
+
+void GCodeProgramParser::setExtrusionOff()
+{// If we are setting extrusion off, swap created path with the empty one in path vector.
+	if (!isExtruderOn)
+		return;
+	isExtruderOn = false;
+
+	if (subPathCurr.empty())
+		return;
+	maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPathCurr.size());
+
+//	dumpSubPath(blockStringCurr, subPathCurr);
+
+	if (subPathCurr.size() < 2)
+	{
+		static bool wasSubpathOfSmallSizeAnounced = false;
+		if (!wasSubpathOfSmallSizeAnounced)
+		{
+			std::cout << "### WARNING: subpath of size: " << subPathCurr.size() << std::endl;
+			wasSubpathOfSmallSizeAnounced = true;
+		}
+
+		subPathCurr.clear();
+		return;
+	}
+
+	std::swap(extruderPaths.back(), subPathCurr);
+	extruderPaths.push_back(ExtrPath());
+}
+
+void GCodeProgramParser::setExtrusionOn(const ExtrPoint& lastAbsCoords)
+{// If we are setting extrusion on, add new (empty) path to path vector.
+	if (isExtruderOn)
+		return;
+	isExtruderOn = true;
+	subPathCurr.push_back(lastAbsCoords);
+}
+
+void GCodeProgramParser::setAbsoluteModeOn(ExtrPoint& blockCurrAbsCoords)
+{
+	if (isAbsoluteMode)
+		return;
+	isAbsoluteMode = true;
+	newCoordsPtr = &blockCurrAbsCoords;
+}
+
+void GCodeProgramParser::setAbsoluteModeOff(ExtrPoint& blockCurrRelativeCoords)
+{
+	if (!isAbsoluteMode)
+		return;
+
+	isAbsoluteMode = false;
+	newCoordsPtr = &blockCurrRelativeCoords;
 }
