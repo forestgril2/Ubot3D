@@ -21,6 +21,9 @@ private:
 	void setExtrusionOn(const ExtrPoint& lastAbsCoords);
 	void setAbsoluteModeOn(ExtrPoint& blockCurrAbsCoords);
 	void setAbsoluteModeOff(ExtrPoint& blockCurrRelativeCoords);
+	void pushNewLayer();
+
+	bool isNewLayerComment(const std::string& comment);
 
 	ExtruderData data;
 	std::vector<ExtrPath>& extruderPaths = data.extruderPaths;
@@ -31,7 +34,7 @@ private:
 
 	std::string blockStringCurr;
 
-	unsigned maxPointsInSubPath = 0;
+	size_t maxPointsInSubPath = 0;
 	bool isAbsoluteMode = true;
 	bool isExtruderOn = false;
 };

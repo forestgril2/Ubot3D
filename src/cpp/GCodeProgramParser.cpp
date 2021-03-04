@@ -14,6 +14,27 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 	return gpr::parse_gcode(file_contents);
 }
 
+void GCodeProgramParser::pushNewLayer()
+{
+	assert(extruderPaths.size() != 0);
+	const ExtrPath& previousSubPath = extruderPaths[extruderPaths.size() -1];
+
+	assert(previousSubPath.size() != 0);
+	const ExtrPoint& previousLayerLastPoint = previousSubPath[previousSubPath.size() -1];
+
+	data.layerBottoms.push_back({extruderPaths.size(), previousLayerLastPoint.z()});
+}
+
+bool GCodeProgramParser::isNewLayerComment(const std::string& comment)
+{
+	// First layer has bed level (0.0f), like all preparation steps. We return true only for layers 1+
+	return
+			// Cura format ;FLAVOR:Marlin
+			(comment._Starts_with("LAYER:") && (0 != comment.compare("LAYER:0")))
+			||// Ubot3D format
+			(comment._Starts_with("beforelayer") && (0 != comment.compare("firstlayer")));
+}
+
 ExtruderData GCodeProgramParser::createExtruderData(const std::string& inputFile)
 {
 	Chronograph chronograph(__FUNCTION__, true);
@@ -23,7 +44,7 @@ ExtruderData GCodeProgramParser::createExtruderData(const std::string& inputFile
 	extruderPaths.clear();
 	extruderPaths.push_back(ExtrPath());
 
-	std::vector<std::pair<uint32_t, float>>& layerBottoms = data.layerBottoms;
+	std::vector<LayerData>& layerBottoms = data.layerBottoms;
 	// Layer bottom at start is just the bed level.
 	layerBottoms.push_back({0u, 0.0f});
 
@@ -52,13 +73,10 @@ ExtruderData GCodeProgramParser::createExtruderData(const std::string& inputFile
 
 				case gpr::CHUNK_TYPE_COMMENT:
 				{
-					const std::string comment = chunk.get_comment_text();
-					if (comment._Starts_with("LAYER:") && (0 != comment.compare("LAYER:0")))
-					{// First layer has bed level (0.0f), like all preparation steps. We enter here only for layers 1+
-						const ExtrPath& previousSubPath = extruderPaths[extruderPaths.size() -2];
-						const ExtrPoint& previousLayerLastPoint = previousSubPath[previousSubPath.size() -1];
-						layerBottoms.push_back({extruderPaths.size(), previousLayerLastPoint.z()});
-					}
+					if (!isNewLayerComment(chunk.get_comment_text()))
+						continue;
+
+					pushNewLayer();
 					break;
 				}
 				case gpr::CHUNK_TYPE_WORD_ADDRESS:
@@ -156,7 +174,7 @@ ExtruderData GCodeProgramParser::createExtruderData(const std::string& inputFile
 
 	if (!subPathCurr.empty())
 	{
-		maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPathCurr.size());
+		maxPointsInSubPath = std::max<size_t>(maxPointsInSubPath, subPathCurr.size());
 		std::cout << " #### adding subPath no. " << extruderPaths.size() -1<< ", maxPointsInSubPath: " << maxPointsInSubPath << std::endl;
 
 //		dumpSubPath(blockStringCurr, subPathCurr);

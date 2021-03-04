@@ -439,7 +439,7 @@ void GCodeGeometry::generate()
 
 	//Remember start point to know the direction and level, from which extruder head arrives in next subpath.
 	ExtrPoint lastStartPoint{0,0,0,0};
-	const std::vector<std::pair<uint32_t, float>>& layerBottoms = _extrData.layerBottoms;
+	const std::vector<LayerData>& layerBottoms = _extrData.layerBottoms;
 	const std::vector<ExtrPath>& extruderSubPaths = _extrData.extruderPaths;
 
 	for (uint32_t layerIndex=0; layerIndex<layerBottoms.size(); ++layerIndex)
