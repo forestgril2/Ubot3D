@@ -60,12 +60,12 @@ private:
 	void updateData();
 	void loadExtruderData();
 	void generate();
-	Eigen::Vector3f calculateSubpathCuboid(const ExtrPoint& pathStart,
-											   const ExtrPoint& pathEnd,
+	Eigen::Vector3f calculateSubpathCuboid(const Extrusion::Point& pathStart,
+											   const Extrusion::Point& pathEnd,
 											   const float pathBaseLevelZ);
 	size_t calcVerifyModelNumbers();
-	bool verifyEnoughPoints(const ExtrPath& subPath);
-	void generateSubPathTurn(const ExtrPoint& center,
+	bool verifyEnoughPoints(const Extrusion::Path& subPath);
+	void generateSubPathTurn(const Extrusion::Point& center,
 							 const Eigen::Vector3f& radiusStart,
 							 const Eigen::Vector3f& axis,
 							 const float angle,
@@ -77,12 +77,12 @@ private:
 							 QByteArray& modelVertices,
 							 QByteArray& modelIndices);
 	float getLayerBottom(const uint32_t layerIndex);
-	void logSubPath(const ExtrPath& subPath);
+	void logSubPath(const Extrusion::Path& path);
 
 	bool _isPicked = false;
 	bool _wasGenerated = false;
 
-	ExtruderData _extrData;
+	Extrusion _extrData;
 
 	uint32_t _numPathStepsUsed;
 

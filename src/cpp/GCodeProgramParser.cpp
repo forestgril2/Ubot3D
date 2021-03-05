@@ -3,6 +3,10 @@
 #include <gcode_program.h>
 #include <parser.h>
 
+using ExtrPath = Extrusion::Path;
+using ExtrPoint = Extrusion::Point;
+using ExtrLayer = Extrusion::Layer;
+
 static gpr::gcode_program importGCodeFromFile(const std::string& file)
 {
 	Chronograph chronograph("Read gcode file contents", true);
@@ -16,13 +20,33 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 
 void GCodeProgramParser::pushNewLayer()
 {
-	assert(extruderPaths.size() != 0);
-	const ExtrPath& previousSubPath = extruderPaths[extruderPaths.size() -1];
+	assert(extruderPaths->size() != 0);
+	const ExtrPath pathPrev = (*extruderPaths)[extruderPaths->size() -2];
 
-	assert(previousSubPath.size() != 0);
-	const ExtrPoint& previousLayerLastPoint = previousSubPath[previousSubPath.size() -1];
+	ExtrPoint previousLayerLastPoint;
+	if (pathPrev.size() > 0)
+	{
+		previousLayerLastPoint = pathPrev[pathPrev.size() -1];
+	}
+	else
+	{
+		previousLayerLastPoint = {0,0,0,0};
+	}
 
-	data.layerBottoms.push_back({extruderPaths.size(), previousLayerLastPoint.z()});
+	extruderCurr->layers.push_back({extruderPaths->size(), previousLayerLastPoint.z()});
+}
+
+Extrusion GCodeProgramParser::initializeExtruderData()
+{
+	Extrusion newData;
+	newData.paths.clear();
+	newData.paths.push_back(ExtrPath());
+	return newData;
+}
+
+void GCodeProgramParser::setExtruder(const uint32_t extruderNumber)
+{
+
 }
 
 bool GCodeProgramParser::isNewLayerComment(const std::string& comment)
@@ -35,16 +59,18 @@ bool GCodeProgramParser::isNewLayerComment(const std::string& comment)
 			(comment._Starts_with("beforelayer") && (0 != comment.compare("firstlayer")));
 }
 
-ExtruderData GCodeProgramParser::createExtruderData(const std::string& inputFile)
+std::vector<Extrusion> GCodeProgramParser::createExtrusionData(const std::string& inputFile)
 {
 	Chronograph chronograph(__FUNCTION__, true);
 
 	gpr::gcode_program gcodeProgram = importGCodeFromFile(inputFile);
 
-	extruderPaths.clear();
-	extruderPaths.push_back(ExtrPath());
+	// Start with a one extruder, add new if we encounter T1+ block.
+	std::vector<Extrusion> extruders{initializeExtruderData()};
+	extruderCurr = &extruders[0];
+	extruderPaths = &(extruderCurr->paths);
 
-	std::vector<LayerData>& layerBottoms = data.layerBottoms;
+	std::vector<ExtrLayer>& layerBottoms = extruderCurr->layers;
 	// Layer bottom at start is just the bed level.
 	layerBottoms.push_back({0u, 0.0f});
 
@@ -86,6 +112,20 @@ ExtruderData GCodeProgramParser::createExtruderData(const std::string& inputFile
 
 					switch(word)
 					{
+						// Extruder choice.
+						case 'T':
+							switch (adddres.tp())
+							{
+								case gpr::ADDRESS_TYPE_INTEGER:
+									setExtruder(adddres.int_value());
+									break;
+
+								case gpr::ADDRESS_TYPE_DOUBLE:
+									assert(false);
+									break;
+							}
+							break;
+
 						// Header movements.
 						case 'G':
 							switch (adddres.tp())
@@ -94,10 +134,10 @@ ExtruderData GCodeProgramParser::createExtruderData(const std::string& inputFile
 									switch (adddres.int_value())
 									{
 										case 0:
-											setExtrusionOff();
+											setExtrusionOff(extruderCurr);
 											break;
 										case 1:
-											setExtrusionOn(lastAbsCoords);
+											setExtrusionOn(extruderCurr, lastAbsCoords);
 											break;
 										case 90:
 											setAbsoluteModeOn(blockCurrAbsCoords);
@@ -121,21 +161,21 @@ ExtruderData GCodeProgramParser::createExtruderData(const std::string& inputFile
 
 						// Path point coordinates.
 						case 'X':
-							newCoordsPtr->x() = float(adddres.double_value());
+							newCoordsCurr->x() = float(adddres.double_value());
 							whichCoordsSetInBlock.x() = true;
 							break;
 						case 'Y':
-							newCoordsPtr->y() = float(adddres.double_value());
+							newCoordsCurr->y() = float(adddres.double_value());
 							whichCoordsSetInBlock.y() = true;
 							break;
 						case 'Z':
-							newCoordsPtr->z() = float(adddres.double_value());
+							newCoordsCurr->z() = float(adddres.double_value());
 							whichCoordsSetInBlock.z() = true;
 							break;
 
 						// Extruded length.
 						case 'E':
-							newCoordsPtr->w() = float(adddres.double_value());
+							newCoordsCurr->w() = float(adddres.double_value());
 							whichCoordsSetInBlock.w() = true;
 							break;
 
@@ -166,32 +206,32 @@ ExtruderData GCodeProgramParser::createExtruderData(const std::string& inputFile
 			lastAbsCoords = blockCurrAbsCoords;
 		}
 
-		if (isExtruderOn && (subPathCurr.size() == 0 || lastAbsCoords != subPathCurr.back()))
+		if (extruderCurr->isExtruding && (pathCurr.size() == 0 || lastAbsCoords != pathCurr.back()))
 		{// Ignore movements without extrusion and identical extruder path coordinates.
-			subPathCurr.push_back(lastAbsCoords);
+			pathCurr.push_back(lastAbsCoords);
 		}
 	}
 
-	if (!subPathCurr.empty())
+	if (!pathCurr.empty())
 	{
-		maxPointsInSubPath = std::max<size_t>(maxPointsInSubPath, subPathCurr.size());
-		std::cout << " #### adding subPath no. " << extruderPaths.size() -1<< ", maxPointsInSubPath: " << maxPointsInSubPath << std::endl;
+		numPathPointsMax = std::max<size_t>(numPathPointsMax, pathCurr.size());
+		std::cout << " #### adding subPath no. " << extruderPaths->size() -1<< ", maxPointsInSubPath: " << numPathPointsMax << std::endl;
 
 //		dumpSubPath(blockStringCurr, subPathCurr);
 
-		std::swap(extruderPaths.back(), subPathCurr);
+		std::swap(extruderPaths->back(), pathCurr);
 	}
 
-	data.maxNumPointsInSubPath = maxPointsInSubPath;
-	data.numSubPaths = extruderPaths.size();
+	extruderCurr->numPathPointsMax = numPathPointsMax;
+	extruderCurr->numPaths = (*extruderPaths).size();
 
-	return data;
+	return extruders;
 }
 
-void GCodeProgramParser::dumpSubPath(const std::string& blockString, const ExtrPath& subPath)
+void GCodeProgramParser::dumpSubPath(const std::string& blockString, const Extrusion::Path& path)
 {
 	std::ofstream pathFile("subPathDump.txt");
-	for (const ExtrPoint& point : subPath)
+	for (const ExtrPoint& point : path)
 	{
 		pathFile << "[" << point.x() << "," << point.y() << "," << point.z() << "," << point.w() << "]" << std::endl;
 	}
@@ -199,41 +239,41 @@ void GCodeProgramParser::dumpSubPath(const std::string& blockString, const ExtrP
 	pathFile.close();
 }
 
-void GCodeProgramParser::setExtrusionOff()
+void GCodeProgramParser::setExtrusionOff(Extrusion* extruder)
 {// If we are setting extrusion off, swap created path with the empty one in path vector.
-	if (!isExtruderOn)
+	if (!extruder->isExtruding)
 		return;
-	isExtruderOn = false;
+	extruder->isExtruding = false;
 
-	if (subPathCurr.empty())
+	if (pathCurr.empty())
 		return;
-	maxPointsInSubPath = std::max<unsigned>(maxPointsInSubPath, subPathCurr.size());
+	numPathPointsMax = std::max<unsigned>(numPathPointsMax, pathCurr.size());
 
 //	dumpSubPath(blockStringCurr, subPathCurr);
 
-	if (subPathCurr.size() < 2)
+	if (pathCurr.size() < 2)
 	{
 		static bool wasSubpathOfSmallSizeAnounced = false;
 		if (!wasSubpathOfSmallSizeAnounced)
 		{
-			std::cout << "### WARNING: subpath of size: " << subPathCurr.size() << std::endl;
+			std::cout << "### WARNING: subpath of size: " << pathCurr.size() << std::endl;
 			wasSubpathOfSmallSizeAnounced = true;
 		}
 
-		subPathCurr.clear();
+		pathCurr.clear();
 		return;
 	}
 
-	std::swap(extruderPaths.back(), subPathCurr);
-	extruderPaths.push_back(ExtrPath());
+	std::swap(extruderPaths->back(), pathCurr);
+	extruderPaths->push_back(ExtrPath());
 }
 
-void GCodeProgramParser::setExtrusionOn(const ExtrPoint& lastAbsCoords)
+void GCodeProgramParser::setExtrusionOn(Extrusion* extruder, const ExtrPoint& lastAbsCoords)
 {// If we are setting extrusion on, add new (empty) path to path vector.
-	if (isExtruderOn)
+	if (extruder->isExtruding)
 		return;
-	isExtruderOn = true;
-	subPathCurr.push_back(lastAbsCoords);
+	extruder->isExtruding = true;
+	pathCurr.push_back(lastAbsCoords);
 }
 
 void GCodeProgramParser::setAbsoluteModeOn(ExtrPoint& blockCurrAbsCoords)
@@ -241,14 +281,14 @@ void GCodeProgramParser::setAbsoluteModeOn(ExtrPoint& blockCurrAbsCoords)
 	if (isAbsoluteMode)
 		return;
 	isAbsoluteMode = true;
-	newCoordsPtr = &blockCurrAbsCoords;
+	newCoordsCurr = &blockCurrAbsCoords;
 }
 
-void GCodeProgramParser::setAbsoluteModeOff(ExtrPoint& blockCurrRelativeCoords)
+void GCodeProgramParser::setAbsoluteModeOff(Extrusion::Point& blockCurrRelativeCoords)
 {
 	if (!isAbsoluteMode)
 		return;
 
 	isAbsoluteMode = false;
-	newCoordsPtr = &blockCurrRelativeCoords;
+	newCoordsCurr = &blockCurrRelativeCoords;
 }
