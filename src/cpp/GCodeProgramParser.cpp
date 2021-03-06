@@ -3,10 +3,6 @@
 #include <gcode_program.h>
 #include <parser.h>
 
-using ExtrPath = Extrusion::Path;
-using ExtrPoint = Extrusion::Point;
-using ExtrLayer = Extrusion::Layer;
-
 static gpr::gcode_program importGCodeFromFile(const std::string& file)
 {
 	Chronograph chronograph("Read gcode file contents", true);
@@ -20,8 +16,8 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 
 void GCodeProgramParser::pushNewLayer()
 {
-	assert(extruderPaths->size() != 0);
-	const ExtrPath pathPrev = (*extruderPaths)[extruderPaths->size() -2];
+	assert(_extruderPathsCurr->size() != 0);
+	const ExtrPath pathPrev = (*_extruderPathsCurr)[_extruderPathsCurr->size() -2];
 
 	ExtrPoint previousLayerLastPoint;
 	if (pathPrev.size() > 0)
@@ -33,7 +29,7 @@ void GCodeProgramParser::pushNewLayer()
 		previousLayerLastPoint = {0,0,0,0};
 	}
 
-	extruderCurr->layers.push_back({extruderPaths->size(), previousLayerLastPoint.z()});
+	_extruderCurr->layers.push_back({_extruderPathsCurr->size(), previousLayerLastPoint.z()});
 }
 
 Extrusion GCodeProgramParser::initializeExtruderData()
@@ -67,10 +63,12 @@ std::vector<Extrusion> GCodeProgramParser::createExtrusionData(const std::string
 
 	// Start with a one extruder, add new if we encounter T1+ block.
 	std::vector<Extrusion> extruders{initializeExtruderData()};
-	extruderCurr = &extruders[0];
-	extruderPaths = &(extruderCurr->paths);
+	_extruderCurr = &extruders[0];
+	_extruderPathsCurr = &(_extruderCurr->paths);
+	_blockCurrAbsCoordsCurr = {0,0,0,0};
+	_newCoordsCurr = &_blockCurrAbsCoordsCurr;
 
-	std::vector<ExtrLayer>& layerBottoms = extruderCurr->layers;
+	std::vector<ExtrLayer>& layerBottoms = _extruderCurr->layers;
 	// Layer bottom at start is just the bed level.
 	layerBottoms.push_back({0u, 0.0f});
 
@@ -79,15 +77,16 @@ std::vector<Extrusion> GCodeProgramParser::createExtrusionData(const std::string
 
 	ExtrPoint lastAbsCoords(0,0,0,0);
 
-	for (auto it = gcodeProgram.begin();
+	for (std::vector<gpr::block>::iterator it = gcodeProgram.begin();
 		 it != gcodeProgram.end() && blockCount < blockCountLimit;
 		 ++it, ++blockCount)
 	{
-		const auto& block = *it;
-		blockStringCurr = block.to_string();
+		const gpr::block& block = *it;
 		ExtrPoint blockCurrRelativeCoords(0,0,0,0);
-
 		Vector4i whichCoordsSetInBlock(0,0,0,0);
+
+		_blockStringCurr = block.to_string();
+//		std::cout << " ### " << __FUNCTION__ << " _blockStringCurr:" << _blockStringCurr << "," << "" << std::endl;
 
 		for (const gpr::chunk& chunk : block)
 		{
@@ -107,17 +106,17 @@ std::vector<Extrusion> GCodeProgramParser::createExtrusionData(const std::string
 				}
 				case gpr::CHUNK_TYPE_WORD_ADDRESS:
 				{
-					const gpr::addr& adddres = chunk.get_address();
+					const gpr::addr& addres = chunk.get_address();
 					const char& word = chunk.get_word();
 
 					switch(word)
 					{
 						// Extruder choice.
 						case 'T':
-							switch (adddres.tp())
+							switch (addres.tp())
 							{
 								case gpr::ADDRESS_TYPE_INTEGER:
-									setExtruder(adddres.int_value());
+//									setExtruder(adddres.int_value());
 									break;
 
 								case gpr::ADDRESS_TYPE_DOUBLE:
@@ -128,25 +127,25 @@ std::vector<Extrusion> GCodeProgramParser::createExtrusionData(const std::string
 
 						// Header movements.
 						case 'G':
-							switch (adddres.tp())
+							switch (addres.tp())
 							{
 								case gpr::ADDRESS_TYPE_INTEGER:
-									switch (adddres.int_value())
+									switch (addres.int_value())
 									{
 										case 0:
-											setExtrusionOff(extruderCurr);
+											setExtrusionOff(_extruderCurr);
 											break;
 										case 1:
-											setExtrusionOn(extruderCurr, lastAbsCoords);
+											setExtrusionOn(_extruderCurr, lastAbsCoords);
 											break;
 										case 90:
-											setAbsoluteModeOn(blockCurrAbsCoords);
+											setAbsoluteModeOn();
 											break;
 										case 91:
-											setAbsoluteModeOff(blockCurrRelativeCoords);
+											setAbsoluteModeOff(&blockCurrRelativeCoords);
 											break;
 										case 92:
-											//TODO: IMPLEMENT.
+//											setPosition()
 											break;
 										default:
 											break;
@@ -161,21 +160,21 @@ std::vector<Extrusion> GCodeProgramParser::createExtrusionData(const std::string
 
 						// Path point coordinates.
 						case 'X':
-							newCoordsCurr->x() = float(adddres.double_value());
+							_newCoordsCurr->x() = float(addres.double_value());
 							whichCoordsSetInBlock.x() = true;
 							break;
 						case 'Y':
-							newCoordsCurr->y() = float(adddres.double_value());
+							_newCoordsCurr->y() = float(addres.double_value());
 							whichCoordsSetInBlock.y() = true;
 							break;
 						case 'Z':
-							newCoordsCurr->z() = float(adddres.double_value());
+							_newCoordsCurr->z() = float(addres.double_value());
 							whichCoordsSetInBlock.z() = true;
 							break;
 
 						// Extruded length.
 						case 'E':
-							newCoordsCurr->w() = float(adddres.double_value());
+							_newCoordsCurr->w() = float(addres.double_value());
 							whichCoordsSetInBlock.w() = true;
 							break;
 
@@ -194,7 +193,7 @@ std::vector<Extrusion> GCodeProgramParser::createExtrusionData(const std::string
 		{// updateBlockCoords(): If this coord is not set in this block, use the most recent for absolute coordinates.
 			if (whichCoordsSetInBlock[i] != 0 || !isAbsoluteMode)
 				continue;
-			blockCurrAbsCoords[i] = lastAbsCoords[i];
+			_blockCurrAbsCoordsCurr[i] = lastAbsCoords[i];
 		}
 
 		if (!isAbsoluteMode)
@@ -203,27 +202,27 @@ std::vector<Extrusion> GCodeProgramParser::createExtrusionData(const std::string
 		}
 		else
 		{
-			lastAbsCoords = blockCurrAbsCoords;
+			lastAbsCoords = _blockCurrAbsCoordsCurr;
 		}
 
-		if (extruderCurr->isExtruding && (pathCurr.size() == 0 || lastAbsCoords != pathCurr.back()))
+		if (_extruderCurr->isExtruding && (_pathCurr.size() == 0 || lastAbsCoords != _pathCurr.back()))
 		{// Ignore movements without extrusion and identical extruder path coordinates.
-			pathCurr.push_back(lastAbsCoords);
+			_pathCurr.push_back(lastAbsCoords);
 		}
 	}
 
-	if (!pathCurr.empty())
+	if (!_pathCurr.empty())
 	{
-		numPathPointsMax = std::max<size_t>(numPathPointsMax, pathCurr.size());
-		std::cout << " #### adding subPath no. " << extruderPaths->size() -1<< ", maxPointsInSubPath: " << numPathPointsMax << std::endl;
+		numPathPointsMax = std::max<size_t>(numPathPointsMax, _pathCurr.size());
+		std::cout << " #### adding subPath no. " << _extruderPathsCurr->size() -1<< ", maxPointsInSubPath: " << numPathPointsMax << std::endl;
 
 //		dumpSubPath(blockStringCurr, subPathCurr);
 
-		std::swap(extruderPaths->back(), pathCurr);
+		std::swap(_extruderPathsCurr->back(), _pathCurr);
 	}
 
-	extruderCurr->numPathPointsMax = numPathPointsMax;
-	extruderCurr->numPaths = (*extruderPaths).size();
+	_extruderCurr->numPathPointsMax = numPathPointsMax;
+	_extruderCurr->numPaths = (*_extruderPathsCurr).size();
 
 	return extruders;
 }
@@ -245,27 +244,27 @@ void GCodeProgramParser::setExtrusionOff(Extrusion* extruder)
 		return;
 	extruder->isExtruding = false;
 
-	if (pathCurr.empty())
+	if (_pathCurr.empty())
 		return;
-	numPathPointsMax = std::max<unsigned>(numPathPointsMax, pathCurr.size());
+	numPathPointsMax = std::max<unsigned>(numPathPointsMax, _pathCurr.size());
 
 //	dumpSubPath(blockStringCurr, subPathCurr);
 
-	if (pathCurr.size() < 2)
+	if (_pathCurr.size() < 2)
 	{
 		static bool wasSubpathOfSmallSizeAnounced = false;
 		if (!wasSubpathOfSmallSizeAnounced)
 		{
-			std::cout << "### WARNING: subpath of size: " << pathCurr.size() << std::endl;
+			std::cout << "### WARNING: subpath of size: " << _pathCurr.size() << std::endl;
 			wasSubpathOfSmallSizeAnounced = true;
 		}
 
-		pathCurr.clear();
+		_pathCurr.clear();
 		return;
 	}
 
-	std::swap(extruderPaths->back(), pathCurr);
-	extruderPaths->push_back(ExtrPath());
+	std::swap(_extruderPathsCurr->back(), _pathCurr);
+	_extruderPathsCurr->push_back(ExtrPath());
 }
 
 void GCodeProgramParser::setExtrusionOn(Extrusion* extruder, const ExtrPoint& lastAbsCoords)
@@ -273,22 +272,22 @@ void GCodeProgramParser::setExtrusionOn(Extrusion* extruder, const ExtrPoint& la
 	if (extruder->isExtruding)
 		return;
 	extruder->isExtruding = true;
-	pathCurr.push_back(lastAbsCoords);
+	_pathCurr.push_back(lastAbsCoords);
 }
 
-void GCodeProgramParser::setAbsoluteModeOn(ExtrPoint& blockCurrAbsCoords)
+void GCodeProgramParser::setAbsoluteModeOn()
 {
 	if (isAbsoluteMode)
 		return;
 	isAbsoluteMode = true;
-	newCoordsCurr = &blockCurrAbsCoords;
+	_newCoordsCurr = &_blockCurrAbsCoordsCurr;
 }
 
-void GCodeProgramParser::setAbsoluteModeOff(Extrusion::Point& blockCurrRelativeCoords)
+void GCodeProgramParser::setAbsoluteModeOff(ExtrPoint* blockCurrRelativeCoords)
 {
 	if (!isAbsoluteMode)
 		return;
 
 	isAbsoluteMode = false;
-	newCoordsCurr = &blockCurrRelativeCoords;
+	_newCoordsCurr = blockCurrRelativeCoords;
 }
