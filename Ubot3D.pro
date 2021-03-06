@@ -23,6 +23,7 @@ SUBDIRS += src/cpp src/qml
 
 SOURCES += src/cpp/main.cpp \
     src/cpp/GCodeProgramParser.cpp \
+    src/cpp/Helpers3D.cpp \
     src/cpp/examplegeometry.cpp \
     src/cpp/GCodeGeometry.cpp \
     src/cpp/Chronograph.cpp \
@@ -36,7 +37,8 @@ HEADERS +=  src/cpp/examplegeometry.h \
         src/cpp/Chronograph.h \
         $$PWD/../gpr/src/gcode_program.h \
         $$PWD/../gpr/src/parser.h \
-        src/cpp/GCodeProgramParser.h
+        src/cpp/GCodeProgramParser.h \
+        src/cpp/Helpers3D.h
 
 RESOURCES += \
     src/qml/qml.qrc \

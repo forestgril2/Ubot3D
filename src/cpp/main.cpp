@@ -3,6 +3,7 @@
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 #include <QtQuick3D/qquick3d.h>
 
 #include <QtCore/QDir>
@@ -10,6 +11,7 @@
 #include <QtCore/QVector>
 
 #include <Chronograph.h>
+#include <Helpers3D.h>
 
 int main(int argc, char *argv[])
 {
@@ -17,7 +19,14 @@ int main(int argc, char *argv[])
 	QSurfaceFormat::setDefaultFormat(QQuick3D::idealSurfaceFormat());
 
 	QQmlApplicationEngine engine;
+	QQmlContext* context = engine.rootContext();
+
+	Helpers3D helpers3D;
+	context->setContextProperty("helper3D", &helpers3D);
+
 	engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
+
+
 	if (engine.rootObjects().isEmpty())
 		return -1;
 

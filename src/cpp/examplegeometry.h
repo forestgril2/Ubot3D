@@ -1,9 +1,8 @@
 #pragma once
 
 #include <QQuick3DGeometry>
-#include <QVector3D>
 #include <QMatrix4x4>
-#include <QQuaternion>
+#include <QVector3D>
 
 #include <qqml.h>
 
@@ -13,6 +12,8 @@
 class ExampleTriangleGeometry : public QQuick3DGeometry
 {
     Q_OBJECT
+	QML_NAMED_ELEMENT(ExampleTriangleGeometry)
+
     Q_PROPERTY(bool normals READ normals WRITE setNormals NOTIFY normalsChanged)
     Q_PROPERTY(float normalXY READ normalXY WRITE setNormalXY NOTIFY normalXYChanged)
     Q_PROPERTY(bool uv READ uv WRITE setUV NOTIFY uvChanged)
@@ -22,24 +23,9 @@ class ExampleTriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
-	QML_NAMED_ELEMENT(ExampleTriangleGeometry)
 
 public:
     ExampleTriangleGeometry();
-
-	static Q_INVOKABLE QQuaternion getRotationFromDirection(const QVector3D& direction, const QVector3D& up);
-	static Q_INVOKABLE QQuaternion getRotationFromAxes(const QVector3D& axisFrom, const QVector3D& axisTo);
-	static Q_INVOKABLE QQuaternion getRotationFromAxisAndAngle(const QVector3D& axis, const float angle);
-	static Q_INVOKABLE QQuaternion getRotationFromQuaternions(const QQuaternion& current, const QQuaternion& additional);
-	static Q_INVOKABLE float getSmallRotationAngle(const QVector3D& from, const QVector3D& to);
-	static Q_INVOKABLE QVector3D getRotationAxis(const QVector3D& from, const QVector3D& to);
-	static Q_INVOKABLE QVector3D getRotationAxis(const QQuaternion& rotation);
-	static Q_INVOKABLE float getRotationAngle(const QQuaternion& rotation);
-
-	static Q_INVOKABLE QVariantMap getLinePlaneIntersection(const QVector3D& ray,
-															const QVector3D& origin,
-															const QVector3D& planeNormal,
-															const QVector3D& planeCoord);
 
 	static Q_INVOKABLE void exportModelToSTL(const QString& filePath);
 

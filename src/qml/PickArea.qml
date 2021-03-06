@@ -53,7 +53,7 @@ MouseArea {
             console.log(" ### modelIntersection.intersection:" + modelIntersection.intersection)
             console.log(" ### modelIntersection.isHit:" + modelIntersection.isHit)
 
-            var planeIntersection = helper3D.calculator.getLinePlaneIntersection(originAndRay.ray,
+            var planeIntersection = helper3D.getLinePlaneIntersection(originAndRay.ray,
                                                                                  originAndRay.origin,
                                                                                  Qt.vector3d(0,0,1),
                                                                                  modelIntersection.intersection);
@@ -100,7 +100,7 @@ MouseArea {
                 modelDragged(stlModel, stlModel.position, modelIntersection.intersection)
             }
 
-            var planeIntersection = helper3D.calculator.getLinePlaneIntersection(originAndRay.ray,
+            var planeIntersection = helper3D.getLinePlaneIntersection(originAndRay.ray,
                                                                                  originAndRay.origin,
                                                                                  Qt.vector3d(0,0,1),
                                                                                  modelIntersection.intersection);
@@ -129,7 +129,7 @@ MouseArea {
         if(isDraggingModelGroup) {
 
             var originAndRay = getOriginAndRay(mouse.x, mouse.y)
-            var planeIntersection = helper3D.calculator.getLinePlaneIntersection(originAndRay.ray,
+            var planeIntersection = helper3D.getLinePlaneIntersection(originAndRay.ray,
                                                                                  originAndRay.origin,
                                                                                  Qt.vector3d(0,0,1),
                                                                                  startPickPosition)

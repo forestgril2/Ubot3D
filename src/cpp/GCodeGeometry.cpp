@@ -118,10 +118,10 @@ Vector3f GCodeGeometry::calculateSubpathCuboid(const ExtrPoint& pathStart, const
 	const float height = pathStart.z() - pathBaseLevelZ;
 	const Vector4f pathStep = pathEnd - pathStart;
 	const float length = pathStep.head<3>().norm();
-	if (length == 0.0)
-	{
-		assert(length > 0);
-	}
+//	if (length == 0.0)
+//	{
+//		assert(length > 0);
+//	}
 
 	if (pathStep.w() <= 0)
 		return {0,0,length};

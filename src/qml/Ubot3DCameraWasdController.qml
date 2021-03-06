@@ -66,12 +66,6 @@ Item {
     implicitHeight: parent.height
     focus: keysEnabled
 
-    // TODO: This is only temporary, this 3D commands functionality should be moved to
-    //       a separate class.
-    ExampleTriangleGeometry {
-        id: commands3D
-    }
-
     DragHandler {
         id: dragHandler
         target: null
@@ -321,7 +315,7 @@ Item {
                 var origin = camera.position
                 // Use mouse translation delta to designate, how view center would move.
                 var pointSceneTo = camera.mapFromViewport(Qt.vector3d(0.5+delta.x/implicitWidth, 0.5+delta.y/implicitHeight, 0))
-                camera.rotation = commands3D.getRotationFromDirection(pointSceneTo.minus(origin), Qt.vector3d(0,0,1))
+                camera.rotation = helper3D.getRotationFromDirection(pointSceneTo.minus(origin), Qt.vector3d(0,0,1))
                 lastPos = currentPos;
                 focus = true
                 return
@@ -331,18 +325,18 @@ Item {
 
                 if (axisFrom.length() > 0 && axisTo.length() > 0)
                 {
-                    var additionalRotation = isMouseDragInverted ? commands3D.getRotationFromAxes(axisTo, axisFrom) :
-                                                                   commands3D.getRotationFromAxes(axisFrom, axisTo)
-                    var axis = commands3D.getRotationAxis(additionalRotation)
-                    var angle = commands3D.getRotationAngle(additionalRotation)
+                    var additionalRotation = isMouseDragInverted ? helper3D.getRotationFromAxes(axisTo, axisFrom) :
+                                                                   helper3D.getRotationFromAxes(axisFrom, axisTo)
+                    var axis = helper3D.getRotationAxis(additionalRotation)
+                    var angle = helper3D.getRotationAngle(additionalRotation)
 
                     angle *= isMouseDragInverted ? 1.0 : mouseRotationDragSpeed
 
-                    additionalRotation = commands3D.getRotationFromAxisAndAngle(axis, angle)
+                    additionalRotation = helper3D.getRotationFromAxisAndAngle(axis, angle)
 
                     if (additionalRotation.x !== 0)
                     {
-                        var preFinalRotation = commands3D.getRotationFromQuaternions(additionalRotation, rotation)
+                        var preFinalRotation = helper3D.getRotationFromQuaternions(additionalRotation, rotation)
 
                         if (preFinalRotation.x)
                         {
@@ -351,7 +345,7 @@ Item {
                             // Now, that we have the camera view direction aligned, as desired, make sure the up vector is up.
                             var newPointSceneTo = camera.mapFromViewport(Qt.vector3d(0.5, 0.5, 0))
                             var newDirection = newPointSceneTo.minus(origin)
-                            camera.setRotation(commands3D.getRotationFromDirection(newDirection, Qt.vector3d(0,0,1)))
+                            camera.setRotation(helper3D.getRotationFromDirection(newDirection, Qt.vector3d(0,0,1)))
                         }
                     }
                 }

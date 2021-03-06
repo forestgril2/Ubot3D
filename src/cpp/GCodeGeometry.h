@@ -12,6 +12,8 @@
 class GCodeGeometry : public QQuick3DGeometry
 {
     Q_OBJECT
+	QML_NAMED_ELEMENT(GCodeGeometry)
+
 	Q_PROPERTY(QVector3D minBounds READ minBounds WRITE setMinBounds NOTIFY boundsChanged)
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
@@ -19,7 +21,6 @@ class GCodeGeometry : public QQuick3DGeometry
 	Q_PROPERTY(uint32_t numSubPaths READ getNumSubPaths WRITE setNumSubPaths NOTIFY numSubPathsChanged)
 	Q_PROPERTY(uint32_t numPointsInSubPath READ getNumPointsInSubPath WRITE setNumPointsInSubPath NOTIFY numPointsInSubPathChanged)
 	Q_PROPERTY(uint32_t numPathStepsUsed READ getNumPathPointsUsed WRITE setNumPathStepsUsed NOTIFY numPathPointsStepsChanged)
-	QML_NAMED_ELEMENT(GCodeGeometry)
 
 public:
 	GCodeGeometry();
