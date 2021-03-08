@@ -34,6 +34,12 @@ static Vector3f minFloatBound(FLT_MAX, FLT_MAX, FLT_MAX);
 static Vector3f maxBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 static Vector3f minBound(FLT_MAX, FLT_MAX, FLT_MAX);
 
+bool isFinite(const Vector3f &v)
+{
+	return qIsFinite(v.x()) && qIsFinite(v.y()) && qIsFinite(v.z());
+}
+
+
 
 static bool approximatelyEqual(float a, float b, float epsilon)
 {
@@ -128,7 +134,7 @@ Vector3f GCodeGeometry::calculateSubpathCuboid(const ExtrPoint& pathStart, const
 
 	const float width = (_extrData.filamentCrossArea * pathStep.w()) / (height * length);
 
-	return {width, height, length};
+	return {qIsFinite(width) ? width : 0, height, length};
 };
 
 static std::pair<Vertices, Indices> generateCylinderPieSection(const ExtrPoint& center,
@@ -148,6 +154,7 @@ static std::pair<Vertices, Indices> generateCylinderPieSection(const ExtrPoint& 
 
 	for(float p : range<float>(numAngleSteps+1))
 	{
+		assert(isFinite(vert[0] + AngleAxisf(p * angleStep, axis) * radiusStart));
 		vert.push_back(vert[0] + AngleAxisf(p * angleStep, axis) * radiusStart);
 
 		if (unsigned(p) == numAngleSteps)
@@ -168,6 +175,7 @@ static std::pair<Vertices, Indices> generateCylinderPieSection(const ExtrPoint& 
 	ind.resize(2*firstIndicesSize);
 	for (uint32_t i = 0, j = upperCircleCenterIndex; i < upperCircleCenterIndex; ++i, ++j)
 	{
+		assert(isFinite(vert[i]));
 		vert[j] = vert[i] + heightShift;
 	}
 	for (uint32_t i = 0, j = firstIndicesSize; i < firstIndicesSize; ++i, ++j)
@@ -475,6 +483,8 @@ void GCodeGeometry::generate()
 			Vector3f rightToDir = dirAtBeginning.cross(upVector);
 			Vector3f turnAxis = rightToDir.cross(dirAtBeginning);
 			// TODO: The turn radius is calculated based on a certain simplification.
+			assert(qIsFinite(subPathCuboid.x()));
+			assert(isFinite(rightToDir));
 			generateSubPathTurn(subPath[0],
 					0.5f * subPathCuboid.x() * rightToDir,
 					turnAxis, -float(M_PI), subPathCuboid.y(), _modelVertices, _modelIndices);
@@ -500,9 +510,14 @@ void GCodeGeometry::generate()
 				{
 					//TODO: Watch out - HACKING a bit.
 					const Vector3f bottomShift = subPathCuboid.y() * turnAxis * (turnAxis.dot(upVector) > 0 ? 0 : 1);
-					generateSubPathTurn(currPoint - ExtrPoint{bottomShift.x(), bottomShift.y(), bottomShift.z(), 0},
+					assert(qIsFinite(subPathCuboid.x()));
+					assert(isFinite(prevDirection.cross(turnAxis)));
+					if (qIsFinite(turnAngle))
+					{
+						generateSubPathTurn(currPoint - ExtrPoint{bottomShift.x(), bottomShift.y(), bottomShift.z(), 0},
 										0.5f * subPathCuboid.x() * prevDirection.cross(turnAxis),
 										turnAxis, turnAngle, subPathCuboid.y(), _modelVertices, _modelIndices);
+					}
 				}
 
 				lastStartPoint = currPoint;
@@ -521,6 +536,8 @@ void GCodeGeometry::generate()
 			rightToDir = dirAtEnd.cross(upVector);
 			turnAxis = rightToDir.cross(dirAtEnd);
 
+			assert(qIsFinite(subPathCuboid.x()));
+			assert(isFinite(rightToDir));
 			generateSubPathTurn(currPoint,
 								0.5f * subPathCuboid.x() * rightToDir,
 								turnAxis, float(M_PI), subPathCuboid.y(), _modelVertices, _modelIndices);
@@ -591,7 +608,8 @@ void GCodeGeometry::generateSubPathStep(const Vector3f& prevPoint,
 										QByteArray& modelVertices,
 										QByteArray& modelIndices)
 {
-	assert(cuboid.z() > FLT_MIN);
+	if (cuboid.z() < FLT_MIN)
+		return;
 
 	// VERTICES
 	static const Indices cubeMeshVertexIndices = {0,1,2,3,4,5,6,7};
@@ -635,6 +653,7 @@ void GCodeGeometry::generateSubPathStep(const Vector3f& prevPoint,
 
 	const auto setTriangleVertexCoords = [&coordsPtr, &vertices](const unsigned index) {
 		const Vertex vertex = vertices[index];
+		assert(isFinite(vertex));
 		*coordsPtr++ = vertex.x();
 		*coordsPtr++ = vertex.y();
 		*coordsPtr++ = vertex.z();
@@ -713,6 +732,7 @@ void GCodeGeometry::generateSubPathTurn(const ExtrPoint& center,
 	for(uint32_t v=0; v<numCircleGeometryVertices; ++v)
 	{
 		const Vertex vertex = cylinderPieVertices[v];
+		assert(isFinite(vertex));
 		*coordsPtr++ = vertex.x();
 		*coordsPtr++ = vertex.y();
 		*coordsPtr++ = vertex.z();

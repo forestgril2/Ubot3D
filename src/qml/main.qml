@@ -94,11 +94,11 @@ Window {
             ambientColor: Qt.rgba(0.1, 0.1, 0.1, 1.0)
         }
 
-//        PointLight {
-//            position: sceneCenter.plus(Qt.vector3d(30, 0, 100))
-//            color: Qt.rgba(0.1, 1.0, 0.1, 1.0)
-//            ambientColor: Qt.rgba(0.2, 0.2, 0.2, 1.0)
-//        }
+        PointLight {
+            position: sceneCenter.plus(Qt.vector3d(30, 0, 100))
+            color: Qt.rgba(0.1, 1.0, 0.1, 1.0)
+            ambientColor: Qt.rgba(0.2, 0.2, 0.2, 1.0)
+        }
 
         Model {
             scale: Qt.vector3d(100, 100, 100)
@@ -114,13 +114,11 @@ Window {
             ]
         }
 
-//        Helpers3D {
-//            id: helper3D
-//        }
 
         Repeater3D {
             id: gcodeModels
             property var gcodeGeometry: (objectAt(0) === null ? null : objectAt(0).geometry)
+            model: []
 
             delegate: Model {
                 id: thisModel
@@ -140,8 +138,8 @@ Window {
                     onModelLoaded: {
                         modelControls.resetSliders(gcodeGeometry)
 
-                        console.log(" ### gcodeModels.gcodeGeometry.inputFile:" + gcodeModels.gcodeGeometry.inputFile)
-                        console.log(" ### gcodeModels.gcodeGeometry.numSubPaths:" + gcodeModels.gcodeGeometry.numSubPaths)
+//                        console.log(" ### gcodeModels.gcodeGeometry.inputFile:" + gcodeModels.gcodeGeometry.inputFile)
+//                        console.log(" ### gcodeModels.gcodeGeometry.numSubPaths:" + gcodeModels.gcodeGeometry.numSubPaths)
 
                         view3d.gcodeModel = thisModel
                     }
