@@ -22,7 +22,7 @@ CONFIG += ordered
 SUBDIRS += src/cpp src/qml
 
 SOURCES += src/cpp/main.cpp \
-    src/cpp/GCodeProgramParser.cpp \
+    src/cpp/GCodeProgramProcessor.cpp \
     src/cpp/Helpers3D.cpp \
     src/cpp/examplegeometry.cpp \
     src/cpp/GCodeGeometry.cpp \
@@ -37,7 +37,7 @@ HEADERS +=  src/cpp/examplegeometry.h \
         src/cpp/Chronograph.h \
         $$PWD/../gpr/src/gcode_program.h \
         $$PWD/../gpr/src/parser.h \
-        src/cpp/GCodeProgramParser.h \
+        src/cpp/GCodeProgramProcessor.h \
         src/cpp/Helpers3D.h
 
 RESOURCES += \

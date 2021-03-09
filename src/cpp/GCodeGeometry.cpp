@@ -14,8 +14,7 @@
 #include <string>
 
 #include <Chronograph.h>
-
-#include <GCodeProgramParser.h>
+#include <GCodeProgramProcessor.h>
 
 
 #include <Eigen/Geometry>
@@ -224,7 +223,7 @@ void GCodeGeometry::loadExtruderData()
 	if (_inputFile.isEmpty())
 		return;
 
-	GCodeProgramParser gCodeParser;
+	GCodeProgramProcessor gCodeParser;
 	_extrData = gCodeParser.createExtrusionData(_inputFile.toStdString())[0];
 }
 
