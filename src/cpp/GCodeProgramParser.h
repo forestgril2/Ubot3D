@@ -6,6 +6,7 @@
 
 namespace gpr
 {
+	class block;
 	class gcode_program;
 };
 
@@ -19,19 +20,27 @@ public:
 	std::vector<Extrusion> createExtrusionData(const std::string& inputFile);
 
 private:
-	static void dumpSubPath(const std::string& blockString, const ExtrPath& path);
+	static Extrusion initializeExtruderData();
 
+	struct WorkingData
+	{
+		ExtrPoint lastAbsCoords = {0,0,0,0};
+		ExtrPoint blockCurrRelativeCoords = {0,0,0,0};
+		ExtrPoint whichCoordsSetInBlock = {0,0,0,0};
+	};
+
+	std::vector<ExtrLayer>& initGetCurrentLayers();
+	void initializeCurrentExtruderReferences(std::vector<Extrusion>& extruders);
+	void parseBlockChunk(const gpr::block& block, WorkingData& points);
+
+	void setExtruder(const uint32_t extruderNumber);
 	void setExtrusionOff(Extrusion* extruder);
 	void setExtrusionOn(Extrusion* extruder, const ExtrPoint& lastAbsCoords);
 	void setAbsoluteModeOn();
 	void setAbsoluteModeOff(ExtrPoint* blockCurrRelativeCoords);
-	void setExtruder(const uint32_t extruderNumber);
+
 	void pushNewLayer();
-
-	static Extrusion initializeExtruderData();
-
 	bool isNewLayerComment(const std::string& comment);
-
 
 	Extrusion* _extruderCurr;
 	std::vector<ExtrPath>* _extruderPathsCurr;
@@ -42,7 +51,7 @@ private:
 	size_t numPathPointsMax = 0;
 	bool isAbsoluteMode = true;
 
-
+	static void dumpSubPath(const std::string& blockString, const ExtrPath& path);
 	// TODO: This is for debug, remove:
 	std::string _blockStringCurr = "";
 };
