@@ -6,8 +6,10 @@
 
 namespace gpr
 {
-	class block;
 	class gcode_program;
+	class block;
+	class chunk;
+	class addr;
 };
 
 using ExtrPath = Extrusion::Path;
@@ -22,25 +24,38 @@ public:
 private:
 	static Extrusion initializeExtruderData();
 
-	struct WorkingData
+	struct WorkPoints
 	{
+		bool areAnyCoordsSet() const;
+
 		ExtrPoint lastAbsCoords = {0,0,0,0};
 		ExtrPoint blockCurrRelativeCoords = {0,0,0,0};
-		ExtrPoint whichCoordsSetInBlock = {0,0,0,0};
-	};
-
-	std::vector<ExtrLayer>& initGetCurrentLayers();
-	void initializeCurrentExtruderReferences(std::vector<Extrusion>& extruders);
-	void parseBlockChunk(const gpr::block& block, WorkingData& points);
+		Vector4i whichCoordsSetInBlock = {0,0,0,0};
+	} extrWorkPoints;
 
 	void setExtruder(const uint32_t extruderNumber);
+	void initializeCurrentExtruderReferences(std::vector<Extrusion>& extruders);
+
+	void parseChunks(const gpr::block& block);
+	bool parseComment(const std::string& comment);
+	void parseWordAddressChunk(const char word, const gpr::addr& address);
+	void handleExtrCoordSetting(const char coord, const Real value);
+
+	void switchExtruderModes(const int value);
+
 	void setExtrusionOff(Extrusion* extruder);
 	void setExtrusionOn(Extrusion* extruder, const ExtrPoint& lastAbsCoords);
+
 	void setAbsoluteModeOn();
 	void setAbsoluteModeOff(ExtrPoint* blockCurrRelativeCoords);
 
-	void pushNewLayer();
+	void updateCurrentBlockAbsCoords();
+	void updateLastAbsCoords();
+
 	bool isNewLayerComment(const std::string& comment);
+	void pushNewLayer();
+
+	bool isNewPathPoint() const;
 
 	Extrusion* _extruderCurr;
 	std::vector<ExtrPath>* _extruderPathsCurr;
