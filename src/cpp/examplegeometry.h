@@ -9,6 +9,8 @@
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\runtimerender\qssgrenderray_p.h>
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 
+class QSSGMeshBVH;
+
 class ExampleTriangleGeometry : public QQuick3DGeometry
 {
     Q_OBJECT
@@ -89,7 +91,10 @@ signals:
 
 private:
     void updateData();
+	void buildIntersectionData();
 	void reloadSceneIfNecessary();
+
+	QSSGMeshBVH* _intersectionData = nullptr;
 
     bool m_hasNormals = false;
     float m_normalXY = 0.0f;

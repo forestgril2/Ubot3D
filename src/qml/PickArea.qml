@@ -19,7 +19,51 @@ MouseArea {
         property vector3d startPickPos
         property vector3d startModelPos
         property var pickedModel
+        property bool wasPickedModelPickedBefore
         property var models
+        property var modelsStartPositions
+
+        function start(pickData) {
+            dragType = PickArea.DragType.Position
+            startPickPos = pickData.coords
+            pickedModel = pickData.model
+            startModelPos = pickedModel.position
+            wasPickedModelPickedBefore = pickedModel.isPicked
+
+            var pickedModels = []
+            var pickedModelsPositions = []
+            pickedModel.isPicked = true
+            for (var i=0; i<stlModels.count; i++)
+            {// Find out, which objects are selected
+                var stlModel = stlModels.objectAt(i)
+                if (stlModel.isPicked) {
+                    pickedModels.push(stlModel)
+                    var pickedModelPosition = Qt.vector3d(stlModel.position.x, stlModel.position.y, stlModel.position.z)
+                    pickedModelsPositions.push(pickedModelPosition)
+                }
+            }
+
+            models = pickedModels
+            modelsStartPositions = pickedModelsPositions
+            isActive = true
+        }
+
+        function finish() {
+            if (!isActive)
+                return
+            isActive = false
+
+            pickedModel.isPicked = wasPickedModelPickedBefore
+        }
+
+        function moveModels(dragVector) {
+            console.log(" ### :" + "moveModels")
+            for (var i=0; i<models.length; i++)
+            {
+                console.log(" ### i:" + i)
+                models[i].position = modelsStartPositions[i].plus(dragVector)
+            }
+        }
     }
 
     onDoubleClicked: {
@@ -62,25 +106,28 @@ MouseArea {
     }
 
     onPressed: {
-        var pickData = getClosestPick(mouse)
-        console.log(" ### pickData.model:" + pickData.model)
-        console.log(" ### pickData.coords:" + pickData.coords)
-//        modelGroupDragStarted(stlModel, stlModel.position, modelIntersection.intersection)
+        modelGroupDrag.start(getClosestPick(mouse))
     }
 
     onReleased: {
-        modelGroupDrag.isActive = false
+        modelGroupDrag.finish()
     }
 
     onPositionChanged: {
         if(isDragActive) {
-
             var originAndRay = getOriginAndRay(mouse.x, mouse.y)
-            var planeIntersection = helper3D.calculator.getLinePlaneIntersection(originAndRay.ray,
-                                                                                 originAndRay.origin,
-                                                                                 Qt.vector3d(0,0,1),
-                                                                                 startPickPosition)
-            draggedModel.position = startModelPosition.plus(planeIntersection.intersection.minus(startPickPosition))
+            var planeIntersection = helper3D.getLinePlaneIntersection(originAndRay.ray,
+                                                                      originAndRay.origin,
+                                                                      Qt.vector3d(0,0,1),
+                                                                      modelGroupDrag.startPickPos)
+
+            console.log(" ### modelGroupDrag.startPickPos:" + modelGroupDrag.startPickPos)
+
+            var dragVector = planeIntersection.intersection.minus(modelGroupDrag.startPickPos)
+
+            console.log(" ### dragVector :" + dragVector )
+
+            modelGroupDrag.moveModels(dragVector)
         }
     }
 
@@ -108,24 +155,5 @@ MouseArea {
         }
 
         return {model: model, coords: coords}
-    }
-
-    function modelGroupDragStarted(model, modelStartPos, pickCoords) {
-        modelGroupDrag.dragType = mouse.DragType.Position
-        modelGroupDrag.startPickPos = pickCoords
-        modelGroupDrag.startModelPos = modelStartPos
-        modelGroupDrag.pickedModel = model
-
-        var pickedModels = []
-        for (var i=0; i<stlModels.count; i++)
-        {// Find out, which objects are selected
-            var stlModel = stlModels.objectAt(i)
-
-
-        }
-
-        modelGroupDrag.models
-
-        modelGroupDrag.isActive = true
     }
 }
