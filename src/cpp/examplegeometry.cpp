@@ -213,8 +213,6 @@ QVariantMap ExampleTriangleGeometry::getPick(const QVector3D& origin,
 
 	if (intersections.size() > 0)
 	{
-		setPicked(!_isPicked);
-
 		std::vector<float> distancesToOrigin;
 		distancesToOrigin.reserve(intersections.size());
 		std::transform(intersections.begin(),

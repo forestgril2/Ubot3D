@@ -27,7 +27,7 @@ Model {
     materials: [
         DefaultMaterial {
             cullMode: DefaultMaterial.NoCulling
-            diffuseColor: rootModel.geometry.isPicked ? "lightgreen" : "lightgrey"
+            diffuseColor: rootModel.isPicked ? "lightgreen" : "lightgrey"
             specularAmount: 0.5
         }
     ]

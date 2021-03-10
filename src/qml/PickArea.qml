@@ -2,13 +2,25 @@ import QtQuick 2.15
 import QtQml 2.15
 
 MouseArea {
-    anchors.fill: view3d
-    signal modelDragged(var model, vector3d modelStartPos, vector3d pickCoords)
+    property alias isDragActive: modelGroupDrag.isActive
 
-    property bool isDraggingModelGroup: false
-    property vector3d startPickPosition
-    property vector3d startModelPosition
-    property var draggedModel
+    anchors.fill: view3d
+
+    enum DragType {
+        Position,
+        Rotation
+    }
+
+    QtObject {
+        id: modelGroupDrag
+
+        property int dragType: PickArea.DragType.Position
+        property bool isActive: false
+        property vector3d startPickPos
+        property vector3d startModelPos
+        property var pickedModel
+        property var models
+    }
 
     onDoubleClicked: {
         console.log(" ### onDoubleClicked")
@@ -42,98 +54,78 @@ MouseArea {
 
         doubleClickTimer.start()
 
-        var originAndRay = getOriginAndRay(mouse.x, mouse.y)
+        var closestPick = getClosestPick(mouse)
+        if (!closestPick)
+            return
 
-        var numModels = stlModels.count
-
-        for (var i = 0; i < numModels; i++) {
-            var stlModel = stlModels.objectAt(i);
-
-            var modelIntersection = stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
-            console.log(" ### modelIntersection.intersection:" + modelIntersection.intersection)
-            console.log(" ### modelIntersection.isHit:" + modelIntersection.isHit)
-
-            var planeIntersection = helper3D.getLinePlaneIntersection(originAndRay.ray,
-                                                                                 originAndRay.origin,
-                                                                                 Qt.vector3d(0,0,1),
-                                                                                 modelIntersection.intersection);
-
-            console.log(" planeIntersection.isHit: " + planeIntersection.isHit)
-            console.log(" planeIntersection.intersection: " + planeIntersection.intersection)
-
-            //            console.log(" triangleModel.bounds : " + triangleModel.bounds)
-            // Get screen coordinates of the click
-            pickDebugs.pickPosition.text = "Screen Position: (" + mouse.x + ", " + mouse.y + ")"
-            var result = view3d.pick(mouse.x, mouse.y);
-            if (result.objectHit) {
-                var pickedObject = result.objectHit;
-                // Toggle the isPicked property for the model
-                pickedObject.isPicked = !pickedObject.isPicked;
-                // Get picked model name
-                pickDebugs.pickName.text = "Last Pick: " + pickedObject.objectName;
-                // Get other pick specifics
-                pickDebugs.uvPosition.text = "UV Position: ("
-                        + result.uvPosition.x.toFixed(2) + ", "
-                        + result.uvPosition.y.toFixed(2) + ")";
-                pickDebugs.distance.text = "Distance: " + result.distance.toFixed(2);
-                pickDebugs.scenePosition.text = "World Position: ("
-                        + result.scenePosition.x.toFixed(2) + ", "
-                        + result.scenePosition.y.toFixed(2) + ")";
-            }
-            else {
-                pickDebugs.pickName.text = "Last Pick: None";
-            }
-        }
+        closestPick.model.isPicked = !closestPick.model.isPicked
     }
 
     onPressed: {
-        var originAndRay = getOriginAndRay(mouse.x, mouse.y)
-        var numModels = stlModels.count
-
-        for (var i = 0; i < numModels; i++)
-        {// Find out, if we are pressing an object.
-            var stlModel = stlModels.objectAt(i);
-
-            var modelIntersection = stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
-            if (modelIntersection.isHit)
-            {// If so, remember the point of press and send modelDragged() signal with coordinates
-                modelDragged(stlModel, stlModel.position, modelIntersection.intersection)
-            }
-
-            var planeIntersection = helper3D.getLinePlaneIntersection(originAndRay.ray,
-                                                                                 originAndRay.origin,
-                                                                                 Qt.vector3d(0,0,1),
-                                                                                 modelIntersection.intersection);
-
-        }
-
-
-    }
-
-    onPressAndHold: {
-
+        var pickData = getClosestPick(mouse)
+        console.log(" ### pickData.model:" + pickData.model)
+        console.log(" ### pickData.coords:" + pickData.coords)
+//        modelGroupDragStarted(stlModel, stlModel.position, modelIntersection.intersection)
     }
 
     onReleased: {
-        isDraggingModelGroup = false
-    }
-
-    onModelDragged: {
-        isDraggingModelGroup = true
-        startPickPosition = pickCoords
-        startModelPosition = modelStartPos
-        draggedModel = model
+        modelGroupDrag.isActive = false
     }
 
     onPositionChanged: {
-        if(isDraggingModelGroup) {
+        if(isDragActive) {
 
             var originAndRay = getOriginAndRay(mouse.x, mouse.y)
-            var planeIntersection = helper3D.getLinePlaneIntersection(originAndRay.ray,
+            var planeIntersection = helper3D.calculator.getLinePlaneIntersection(originAndRay.ray,
                                                                                  originAndRay.origin,
                                                                                  Qt.vector3d(0,0,1),
                                                                                  startPickPosition)
             draggedModel.position = startModelPosition.plus(planeIntersection.intersection.minus(startPickPosition))
         }
+    }
+
+    function getClosestPick(mouse) {
+        var originAndRay = getOriginAndRay(mouse.x, mouse.y)
+        var coords = undefined
+        var dist = Infinity
+        var model = undefined
+
+        for (var i = 0; i < stlModels.count; i++)
+        {// Find out, if we are pressing an object.
+            var stlModel = stlModels.objectAt(i)
+
+            var modelIntersection = stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
+            if (!modelIntersection.isHit)
+                continue
+
+            var distToHit = modelIntersection.intersection.minus(originAndRay.origin).length()
+            if (distToHit >= dist)
+                continue
+
+            model = stlModel
+            dist = distToHit
+            coords = modelIntersection.intersection
+        }
+
+        return {model: model, coords: coords}
+    }
+
+    function modelGroupDragStarted(model, modelStartPos, pickCoords) {
+        modelGroupDrag.dragType = mouse.DragType.Position
+        modelGroupDrag.startPickPos = pickCoords
+        modelGroupDrag.startModelPos = modelStartPos
+        modelGroupDrag.pickedModel = model
+
+        var pickedModels = []
+        for (var i=0; i<stlModels.count; i++)
+        {// Find out, which objects are selected
+            var stlModel = stlModels.objectAt(i)
+
+
+        }
+
+        modelGroupDrag.models
+
+        modelGroupDrag.isActive = true
     }
 }

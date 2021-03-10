@@ -53,7 +53,7 @@ Window {
 
         Ubot3DCameraWasdController {
             id: controller
-            mouseEnabled: !pickArea.isDraggingModelGroup
+            mouseEnabled: !pickArea.isDragActive
             controlledObject: camera
             camera: camera
             isMouseDragInverted: modelControls.mouseInvertCheckBox.checked
