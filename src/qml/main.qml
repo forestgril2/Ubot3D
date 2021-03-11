@@ -161,6 +161,14 @@ Window {
                 id: stlModel
                 inputFile: stlModels.model[index]
             }
+
+            function deselectAll() {
+                for (var i = 0; i < stlModels.count; i++)
+                {// Find out, if we are pressing an object.
+                    var stlModel = stlModels.objectAt(i)
+                    stlModel.isPicked = false
+                }
+            }
         }
 
         PickArea {

@@ -3,6 +3,7 @@ import QtQml 2.15
 
 MouseArea {
     property alias isDragActive: modelGroupDrag.isActive
+    property bool isNextMouseClickDisabled: false
 
     anchors.fill: view3d
 
@@ -57,21 +58,15 @@ MouseArea {
         }
 
         function moveModels(dragVector) {
-            console.log(" ### :" + "moveModels")
             for (var i=0; i<models.length; i++)
             {
-                console.log(" ### i:" + i)
                 models[i].position = modelsStartPositions[i].plus(dragVector)
             }
         }
     }
 
     onDoubleClicked: {
-        console.log(" ### onDoubleClicked")
-        console.log(" ### gcodeModel.position before double click:" + gcodeModel.position)
         gcodeModel.position = Qt.vector3d(0,0,0).minus(getModelCenter(gcodeModel))
-        console.log(" ### gcodeModel.position after:" + gcodeModel.position )
-
         camera.lookAtModel(gcodeModel)
     }
 
@@ -99,8 +94,16 @@ MouseArea {
         doubleClickTimer.start()
 
         var closestPick = getClosestPick(mouse)
-        if (!closestPick)
+        if (!closestPick.model)
+        {
+            stlModels.deselectAll()
             return
+        }
+
+        if (isNextMouseClickDisabled) {
+            isNextMouseClickDisabled = false
+            return
+        }
 
         closestPick.model.isPicked = !closestPick.model.isPicked
     }
@@ -121,13 +124,10 @@ MouseArea {
                                                                       Qt.vector3d(0,0,1),
                                                                       modelGroupDrag.startPickPos)
 
-            console.log(" ### modelGroupDrag.startPickPos:" + modelGroupDrag.startPickPos)
-
             var dragVector = planeIntersection.intersection.minus(modelGroupDrag.startPickPos)
 
-            console.log(" ### dragVector :" + dragVector )
-
             modelGroupDrag.moveModels(dragVector)
+            isNextMouseClickDisabled = true
         }
     }
 
