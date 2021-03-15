@@ -71,35 +71,7 @@ Window {
             id: gcodeModels
             property var gcodeGeometry: (objectAt(0) === null ? null : objectAt(0).geometry)
             model: []
-
-            delegate: Model {
-                id: thisModel
-
-                property bool isPicked: false
-                position: Qt.vector3d(0, 0, 0)
-                objectName: "gCode geometry"
-                pickable: true
-                rotation: modelControls.commonRotationCheckBox.checked ?
-                              helper3D.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
-                              Qt.quaternion(0,0,0,0)
-
-                geometry: GCodeGeometry {
-                    id: gcodeGeometry
-                    inputFile: gcodeModels.model[index]
-
-                    onModelLoaded: {
-                        modelControls.resetSliders(gcodeGeometry)
-                        view3d.gcodeModel = thisModel
-                    }
-                }
-                materials: [
-                    DefaultMaterial {
-                        cullMode: DefaultMaterial.NoCulling
-                        diffuseColor: "lightgreen"
-                        specularAmount: 0.5
-                    }
-                ]
-            }
+            delegate: GCodeGeometryRepeaterModelDelegate { }
         }
 
         PickArea {
@@ -113,6 +85,7 @@ Window {
         }
 
         Connections {
+            id: pickAreaToModelGroupDrag
             target: pickArea
             enabled: target
             function onPressed(mouse) {
@@ -131,49 +104,6 @@ Window {
 
         ModelControls {
             id: modelControls
-
-            property var referencedGcodeGeometry
-            anchors {
-                left: parent.left
-                top: parent.top
-                bottom: parent.bottom
-                topMargin: 10
-                bottomMargin: 10
-                leftMargin: 10
-            }
-
-            numSubPathsSlider.onValueChanged: {
-                if (!referencedGcodeGeometry)
-                    return;
-                referencedGcodeGeometry.numSubPaths = numSubPathsSlider.value
-            }
-
-            numPointsInSubPathSlider.onValueChanged: {
-                if (!referencedGcodeGeometry)
-                    return;
-                referencedGcodeGeometry.numPointsInSubPath = numPointsInSubPathSlider.value
-            }
-
-            numPathStepsUsedSlider.onValueChanged: {
-                if (!referencedGcodeGeometry)
-                    return;
-                referencedGcodeGeometry.numPathStepsUsed = numPathStepsUsedSlider.value
-            }
-
-            function resetSliders(gcodeGeometry) {
-
-                referencedGcodeGeometry = gcodeGeometry;
-
-                console.log(" ### resetSliders(): gcodeModels.gcodeGeometry.inputFile:" + gcodeGeometry.inputFile)
-
-                numSubPaths = gcodeGeometry.numSubPaths
-                numSubPathsSlider.value = gcodeGeometry.numSubPaths
-                numPointsInSubPath = gcodeGeometry.numPointsInSubPath
-                numPointsInSubPathSlider.value = gcodeGeometry.numPointsInSubPath
-                numSubPaths = gcodeGeometry.numSubPaths
-                numPathStepsUsed = gcodeGeometry.numPathStepsUsed
-                numPathStepsUsedSlider.value = gcodeGeometry.numPathStepsUsed
-            }
         }
 
         Component.onCompleted: {
@@ -182,12 +112,8 @@ Window {
                 modelControls.resetSliders()
             }
             else {
-                camera.lookAtPoint(Qt.vector3d(50,50,0))
+                camera.lookAt(Qt.vector3d(50,50,0))
             }
         }
-    }
-
-    function getModelCenter(model) {
-        return model.geometry.minBounds.plus(model.geometry.maxBounds).times(0.5)
     }
 }
