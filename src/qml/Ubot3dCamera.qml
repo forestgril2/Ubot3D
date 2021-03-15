@@ -16,6 +16,7 @@ PerspectiveCamera {
 	
 	function lookAt(point)
 	{
+
 		var direction = point.minus(camera.position)
 		var upDirection = Qt.vector3d(0,0,1)
 		var lookAtRotation = helper3D.getRotationFromDirection(direction, upDirection)

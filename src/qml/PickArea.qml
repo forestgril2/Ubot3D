@@ -5,31 +5,51 @@ import QtQml 2.15
 MouseArea {
     id: pickArea
     property bool isNextMouseClickDisabled: false
+    property var postponedOnClickedActionData: undefined
     property var camera
 
     anchors.fill: view3d
     onDoubleClicked: {
-        gcodeModel.position = Qt.vector3d(0,0,0).minus(getModelCenter(gcodeModel))
-        camera.lookAtModel(gcodeModel)
+        var model = getPickedModel()
+        if (model) {
+            camera.lookAt(getModelCenter(model))
+        }
+        else {
+            camera.lookAt(sceneCenter)
+        }        
+        camera.setUpPlane(Qt.vector3d(0,0,1))
     }
 
     Timer {
         id: doubleClickTimer
         interval: 200
         repeat: false
+
+        onTriggered: {
+            if (postponedOnClickedActionData) {
+                onClickedAction(postponedOnClickedActionData)
+                postponedOnClickedActionData = undefined
+            }
+        }
+    }
+
+    onPressed: {
+        if (doubleClickCountdown(mouse))
+            return
     }
 
     onClicked: {
         if (doubleClickTimer.running) {
-            doubleClickTimer.stop()
-            doubleClicked(mouse)
+            postponedOnClickedActionData = mouse
             return
         }
 
-        doubleClickTimer.start()
+        onClickedAction(mouse)
+    }
 
+    function onClickedAction(mouse) {
         var closestPick = getClosestPick(mouse)
-        if (!closestPick.model)
+        if (!closestPick.model && !doubleClickTimer.running)
         {
             stlModels.deselectAll()
             return
@@ -41,6 +61,32 @@ MouseArea {
         }
 
         closestPick.model.isPicked = !closestPick.model.isPicked
+    }
+
+    function doubleClickCountdown(mouse) {
+        if (doubleClickTimer.running) {
+            doubleClickTimer.stop()
+            postponedOnClickedActionData = false
+            doubleClicked(mouse)
+            return true
+        }
+        doubleClickTimer.start()
+        return false
+    }
+
+    function getPickedModel() {
+        var pickedModels = []
+        for (var i=0; i<stlModels.count; i++)
+        {// Find out, which objects are selected
+            var stlModel = stlModels.objectAt(i)
+            if (stlModel.isPicked) {
+                pickedModels.push(stlModel)
+            }
+        }
+        if (pickedModels.length != 1)
+            return undefined
+
+        return pickedModels[0]
     }
 
     function getOriginAndRay(x,y) {

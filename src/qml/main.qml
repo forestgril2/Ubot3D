@@ -47,7 +47,7 @@ Window {
             mouseEnabled: !modelGroupDrag.isActive
             controlledObject: sceneBase.camera
             camera: sceneBase.camera
-            isMouseDragInverted: modelControls.mouseInvertCheckBox.checked
+            isMouseDragInverted: true //modelControls.mouseInvertCheckBox.checked
         }
 
         Repeater3D {
@@ -102,18 +102,22 @@ Window {
             }
         }
 
-        ModelControls {
-            id: modelControls
-        }
-
         Component.onCompleted: {
             if (gcodeModel) {
-                camera.lookAtModel(gcodeModel)
+                camera.lookAt(getModelCenter(codeModel))
                 modelControls.resetSliders()
             }
             else {
                 camera.lookAt(Qt.vector3d(50,50,0))
             }
         }
+    }
+
+    function getModelCenter(model) {
+        return model.position.plus(getModelCenterOffset(model))
+    }
+
+    function getModelCenterOffset(model) {
+        return model.geometry.minBounds.plus(model.geometry.maxBounds).times(0.5)
     }
 }
