@@ -7,14 +7,14 @@ Model {
     property bool isPicked: false
     objectName: "STL geometry"
     pickable: true
-    rotation: modelControls.commonRotationCheckBox.checked ?
-                  rootModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
-                  Qt.quaternion(0,0,0,0)
+    rotation: Qt.quaternion(0,0,0,0)//modelControls.commonRotationCheckBox.checked ?
+                                    // rootModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
+                                    // Qt.quaternion(0,0,0,0)
 
 
     geometry: ExampleTriangleGeometry {
         id: geometry
-        warp: modelControls.triangleModelWarpSlider.value
+        warp: 0//modelControls.triangleModelWarpSlider.value
 
         onBoundsChanged: {
             var modelCenter = rootModel.geometry.minBounds.plus(rootModel.geometry.maxBounds).times(0.5)

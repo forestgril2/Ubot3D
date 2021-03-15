@@ -31,16 +31,16 @@ FileDialog {
 
         switch(fileType) {
             case TypedFileDialog.StlImport:
-                console.log(" ### fileDialog.currentFiles:" + fileDialog.currentFiles)
+                console.log(" ### TypedFileDialog.StlImport: " + fileDialog.currentFiles)
                 stlModels.model = generateSystemFilepathList(fileDialog.currentFiles)
                 break
             case TypedFileDialog.StlExport:
                 stlModel.exportModelToSTL(generateSystemFilePath(fileDialog.currentFile))
-                console.log(" ### stlModel.geometry.exportFile: " + fullSystemFilePath)
+                console.log(" ### TypedFileDialog.StlExport: " + fullSystemFilePath)
                 break
             case TypedFileDialog.GcodeImport:
                 gcodeModels.model = [generateSystemFilePath(fileDialog.currentFile)]
-                console.log(" ### gcodeModel.geometry.inputFile: " + gcodeModels.model[0])
+                console.log(" ### TypedFileDialog.GcodeImport: " + gcodeModels.model[0])
                 break
 
         }

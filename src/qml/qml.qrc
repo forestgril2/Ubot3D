@@ -15,5 +15,6 @@
         <file>SceneBase.qml</file>
         <file>Ubot3dCamera.qml</file>
         <file>GCodeGeometryRepeaterModelDelegate.qml</file>
+        <file>HelperFunctions.js</file>
     </qresource>
 </RCC>

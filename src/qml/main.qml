@@ -71,7 +71,9 @@ Window {
             id: gcodeModels
             property var gcodeGeometry: (objectAt(0) === null ? null : objectAt(0).geometry)
             model: []
-            delegate: GCodeGeometryRepeaterModelDelegate { }
+            delegate: GCodeGeometryRepeaterModelDelegate {
+                inputFile: gcodeModels.model[index]
+            }
         }
 
         PickArea {
@@ -111,13 +113,5 @@ Window {
                 camera.lookAt(Qt.vector3d(50,50,0))
             }
         }
-    }
-
-    function getModelCenter(model) {
-        return model.position.plus(getModelCenterOffset(model))
-    }
-
-    function getModelCenterOffset(model) {
-        return model.geometry.minBounds.plus(model.geometry.maxBounds).times(0.5)
     }
 }

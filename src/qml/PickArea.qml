@@ -1,6 +1,6 @@
 import QtQuick 2.15
 import QtQml 2.15
-
+import "HelperFunctions.js" as QmlHelpers
 
 MouseArea {
     id: pickArea
@@ -12,7 +12,7 @@ MouseArea {
     onDoubleClicked: {
         var model = getPickedModel()
         if (model) {
-            camera.lookAt(getModelCenter(model))
+            camera.lookAt(QmlHelpers.getModelCenter(model))
         }
         else {
             camera.lookAt(sceneCenter)
