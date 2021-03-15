@@ -11,23 +11,11 @@ Node {
     id: sceneBase
     property alias camera: camera
 
-    PerspectiveCamera {
+    Ubot3dCamera {
         id: camera
-
-        property vector3d initDistToModel: Qt.vector3d(-150, -150, 100)
-
-        fieldOfView: 45
+        clipFar: 500.0
         clipNear: 0.1
-        clipFar: 1000.0
-        position: sceneCenter.plus(initDistToModel)
-
-        function lookAtPoint(point)
-        {
-            var direction = point.minus(camera.position)
-            var upDirection = Qt.vector3d(0,0,1)
-            var lookAtRotation = helper3D.getRotationFromDirection(direction, upDirection)
-            camera.rotation = lookAtRotation
-        }
+        fieldOfView: 45
     }
 
     DirectionalLight {

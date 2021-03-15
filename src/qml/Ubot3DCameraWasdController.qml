@@ -341,11 +341,7 @@ Item {
                         if (preFinalRotation.x)
                         {
                             controlledObject.setRotation(preFinalRotation)
-
-                            // Now, that we have the camera view direction aligned, as desired, make sure the up vector is up.
-                            var newPointSceneTo = camera.mapFromViewport(Qt.vector3d(0.5, 0.5, 0))
-                            var newDirection = newPointSceneTo.minus(origin)
-                            camera.setRotation(helper3D.getRotationFromDirection(newDirection, Qt.vector3d(0,0,1)))
+                            camera.setUpPlane(Qt.vector3d(0,0,1))
                         }
                     }
                 }

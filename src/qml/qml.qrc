@@ -13,6 +13,7 @@
         <file>TypedFileDialog.qml</file>
         <file>ModelGroupDrag.qml</file>
         <file>SceneBase.qml</file>
+        <file>Ubot3dCamera.qml</file>
         <file>GCodeGeometryRepeaterModelDelegate.qml</file>
     </qresource>
 </RCC>
