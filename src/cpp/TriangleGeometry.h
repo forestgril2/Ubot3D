@@ -6,9 +6,12 @@
 
 #include <qqml.h>
 
+#include <assimp/scene.h>
+
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\runtimerender\qssgrenderray_p.h>
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 
+class aiScene;
 class QSSGMeshBVH;
 
 class TriangleGeometry : public QQuick3DGeometry
@@ -90,11 +93,22 @@ signals:
 	void isPickedChanged();
 
 private:
+	void updateAllMeshBounds(const aiScene* scene, const unsigned meshIndex = 0u);
+	void updateBounds(const float* vertexMatrixXCoord);
     void updateData();
 	void buildIntersectionData();
 	void reloadSceneIfNecessary();
 
+	void logBounds();
+
 	QSSGMeshBVH* _intersectionData = nullptr;
+	const aiScene* scene = nullptr;
+
+	aiVector3D maxFloatBound;
+	aiVector3D minFloatBound;
+
+	aiVector3D maxBound;
+	aiVector3D minBound;
 
     bool m_hasNormals = false;
     float m_normalXY = 0.0f;
@@ -103,21 +117,23 @@ private:
     float _warp = 0.0f;
 
 	bool _isPicked = false;
+	bool isAssimpReadDone = false;
 
 //	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 //	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
 	QString _inputFile;
-//	QString _inputFile = "C:/ProjectsData/stl_files/mandoblasterlow.stl";
+	//	QString _inputFile = "C:/ProjectsData/stl_files/mandoblasterlow.stl";
+	bool importModelFromFile(const std::string& pFile);
 };
 
-class PointGeometry : public QQuick3DGeometry
-{
-    Q_OBJECT
-    QML_NAMED_ELEMENT(ExamplePointGeometry)
-//	QML_ELEMENT
+//class PointGeometry : public QQuick3DGeometry
+//{
+//    Q_OBJECT
+//    QML_NAMED_ELEMENT(ExamplePointGeometry)
+////	QML_ELEMENT
 
-public:
-	PointGeometry();
-	Q_INVOKABLE void updateData();
-};
+//public:
+//	PointGeometry();
+//	Q_INVOKABLE void updateData();
+//};

@@ -3,6 +3,7 @@
 #include <QRandomGenerator>
 #include <QVector3D>
 #include <QQuaternion>
+#include <TriangleGeometry.h>
 
 #include <algorithm>
 #include <cstdio>
@@ -31,18 +32,6 @@
 
 #include "Chronograph.h"
 
-static bool isAssimpReadDone = false;
-// Create an instance of the Importer class
-static Assimp::Importer importer;
-static Assimp::Exporter exporter;
-static const aiScene* scene;
-
-static aiVector3D maxFloatBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-static aiVector3D minFloatBound(FLT_MAX, FLT_MAX, FLT_MAX);
-
-static aiVector3D maxBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-static aiVector3D minBound(FLT_MAX, FLT_MAX, FLT_MAX);
-
 // To have QSG included
 QT_BEGIN_NAMESPACE
 
@@ -58,7 +47,7 @@ static void assimpLogScene(const aiScene* scene)
 	std::cout << "DoTheSceneProcessing(), scene->mMeshes[0]->mNumVertices: " << scene->mMeshes[0]->mNumVertices << std::endl;
 }
 
-void updateBounds(const float* vertexMatrixXCoord)
+void TriangleGeometry::updateBounds(const float* vertexMatrixXCoord)
 {
 	minBound.x = (std::min(minBound.x, *vertexMatrixXCoord));
 	maxBound.x = (std::max(maxBound.x, *vertexMatrixXCoord));
@@ -70,13 +59,13 @@ void updateBounds(const float* vertexMatrixXCoord)
 	maxBound.z = (std::max(maxBound.z, *vertexMatrixXCoord));
 }
 
-void logBounds()
+void TriangleGeometry::logBounds()
 {
 	std::cout << " ### aiScene minBound(x,y,z): [" << minBound.x << "," << minBound.y << "," << minBound.z << "]" << std::endl;
 	std::cout << " ### aiScene maxBound(x,y,z): [" << maxBound.x << "," << maxBound.y << "," << maxBound.z << "]" << std::endl;
 }
 
-static void assimpReadMeshBounds(const aiScene* scene, const unsigned meshIndex = 0u)
+void TriangleGeometry::updateAllMeshBounds(const aiScene* scene, const unsigned meshIndex)
 {
 	const unsigned numMeshVertices = scene->mMeshes[meshIndex]->mNumVertices;
 	minBound = minFloatBound;
@@ -88,15 +77,16 @@ static void assimpReadMeshBounds(const aiScene* scene, const unsigned meshIndex 
 	logBounds();
 }
 
-bool importModelFromFile(const std::string& pFile)
+bool TriangleGeometry::importModelFromFile(const std::string& pFile)
 {
 	// And have it read the given file with some example postprocessing
 	// Usually - if speed is not the most important aspect for you - you'll
 	// probably to request more postprocessing than we do in this example.
+	static Assimp::Importer importer;
 	scene = importer.ReadFile(pFile,
 							  aiProcess_CalcTangentSpace |
 							  aiProcess_Triangulate |
-//							  aiProcess_JoinIdenticalVertices |
+//							   aiProcess_JoinIdenticalVertices |
 							  aiProcess_SortByPType);
 	// If the import failed, report it
 	if(!scene)
@@ -105,7 +95,6 @@ bool importModelFromFile(const std::string& pFile)
 		return false;
 	}
 
-	assimpReadMeshBounds(scene);
 	assimpLogScene(scene);
 
 	isAssimpReadDone = true;
@@ -113,25 +102,30 @@ bool importModelFromFile(const std::string& pFile)
 	return true;
 }
 
-TriangleGeometry::TriangleGeometry()
+TriangleGeometry::TriangleGeometry() :
+	maxFloatBound(aiVector3D(-FLT_MAX, -FLT_MAX, -FLT_MAX)),
+	minFloatBound(aiVector3D(FLT_MAX, FLT_MAX, FLT_MAX)),
+	maxBound(aiVector3D(-FLT_MAX, -FLT_MAX, -FLT_MAX)),
+	minBound(aiVector3D(FLT_MAX, FLT_MAX, FLT_MAX))
 {
 	updateData();
 }
 
 void TriangleGeometry::exportModelToSTL(const QString& filePath)
 {
+	Assimp::Exporter exporter;
 
-	// And have it read the given file with some example postprocessing
-	// Usually - if speed is not the most important aspect for you - you'll
-	// probably to request more postprocessing than we do in this example.
-	if (AI_SUCCESS == exporter.Export(scene, "stl", filePath.toStdString()))
-	{
-		std::cout << " ### " << __FUNCTION__ << " filePATH:" << filePath.toStdString() << " export OK" << std::endl;
-	}
-	else
-	{
-		std::cout << " ### " << __FUNCTION__ << " ERROR for file:" << filePath.toStdString() << std::endl;
-	}
+//	// And have it read the given file with some example postprocessing
+//	// Usually - if speed is not the most important aspect for you - you'll
+//	// probably to request more postprocessing than we do in this example.
+//	if (AI_SUCCESS == exporter.Export(scene, "stl", filePath.toStdString()))
+//	{
+//		std::cout << " ### " << __FUNCTION__ << " filePATH:" << filePath.toStdString() << " export OK" << std::endl;
+//	}
+//	else
+//	{
+//		std::cout << " ### " << __FUNCTION__ << " ERROR for file:" << filePath.toStdString() << std::endl;
+//	}
 
 }
 
@@ -307,6 +301,8 @@ void TriangleGeometry::reloadSceneIfNecessary()
 		if (!importModelFromFile(_inputFile.toStdString().c_str()))
 			return;
 
+		updateAllMeshBounds(scene);
+
 		assimpLogScene(scene);
 		setBounds({minBound.x, minBound.y, minBound.z}, {maxBound.x, maxBound.y,maxBound.z});
 		emit modelLoaded();
@@ -475,40 +471,40 @@ void TriangleGeometry::buildIntersectionData()
 	_intersectionData = meshBVHBuilder.buildTree();
 }
 
-PointGeometry::PointGeometry()
-{
-    updateData();
-}
+//PointGeometry::PointGeometry()
+//{
+//    updateData();
+//}
 
-void PointGeometry::updateData()
-{
-	clear();
+//void PointGeometry::updateData()
+//{
+//	clear();
 
-	unsigned numVertices = scene->mMeshes[0]->mNumVertices;
+//	unsigned numVertices = scene->mMeshes[0]->mNumVertices;
 
-    const int stride = 3 * sizeof(float);
+//    const int stride = 3 * sizeof(float);
 
-    QByteArray v;
-	v.resize(numVertices * stride);
-    float *p = reinterpret_cast<float *>(v.data());
+//    QByteArray v;
+//	v.resize(numVertices * stride);
+//    float *p = reinterpret_cast<float *>(v.data());
 
-	for (unsigned i = 0; i < numVertices; ++i)
-	{
-		const aiVector3D& vertex = scene->mMeshes[0]->mVertices[i];
-		*p++ = vertex.x;
-		*p++ = vertex.y;
-		*p++ = vertex.z;
-    }
+//	for (unsigned i = 0; i < numVertices; ++i)
+//	{
+//		const aiVector3D& vertex = scene->mMeshes[0]->mVertices[i];
+//		*p++ = vertex.x;
+//		*p++ = vertex.y;
+//		*p++ = vertex.z;
+//    }
 
-    setVertexData(v);
-    setStride(stride);
+//    setVertexData(v);
+//    setStride(stride);
 
-    setPrimitiveType(QQuick3DGeometry::PrimitiveType::Points);
+//    setPrimitiveType(QQuick3DGeometry::PrimitiveType::Points);
 
-    addAttribute(QQuick3DGeometry::Attribute::PositionSemantic,
-                 0,
-                 QQuick3DGeometry::Attribute::F32Type);
-}
+//    addAttribute(QQuick3DGeometry::Attribute::PositionSemantic,
+//                 0,
+//                 QQuick3DGeometry::Attribute::F32Type);
+//}
 
 
 QT_END_NAMESPACE

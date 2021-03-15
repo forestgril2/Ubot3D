@@ -7,7 +7,7 @@ MouseArea {
     property bool isNextMouseClickDisabled: false
     property var postponedOnClickedActionData: undefined
     property var camera: undefined
-    property point pressStartPosition: undefined
+    property point pressStartPosition
     property int pressMoveIgnoreDist: 1
 
     anchors.fill: view3d

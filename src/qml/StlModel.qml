@@ -17,10 +17,12 @@ Model {
         warp: 0//modelControls.triangleModelWarpSlider.value
 
         onBoundsChanged: {
-            var modelCenter = rootModel.geometry.minBounds.plus(rootModel.geometry.maxBounds).times(0.5)
-            console.log(" model bounds min: " + rootModel.geometry.minBounds)
-            console.log(" model bounds max: " + rootModel.geometry.maxBounds)
-            console.log(" modelCenter : " + modelCenter)
+//            var modelCenter = rootModel.geometry.minBounds.plus(rootModel.geometry.maxBounds).times(0.5)
+//            console.log(" model bounds min: " + rootModel.geometry.minBounds)
+//            console.log(" model bounds max: " + rootModel.geometry.maxBounds)
+//            console.log(" modelCenter : " + modelCenter)
+
+            snapToFloor()
         }
     }
 
@@ -38,15 +40,15 @@ Model {
 
     function snapToFloor()
     {
-        if (typeof snapToFloor.wasPressed == 'undefined') {
-            snapToFloor.wasPressed = false;
+//        if (typeof snapToFloor.wasPressed == 'undefined') {
+//            snapToFloor.wasPressed = false;
 
-            console.log("snapToFloor pressed")
+//            console.log("snapToFloor pressed")
             move(Qt.vector3d(0,0, -rootModel.geometry.minBounds.z))
-        }
-        else {
-            console.log("snapToFloor already pressed")
-        }
+//        }
+//        else {
+//            console.log("snapToFloor already pressed")
+//        }
     }
 
     function move(offset) {
