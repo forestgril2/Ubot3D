@@ -10,9 +10,11 @@ import customgeometry 1.0
 Node {
     id: sceneBase
     property alias camera: camera
+    property vector3d sceneCenter: Qt.vector3d(0, 0, 0)
 
     Ubot3dCamera {
         id: camera
+        position: sceneCenter.plus(initDistToModel)
         clipFar: 500.0
         clipNear: 0.1
         fieldOfView: 45

@@ -12,16 +12,27 @@ PerspectiveCamera {
 	
 	property vector3d initDistToModel: Qt.vector3d(-150, -150, 100)
 	
-	position: sceneCenter.plus(initDistToModel)
-	
+    function getOriginAndRay(x,y) {
+        var origin = position
+        var pointAtScreen = Qt.vector3d(x/view3d.width, y/view3d.height, 0)
+        var pointSceneTo = mapFromViewport(pointAtScreen)
+        var ray = pointSceneTo.minus(origin).normalized()
+        return {origin, ray}
+    }
+
 	function lookAt(point)
 	{
-
 		var direction = point.minus(camera.position)
 		var upDirection = Qt.vector3d(0,0,1)
 		var lookAtRotation = helper3D.getRotationFromDirection(direction, upDirection)
 		camera.rotation = lookAtRotation
+        setUpPlane(Qt.vector3d(0,0,1))
 	}
+
+    function lookAtSceneCenter()
+    {
+        lookAt(sceneCenter)
+    }
 	
 	function setUpPlane(upVector) {
 		var newPointSceneTo = mapFromViewport(Qt.vector3d(0.5, 0.5, 0))

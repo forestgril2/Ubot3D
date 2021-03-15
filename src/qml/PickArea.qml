@@ -10,14 +10,7 @@ MouseArea {
 
     anchors.fill: view3d
     onDoubleClicked: {
-        var model = getPickedModel()
-        if (model) {
-            camera.lookAt(QmlHelpers.getModelCenter(model))
-        }
-        else {
-            camera.lookAt(sceneCenter)
-        }        
-        camera.setUpPlane(Qt.vector3d(0,0,1))
+        onDoubleClickedAction()
     }
 
     Timer {
@@ -51,7 +44,7 @@ MouseArea {
         var closestPick = getClosestPick(mouse)
         if (!closestPick.model && !doubleClickTimer.running)
         {
-            stlModels.deselectAll()
+            QmlHelpers.deselectAll(stlModels)
             return
         }
 
@@ -61,6 +54,16 @@ MouseArea {
         }
 
         closestPick.model.isPicked = !closestPick.model.isPicked
+    }
+
+    function onDoubleClickedAction() {
+        var model = QmlHelpers.getPickedModel(stlModels)
+        if (model) {
+            camera.lookAt(QmlHelpers.getModelCenter(model))
+        }
+        else {
+            camera.lookAtSceneCenter()
+        }
     }
 
     function doubleClickCountdown(mouse) {
@@ -74,31 +77,8 @@ MouseArea {
         return false
     }
 
-    function getPickedModel() {
-        var pickedModels = []
-        for (var i=0; i<stlModels.count; i++)
-        {// Find out, which objects are selected
-            var stlModel = stlModels.objectAt(i)
-            if (stlModel.isPicked) {
-                pickedModels.push(stlModel)
-            }
-        }
-        if (pickedModels.length != 1)
-            return undefined
-
-        return pickedModels[0]
-    }
-
-    function getOriginAndRay(x,y) {
-        var origin = camera.position
-        var pointAtScreen = Qt.vector3d(x/view3d.width, y/view3d.height, 0)
-        var pointSceneTo = camera.mapFromViewport(pointAtScreen)
-        var ray = pointSceneTo.minus(origin).normalized()
-        return {origin, ray}
-    }
-
     function getClosestPick(mouse) {
-        var originAndRay = getOriginAndRay(mouse.x, mouse.y)
+        var originAndRay = camera.getOriginAndRay(mouse.x, mouse.y)
         var coords = undefined
         var dist = Infinity
         var model = undefined
