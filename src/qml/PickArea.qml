@@ -6,7 +6,9 @@ MouseArea {
     id: pickArea
     property bool isNextMouseClickDisabled: false
     property var postponedOnClickedActionData: undefined
-    property var camera
+    property var camera: undefined
+    property point pressStartPosition: undefined
+    property int pressMoveIgnoreDist: 1
 
     anchors.fill: view3d
     onDoubleClicked: {
@@ -31,6 +33,14 @@ MouseArea {
             return
     }
 
+    onPositionChanged: {
+        // If position changes more than a little, disable further click&double click
+        if (Math.abs(mouse.x-pressStartPosition.x) > pressMoveIgnoreDist ||
+            Math.abs(mouse.y-pressStartPosition.y) > pressMoveIgnoreDist) {
+            isNextMouseClickDisabled = true
+        }
+    }
+
     onClicked: {
         if (doubleClickTimer.running) {
             postponedOnClickedActionData = mouse
@@ -41,15 +51,15 @@ MouseArea {
     }
 
     function onClickedAction(mouse) {
+        if (isNextMouseClickDisabled) {
+            isNextMouseClickDisabled = false
+            return
+        }
+
         var closestPick = getClosestPick(mouse)
         if (!closestPick.model && !doubleClickTimer.running)
         {
             QmlHelpers.deselectAll(stlModels)
-            return
-        }
-
-        if (isNextMouseClickDisabled) {
-            isNextMouseClickDisabled = false
             return
         }
 
@@ -69,7 +79,8 @@ MouseArea {
     function doubleClickCountdown(mouse) {
         if (doubleClickTimer.running) {
             doubleClickTimer.stop()
-            postponedOnClickedActionData = false
+            postponedOnClickedActionData = undefined
+            isNextMouseClickDisabled = true
             doubleClicked(mouse)
             return true
         }

@@ -39,8 +39,8 @@ FileDialog {
                 console.log(" ### TypedFileDialog.StlExport: " + fullSystemFilePath)
                 break
             case TypedFileDialog.GcodeImport:
-                gcodeModels.model = [generateSystemFilePath(fileDialog.currentFile)]
-                console.log(" ### TypedFileDialog.GcodeImport: " + gcodeModels.model[0])
+                gCodeModels.model = [generateSystemFilePath(fileDialog.currentFile)]
+                console.log(" ### TypedFileDialog.GcodeImport: " + gCodeModels.model[0])
                 break
 
         }

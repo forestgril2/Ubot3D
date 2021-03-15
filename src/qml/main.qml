@@ -16,17 +16,17 @@ Window {
     visible: true
     color: "#848895"
 
-    TypedFileDialog {
-        id: fileDialog
-    }
-
     MainMenu {
         id: mainMenu
 
         onModelCloseRequested: {
             stlModels.model = []
-            gcodeModels.model = []
+            gCodeModels.model = []
         }
+    }
+
+    TypedFileDialog {
+        id: fileDialog
     }
 
     View3D {
@@ -34,7 +34,7 @@ Window {
         anchors.fill: parent
         camera: sceneBase.camera
 
-        property var gcodeModel
+        property var gCodeModel
         property vector3d gcodeModelCenter: Qt.vector3d(0, 0, 0)
 
         SceneBase {
@@ -60,11 +60,11 @@ Window {
         }
 
         Repeater3D {
-            id: gcodeModels
+            id: gCodeModels
             property var gcodeGeometry: (objectAt(0) === null ? null : objectAt(0).geometry)
             model: []
             delegate: GCodeGeometryRepeaterModelDelegate {
-                inputFile: gcodeModels.model[index]
+                inputFile: gCodeModels.model[index]
             }
         }
 
@@ -91,14 +91,13 @@ Window {
             function onPositionChanged(mouse) {
                 if(modelGroupDrag.isActive) {
                     modelGroupDrag.dragPositionChanged(sceneBase.camera.getOriginAndRay(mouse.x, mouse.y))
-                    pickArea.isNextMouseClickDisabled = true
                 }
             }
         }
 
         Component.onCompleted: {
-            if (gcodeModel) {
-                camera.lookAt(getModelCenter(codeModel))
+            if (gCodeModel) {
+                camera.lookAt(getModelCenter(gCodeModel))
                 modelControls.resetSliders()
             }
             else {
