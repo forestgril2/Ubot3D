@@ -95,7 +95,7 @@ bool TriangleGeometry::importModelFromFile(const std::string& pFile)
 		return false;
 	}
 
-	assimpLogScene(scene);
+//	assimpLogScene(scene);
 
 	isAssimpReadDone = true;
 	// We're done. Everything will be cleaned up by the importer destructor
@@ -303,7 +303,7 @@ void TriangleGeometry::reloadSceneIfNecessary()
 
 		updateAllMeshBounds(scene);
 
-		assimpLogScene(scene);
+//		assimpLogScene(scene);
 		setBounds({minBound.x, minBound.y, minBound.z}, {maxBound.x, maxBound.y,maxBound.z});
 		emit modelLoaded();
 	}

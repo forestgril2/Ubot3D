@@ -43,7 +43,7 @@ Node {
     }
 
     Model {
-        scale: Qt.vector3d(100, 100, 100)
+        scale: Qt.vector3d(100, 100, 1)
         position: sceneCenter
         geometry: GridGeometry {
             id: grid
