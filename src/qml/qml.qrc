@@ -12,5 +12,6 @@
         <file>ValueEditSlider.qml</file>
         <file>TypedFileDialog.qml</file>
         <file>ModelGroupDrag.qml</file>
+        <file>SceneBase.qml</file>
     </qresource>
 </RCC>

@@ -5,6 +5,7 @@ import QtQml 2.15
 MouseArea {
     id: pickArea
     property bool isNextMouseClickDisabled: false
+    property var camera
 
     anchors.fill: view3d
     onDoubleClicked: {

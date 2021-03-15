@@ -30,91 +30,42 @@ Window {
         }
     }
 
-    PickDebugs {
-        id: pickDebugs
-    }
-
     View3D {
         id: view3d
         anchors.fill: parent
-        camera: camera
+        camera: sceneBase.camera
 
         property var gcodeModel
         property vector3d gcodeModelCenter: Qt.vector3d(0, 0, 0)
 
-        Component.onCompleted: {
-            if (gcodeModel) {
-                camera.lookAtModel(gcodeModel)
-                modelControls.resetSliders()
-            }
-            else {
-                camera.lookAtPoint(Qt.vector3d(50,50,0))
-            }
-        }
-
-        PerspectiveCamera {
-            id: camera
-
-            property vector3d initDistToModel: Qt.vector3d(-150, -150, 100)
-
-            fieldOfView: 45
-            clipNear: 0.1
-            clipFar: 1000.0
-            position: sceneCenter.plus(initDistToModel)
-
-            function lookAtPoint(point)
-            {
-                var direction = point.minus(camera.position)
-                var upDirection = Qt.vector3d(0,0,1)
-                var lookAtRotation = helper3D.getRotationFromDirection(direction, upDirection)
-                camera.rotation = lookAtRotation
-            }
+        SceneBase {
+            id: sceneBase
         }
 
         Ubot3DCameraWasdController {
             id: controller
             mouseEnabled: !modelGroupDrag.isActive
-            controlledObject: camera
-            camera: camera
+            controlledObject: sceneBase.camera
+            camera: sceneBase.camera
             isMouseDragInverted: modelControls.mouseInvertCheckBox.checked
         }
 
-        DirectionalLight {
-            eulerRotation.x: 30
-            eulerRotation.y: 30
-            eulerRotation.z: 30
-            color: Qt.rgba(0.7, 0.7, 0.7, 1.0)
-            ambientColor: Qt.rgba(0.1, 0.1, 0.1, 1.0)
-        }
+        Repeater3D {
+            id: stlModels
 
-        DirectionalLight {
-            eulerRotation.x: -45
-            eulerRotation.y: -45
-            eulerRotation.z: -45
-            color: Qt.rgba(0.3, 0.3, 0.3, 1.0)
-            ambientColor: Qt.rgba(0.1, 0.1, 0.1, 1.0)
-        }
-
-        PointLight {
-            position: sceneCenter.plus(Qt.vector3d(30, 0, 100))
-            color: Qt.rgba(0.1, 1.0, 0.1, 1.0)
-            ambientColor: Qt.rgba(0.2, 0.2, 0.2, 1.0)
-        }
-
-        Model {
-            scale: Qt.vector3d(100, 100, 100)
-            position: sceneCenter
-            geometry: GridGeometry {
-                id: grid
-                horizontalLines: 20
-                verticalLines: 20
+            delegate: StlModel {
+                id: stlModel
+                inputFile: stlModels.model[index]
             }
-            materials: [
-                DefaultMaterial {
-                }
-            ]
-        }
 
+            function deselectAll() {
+                for (var i = 0; i < stlModels.count; i++)
+                {// Find out, if we are pressing an object.
+                    var stlModel = stlModels.objectAt(i)
+                    stlModel.isPicked = false
+                }
+            }
+        }
 
         Repeater3D {
             id: gcodeModels
@@ -151,25 +102,9 @@ Window {
             }
         }
 
-        Repeater3D {
-            id: stlModels
-
-            delegate: StlModel {
-                id: stlModel
-                inputFile: stlModels.model[index]
-            }
-
-            function deselectAll() {
-                for (var i = 0; i < stlModels.count; i++)
-                {// Find out, if we are pressing an object.
-                    var stlModel = stlModels.objectAt(i)
-                    stlModel.isPicked = false
-                }
-            }
-        }
-
         PickArea {
             id: pickArea
+            camera: sceneBase.camera
         }
 
         ModelGroupDrag {
@@ -238,6 +173,16 @@ Window {
                 numSubPaths = gcodeGeometry.numSubPaths
                 numPathStepsUsed = gcodeGeometry.numPathStepsUsed
                 numPathStepsUsedSlider.value = gcodeGeometry.numPathStepsUsed
+            }
+        }
+
+        Component.onCompleted: {
+            if (gcodeModel) {
+                camera.lookAtModel(gcodeModel)
+                modelControls.resetSliders()
+            }
+            else {
+                camera.lookAtPoint(Qt.vector3d(50,50,0))
             }
         }
     }
