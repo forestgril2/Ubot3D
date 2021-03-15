@@ -1,3 +1,4 @@
+import QtQml 2.3
 import Qt.labs.platform 1.1
 import QtQuick3D.Helpers 1.15
 import QtQuick 2.15
@@ -51,14 +52,6 @@ Window {
             }
         }
 
-        Ubot3DCameraWasdController {
-            id: controller
-            mouseEnabled: !pickArea.isDragActive
-            controlledObject: camera
-            camera: camera
-            isMouseDragInverted: modelControls.mouseInvertCheckBox.checked
-        }
-
         PerspectiveCamera {
             id: camera
 
@@ -76,6 +69,14 @@ Window {
                 var lookAtRotation = helper3D.getRotationFromDirection(direction, upDirection)
                 camera.rotation = lookAtRotation
             }
+        }
+
+        Ubot3DCameraWasdController {
+            id: controller
+            mouseEnabled: !modelGroupDrag.isActive
+            controlledObject: camera
+            camera: camera
+            isMouseDragInverted: modelControls.mouseInvertCheckBox.checked
         }
 
         DirectionalLight {
@@ -137,10 +138,6 @@ Window {
 
                     onModelLoaded: {
                         modelControls.resetSliders(gcodeGeometry)
-
-//                        console.log(" ### gcodeModels.gcodeGeometry.inputFile:" + gcodeModels.gcodeGeometry.inputFile)
-//                        console.log(" ### gcodeModels.gcodeGeometry.numSubPaths:" + gcodeModels.gcodeGeometry.numSubPaths)
-
                         view3d.gcodeModel = thisModel
                     }
                 }
@@ -173,6 +170,28 @@ Window {
 
         PickArea {
             id: pickArea
+        }
+
+        ModelGroupDrag {
+            id: modelGroupDrag
+            connectedPickArea: pickArea
+        }
+
+        Connections {
+            target: pickArea
+            enabled: target
+            function onPressed(mouse) {
+                modelGroupDrag.start(mouse)
+            }
+            function onReleased(mouse) {
+                modelGroupDrag.finish()
+            }
+            function onPositionChanged(mouse) {
+                if(modelGroupDrag.isActive) {
+                    modelGroupDrag.dragPositionChanged(pickArea.getOriginAndRay(mouse.x, mouse.y))
+                    pickArea.isNextMouseClickDisabled = true
+                }
+            }
         }
 
         ModelControls {

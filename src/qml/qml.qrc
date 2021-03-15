@@ -11,5 +11,6 @@
         <file>PickArea.qml</file>
         <file>ValueEditSlider.qml</file>
         <file>TypedFileDialog.qml</file>
+        <file>ModelGroupDrag.qml</file>
     </qresource>
 </RCC>
