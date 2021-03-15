@@ -24,14 +24,14 @@ SUBDIRS += src/cpp src/qml
 SOURCES += src/cpp/main.cpp \
     src/cpp/GCodeProgramProcessor.cpp \
     src/cpp/Helpers3D.cpp \
-    src/cpp/examplegeometry.cpp \
+    src/cpp/TriangleGeometry.cpp \
     src/cpp/GCodeGeometry.cpp \
     src/cpp/Chronograph.cpp \
     $$PWD/../gpr/src/gcode_program.cpp \
     $$PWD/../gpr/src/parser.cpp
 
 
-HEADERS +=  src/cpp/examplegeometry.h \
+HEADERS +=  src/cpp/TriangleGeometry.h \
         ../gpr/src/CommonDefs.h \
         src/cpp/GCodeGeometry.h \
         src/cpp/Chronograph.h \
@@ -75,7 +75,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 #target.path = $$[QT_INSTALL_EXAMPLES]/quick3d/customgeometry
 #INSTALLS += target
-
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/release/ -lassimp-vc142-mtd
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/Debug/ -lassimp-vc142-mtd# -L$$PWD/../gpr/build/ -lmsys-gpr

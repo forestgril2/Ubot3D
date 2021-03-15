@@ -11,10 +11,10 @@
 
 class QSSGMeshBVH;
 
-class ExampleTriangleGeometry : public QQuick3DGeometry
+class TriangleGeometry : public QQuick3DGeometry
 {
     Q_OBJECT
-	QML_NAMED_ELEMENT(ExampleTriangleGeometry)
+	QML_NAMED_ELEMENT(TriangleGeometry)
 
     Q_PROPERTY(bool normals READ normals WRITE setNormals NOTIFY normalsChanged)
     Q_PROPERTY(float normalXY READ normalXY WRITE setNormalXY NOTIFY normalXYChanged)
@@ -27,7 +27,7 @@ class ExampleTriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
 
 public:
-    ExampleTriangleGeometry();
+	TriangleGeometry();
 
 	static Q_INVOKABLE void exportModelToSTL(const QString& filePath);
 
@@ -111,13 +111,13 @@ private:
 //	QString _inputFile = "C:/ProjectsData/stl_files/mandoblasterlow.stl";
 };
 
-class ExamplePointGeometry : public QQuick3DGeometry
+class PointGeometry : public QQuick3DGeometry
 {
     Q_OBJECT
     QML_NAMED_ELEMENT(ExamplePointGeometry)
 //	QML_ELEMENT
 
 public:
-    ExamplePointGeometry();
+	PointGeometry();
 	Q_INVOKABLE void updateData();
 };

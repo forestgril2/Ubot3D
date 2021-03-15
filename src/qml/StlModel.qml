@@ -12,7 +12,7 @@ Model {
                                     // Qt.quaternion(0,0,0,0)
 
 
-    geometry: ExampleTriangleGeometry {
+    geometry: TriangleGeometry {
         id: geometry
         warp: 0//modelControls.triangleModelWarpSlider.value
 

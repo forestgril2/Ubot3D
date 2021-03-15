@@ -1,4 +1,4 @@
-#include "examplegeometry.h"
+#include "TriangleGeometry.h"
 
 #include <QRandomGenerator>
 #include <QVector3D>
@@ -113,12 +113,12 @@ bool importModelFromFile(const std::string& pFile)
 	return true;
 }
 
-ExampleTriangleGeometry::ExampleTriangleGeometry()
+TriangleGeometry::TriangleGeometry()
 {
 	updateData();
 }
 
-void ExampleTriangleGeometry::exportModelToSTL(const QString& filePath)
+void TriangleGeometry::exportModelToSTL(const QString& filePath)
 {
 
 	// And have it read the given file with some example postprocessing
@@ -137,7 +137,7 @@ void ExampleTriangleGeometry::exportModelToSTL(const QString& filePath)
 
 
 
-QVariantMap ExampleTriangleGeometry::getPick(const QVector3D& origin,
+QVariantMap TriangleGeometry::getPick(const QVector3D& origin,
 										   const QVector3D& direction,
 										   const QMatrix4x4& globalTransform)
 {
@@ -188,12 +188,12 @@ QVariantMap ExampleTriangleGeometry::getPick(const QVector3D& origin,
 	return noHit;
 }
 
-QString ExampleTriangleGeometry::getInputFile() const
+QString TriangleGeometry::getInputFile() const
 {
 	return _inputFile;
 }
 
-void ExampleTriangleGeometry::setInputFile(const QString& url)
+void TriangleGeometry::setInputFile(const QString& url)
 {
 	if (url == _inputFile)
 		return;
@@ -204,7 +204,7 @@ void ExampleTriangleGeometry::setInputFile(const QString& url)
 	update();
 }
 
-void ExampleTriangleGeometry::setNormals(bool enable)
+void TriangleGeometry::setNormals(bool enable)
 {
 	if (m_hasNormals == enable)
 		return;
@@ -215,7 +215,7 @@ void ExampleTriangleGeometry::setNormals(bool enable)
     update();
 }
 
-void ExampleTriangleGeometry::setNormalXY(float xy)
+void TriangleGeometry::setNormalXY(float xy)
 {
     if (m_normalXY == xy)
         return;
@@ -226,7 +226,7 @@ void ExampleTriangleGeometry::setNormalXY(float xy)
     update();
 }
 
-void ExampleTriangleGeometry::setUV(bool enable)
+void TriangleGeometry::setUV(bool enable)
 {
     if (m_hasUV == enable)
         return;
@@ -237,7 +237,7 @@ void ExampleTriangleGeometry::setUV(bool enable)
     update();
 }
 
-void ExampleTriangleGeometry::setUVAdjust(float f)
+void TriangleGeometry::setUVAdjust(float f)
 {
     if (m_uvAdjust == f)
         return;
@@ -248,7 +248,7 @@ void ExampleTriangleGeometry::setUVAdjust(float f)
     update();
 }
 
-void ExampleTriangleGeometry::setWarp(float warp)
+void TriangleGeometry::setWarp(float warp)
 {
 	if (qFuzzyCompare(_warp, warp))
 		return;
@@ -259,7 +259,7 @@ void ExampleTriangleGeometry::setWarp(float warp)
     update();
 }
 
-void ExampleTriangleGeometry::setBounds(const QVector3D& min, const QVector3D& max)
+void TriangleGeometry::setBounds(const QVector3D& min, const QVector3D& max)
 {
 	QQuick3DGeometry::setBounds(min, max);
 
@@ -269,32 +269,32 @@ void ExampleTriangleGeometry::setBounds(const QVector3D& min, const QVector3D& m
 	emit boundsChanged();
 }
 
-void ExampleTriangleGeometry::setMinBounds(const QVector3D& minBounds)
+void TriangleGeometry::setMinBounds(const QVector3D& minBounds)
 {
 	setBounds(minBounds, maxBounds());
 }
 
-void ExampleTriangleGeometry::setMaxBounds(const QVector3D& maxBounds)
+void TriangleGeometry::setMaxBounds(const QVector3D& maxBounds)
 {
 	setBounds(minBounds(), maxBounds);
 }
 
-QVector3D ExampleTriangleGeometry::minBounds() const
+QVector3D TriangleGeometry::minBounds() const
 {
 	return QVector3D(minBound.x, minBound.y, minBound.z);
 }
 
-QVector3D ExampleTriangleGeometry::maxBounds() const
+QVector3D TriangleGeometry::maxBounds() const
 {
 	return QVector3D(maxBound.x, maxBound.y, maxBound.z);
 }
 
-bool ExampleTriangleGeometry::isPicked() const
+bool TriangleGeometry::isPicked() const
 {
 	return _isPicked;
 }
 
-void ExampleTriangleGeometry::reloadSceneIfNecessary()
+void TriangleGeometry::reloadSceneIfNecessary()
 {
 	if (!isAssimpReadDone)
 	{
@@ -313,7 +313,7 @@ void ExampleTriangleGeometry::reloadSceneIfNecessary()
 	}
 	clear();
 }
-void ExampleTriangleGeometry::updateData()
+void TriangleGeometry::updateData()
 {
 	Chronograph chronograph(__FUNCTION__);
 	reloadSceneIfNecessary();
@@ -421,7 +421,7 @@ void ExampleTriangleGeometry::updateData()
 	buildIntersectionData();
 }
 
-void ExampleTriangleGeometry::buildIntersectionData()
+void TriangleGeometry::buildIntersectionData()
 {
 	delete _intersectionData;
 
@@ -475,12 +475,12 @@ void ExampleTriangleGeometry::buildIntersectionData()
 	_intersectionData = meshBVHBuilder.buildTree();
 }
 
-ExamplePointGeometry::ExamplePointGeometry()
+PointGeometry::PointGeometry()
 {
     updateData();
 }
 
-void ExamplePointGeometry::updateData()
+void PointGeometry::updateData()
 {
 	clear();
 
