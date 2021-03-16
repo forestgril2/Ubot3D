@@ -20,8 +20,8 @@ Window {
         id: mainMenu
 
         onModelCloseRequested: {
-            stlModels.model = []
-            gCodeModels.model = []
+            stlObjects.model = []
+            gCodeObjects.model = []
         }
     }
 
@@ -51,20 +51,20 @@ Window {
         }
 
         Repeater3D {
-            id: stlModels
+            id: stlObjects
 
             delegate: StlModel {
                 id: stlModel
-                inputFile: stlModels.model[index]
+                inputFile: stlObjects.model[index]
             }
         }
 
         Repeater3D {
-            id: gCodeModels
+            id: gCodeObjects
             property var gcodeGeometry: (objectAt(0) === null ? null : objectAt(0).geometry)
             model: []
             delegate: GCodeGeometryRepeaterModelDelegate {
-                inputFile: gCodeModels.model[index]
+                inputFile: gCodeObjects.model[index]
             }
         }
 
@@ -90,7 +90,8 @@ Window {
             }
             function onPositionChanged(mouse) {
                 if(modelGroupDrag.isActive) {
-                    modelGroupDrag.dragPositionChanged(sceneBase.camera.getOriginAndRay(mouse.x, mouse.y))
+                    var ray = QmlHelpers.getRay(sceneBase.camera, mouse.x, mouse.y, view3d.width, view3d.height);
+                    modelGroupDrag.dragPositionChanged(sceneBase.camera.position, ray)
                 }
             }
         }

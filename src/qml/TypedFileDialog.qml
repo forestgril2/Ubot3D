@@ -32,15 +32,15 @@ FileDialog {
         switch(fileType) {
             case TypedFileDialog.StlImport:
                 console.log(" ### TypedFileDialog.StlImport: " + fileDialog.currentFiles)
-                stlModels.model = generateSystemFilepathList(fileDialog.currentFiles)
+                stlObjects.model = generateSystemFilepathList(fileDialog.currentFiles)
                 break
             case TypedFileDialog.StlExport:
                 stlModel.exportModelToSTL(generateSystemFilePath(fileDialog.currentFile))
                 console.log(" ### TypedFileDialog.StlExport: " + fullSystemFilePath)
                 break
             case TypedFileDialog.GcodeImport:
-                gCodeModels.model = [generateSystemFilePath(fileDialog.currentFile)]
-                console.log(" ### TypedFileDialog.GcodeImport: " + gCodeModels.model[0])
+                gCodeObjects.model = [generateSystemFilePath(fileDialog.currentFile)]
+                console.log(" ### TypedFileDialog.GcodeImport: " + gCodeObjects.model[0])
                 break
 
         }

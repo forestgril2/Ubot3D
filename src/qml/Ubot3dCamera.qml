@@ -11,14 +11,6 @@ PerspectiveCamera {
 	id: camera
 	
 	property vector3d initDistToModel: Qt.vector3d(-150, -150, 100)
-	
-    function getOriginAndRay(x,y) {
-        var origin = position
-        var pointAtScreen = Qt.vector3d(x/view3d.width, y/view3d.height, 0)
-        var pointSceneTo = mapFromViewport(pointAtScreen)
-        var ray = pointSceneTo.minus(origin).normalized()
-        return {origin, ray}
-    }
 
 	function lookAt(point)
 	{

@@ -1,4 +1,5 @@
 import QtQml 2.3
+import "HelperFunctions.js" as QmlHelpers
 
 QtObject {
     id: modelGroupDrag
@@ -12,38 +13,36 @@ QtObject {
 //    property int dragType: PickArea.DragType.Position
     property bool isActive: false
     property vector3d startPickPos
-    property vector3d startModelPos
-    property var pickedModel
-    property bool wasPickedModelPickedBefore
-    property var models
-    property var modelsStartPositions
+    property vector3d startDragPos
+    property var pickedObject
+    property bool wasDragStartedWithPick
+    property var objects
+    property var objectStartPositions
 
     function start(mouse) {
-        var pickData = connectedPickArea.getClosestPick(mouse)
-        if (!pickData.model)
-            return
+        var pickData = connectedPickArea.getPick(mouse)
+        if (!pickData.object)
+        {
+            if (mouse.button !== Qt.RightButton)
+                return
+
+            // In case of right drag, we will rotate.
+//            startPickPos = helper3D
+        }
 
 //        dragType = mouse.PickArea.DragType.Position
         startPickPos = pickData.coords
-        pickedModel = pickData.model
-        startModelPos = pickedModel.position
-        wasPickedModelPickedBefore = pickedModel.isPicked
+        pickedObject = pickData.object
+        startDragPos = startPickPos
 
-        var pickedModels = []
-        var pickedModelsPositions = []
-        pickedModel.isPicked = true
-        for (var i=0; i<stlModels.count; i++)
-        {// Find out, which objects are selected
-            var stlModel = stlModels.objectAt(i)
-            if (stlModel.isPicked) {
-                pickedModels.push(stlModel)
-                var pickedModelPosition = Qt.vector3d(stlModel.position.x, stlModel.position.y, stlModel.position.z)
-                pickedModelsPositions.push(pickedModelPosition)
-            }
+        if (pickedObject) {
+            wasDragStartedWithPick = pickedObject.isPicked
+            pickedObject.isPicked = true
         }
 
-        models = pickedModels
-        modelsStartPositions = pickedModelsPositions
+        objects = QmlHelpers.getSelected(stlObjects)
+        objectStartPositions = QmlHelpers.getPositions(objects)
+
         isActive = true
     }
 
@@ -52,21 +51,32 @@ QtObject {
             return
         isActive = false
 
-        pickedModel.isPicked = wasPickedModelPickedBefore
-    }
-
-    function moveModels(dragVector) {
-        for (var i=0; i<models.length; i++)
-        {
-            models[i].position = modelsStartPositions[i].plus(dragVector)
+        if (pickedObject) {
+            pickedObject.isPicked = wasDragStartedWithPick
         }
     }
 
-    function dragPositionChanged(originAndRay) {
-        var planeIntersection = helper3D.getLinePlaneIntersection(originAndRay.ray,
-                                                                  originAndRay.origin,
-                                                                  Qt.vector3d(0,0,1),
-                                                                  modelGroupDrag.startPickPos)
+    function moveModels(dragVector) {
+        for (var i=0; i<objects.length; i++)
+        {
+            objects[i].position = objectStartPositions[i].plus(dragVector)
+        }
+    }
+
+    function rotateModels(dragStart, dragVector) {
+        var centerPosition = Qt.vector3d(0,0,0)
+        for (var i=0; i<objects.length; i++)
+        {
+            centerPosition = centerPosition.plus(objects[i].position)
+        }
+        centerPosition = centerPosition.times(1/objects.length)
+
+        console.log(" ### rotating!:" + "")
+    }
+
+    function dragPositionChanged(origin, ray) {
+        var planeIntersection =
+                helper3D.getLinePlaneIntersection(origin, ray, Qt.vector3d(0,0,1), modelGroupDrag.startPickPos)
 
         var dragVector = planeIntersection.intersection.minus(modelGroupDrag.startPickPos)
 
@@ -74,7 +84,7 @@ QtObject {
             modelGroupDrag.moveModels(dragVector)
         }
         if (pickArea.pressedButtons & Qt.RightButton) {
-            modelGroupDrag.rotateModels(dragVector)
+            modelGroupDrag.rotateModels(modelGroupDrag.startPickPos, dragVector)
         }
     }
 }

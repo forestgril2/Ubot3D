@@ -2,7 +2,7 @@ import QtQuick3D 1.15
 import customgeometry 1.0
 
 Model {
-    id: rootModel
+    id: stlModel
     property alias inputFile: geometry.inputFile
     property bool isPicked: false
     property bool isSnappedToFloor: false
@@ -19,10 +19,12 @@ Model {
 
         onBoundsChanged: {
 //            var modelCenter = rootModel.geometry.minBounds.plus(rootModel.geometry.maxBounds).times(0.5)
-            console.log(" model bounds min: " + rootModel.geometry.minBounds)
-            console.log(" model bounds max: " + rootModel.geometry.maxBounds)
+//            console.log(" model bounds min: " + stlModel.geometry.minBounds)
+//            console.log(" model bounds max: " + stlModel.geometry.maxBounds)
 //            console.log(" modelCenter : " + modelCenter)
 
+            //TODO: Have to think about resnapping, after minBounds.z change.
+//            isSnappedToFloor = false;
             snapToFloor()
         }
     }
@@ -30,7 +32,7 @@ Model {
     materials: [
         DefaultMaterial {
             cullMode: DefaultMaterial.NoCulling
-            diffuseColor: rootModel.isPicked ? "cyan" : "lightgrey"
+            diffuseColor: stlModel.isPicked ? "cyan" : "lightgrey"
             specularAmount: 0.5
         }
     ]
@@ -41,15 +43,16 @@ Model {
 
     function snapToFloor()
     {
+//        console.log(" ### snapToFloor:" + "")
         if (isSnappedToFloor)
             return
 
-        move(Qt.vector3d(0,0, -rootModel.geometry.minBounds.z))
+        move(Qt.vector3d(0,0, -stlModel.geometry.minBounds.z))
         isSnappedToFloor = true
 
     }
 
     function move(offset) {
-        rootModel.position = rootModel.position.plus(offset)
+        stlModel.position = stlModel.position.plus(offset)
     }
 }

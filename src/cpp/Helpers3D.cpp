@@ -52,10 +52,10 @@ float Helpers3D::getRotationAngle(const QQuaternion& rotation)
 	return angle;
 }
 
-QVariantMap Helpers3D::getLinePlaneIntersection(const QVector3D& ray,
-															  const QVector3D& origin,
-															  const QVector3D& planeNormal,
-															  const QVector3D& planeCoord)
+QVariantMap Helpers3D::getLinePlaneIntersection(const QVector3D& origin,
+												const QVector3D& ray,
+												const QVector3D& planeNormal,
+												const QVector3D& planeCoord)
 {
 
 	if (qFuzzyIsNull(QVector3D::dotProduct(planeNormal, ray)))

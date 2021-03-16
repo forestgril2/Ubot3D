@@ -56,18 +56,20 @@ MouseArea {
             return
         }
 
-        var closestPick = getClosestPick(mouse)
-        if (!closestPick.model && !doubleClickTimer.running)
-        {
-            QmlHelpers.deselectAll(stlModels)
-            return
-        }
+        if (mouse.button === Qt.LeftButton) {
+            var pick = getPick(mouse)
+            if (!pick.object && !doubleClickTimer.running)
+            {
+                QmlHelpers.deselectAll(stlObjects)
+                return
+            }
 
-        closestPick.model.isPicked = !closestPick.model.isPicked
+            pick.object.isPicked = !pick.object.isPicked
+        }
     }
 
     function onDoubleClickedAction() {
-        var model = QmlHelpers.getPickedModel(stlModels)
+        var model = QmlHelpers.getPickedModel(stlObjects)
         if (model) {
             camera.lookAt(QmlHelpers.getModelCenter(model))
         }
@@ -88,29 +90,35 @@ MouseArea {
         return false
     }
 
-    function getClosestPick(mouse) {
-        var originAndRay = camera.getOriginAndRay(mouse.x, mouse.y)
+    function getPick(mouse) {
+        var ray = QmlHelpers.getRay(camera, mouse.x, mouse.y, view3d.width, view3d.height)
+        var origin = camera.position
         var coords = undefined
         var dist = Infinity
-        var model = undefined
+        var object = undefined
 
-        for (var i = 0; i < stlModels.count; i++)
+        for (var i = 0; i < stlObjects.count; i++)
         {// Find out, if we are pressing an object.
-            var stlModel = stlModels.objectAt(i)
+            var stlModel = stlObjects.objectAt(i)
 
-            var modelIntersection = stlModel.geometry.getPick(originAndRay.origin, originAndRay.ray, stlModel.sceneTransform)
+            var modelIntersection = stlModel.geometry.getPick(origin, ray, stlModel.sceneTransform)
             if (!modelIntersection.isHit)
                 continue
 
-            var distToHit = modelIntersection.intersection.minus(originAndRay.origin).length()
+            var distToHit = modelIntersection.intersection.minus(origin).length()
             if (distToHit >= dist)
                 continue
 
-            model = stlModel
+            object = stlModel
             dist = distToHit
             coords = modelIntersection.intersection
         }
 
-        return {model: model, coords: coords}
+        if (!coords) {
+            // If there is no hit, pick point on the ground ground
+            coords = helper3D.getLinePlaneIntersection(origin, ray, Qt.vector3d(0,0,1), Qt.vector3d(0,0,0))
+        }
+
+        return {object: object, coords: coords}
     }
 }

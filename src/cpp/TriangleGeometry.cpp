@@ -74,7 +74,7 @@ void TriangleGeometry::updateAllMeshBounds(const aiScene* scene, const unsigned 
 	{
 		updateBounds(&(scene->mMeshes[meshIndex]->mVertices[i].x));
 	}
-	logBounds();
+//	logBounds();
 }
 
 bool TriangleGeometry::importModelFromFile(const std::string& pFile)
@@ -132,8 +132,8 @@ void TriangleGeometry::exportModelToSTL(const QString& filePath)
 
 
 QVariantMap TriangleGeometry::getPick(const QVector3D& origin,
-										   const QVector3D& direction,
-										   const QMatrix4x4& globalTransform)
+									  const QVector3D& direction,
+									  const QMatrix4x4& globalTransform)
 {
 	Chronograph chronograph(__FUNCTION__, false);
 	QVariantMap noHit{{"intersection", QVector3D()}, {"isHit", false}};
@@ -311,7 +311,7 @@ void TriangleGeometry::reloadSceneIfNecessary()
 }
 void TriangleGeometry::updateData()
 {
-	Chronograph chronograph(__FUNCTION__);
+	Chronograph chronograph(__FUNCTION__, false);
 	reloadSceneIfNecessary();
 
 	if (!scene)

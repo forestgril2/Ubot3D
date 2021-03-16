@@ -8,6 +8,13 @@ function getModelCenter(model) {
     return model.position.plus(getModelCenterOffset(model))
 }
 
+function getRay(camera, x, y, width, height) {
+    var origin = camera.position
+    var pointAtScreen = Qt.vector3d(x/width, y/height, 0)
+    var pointSceneTo = camera.mapFromViewport(pointAtScreen)
+    return pointSceneTo.minus(origin).normalized()
+}
+
 function deselectAll(models) {
     for (var i = 0; i < models.count; i++)
     {
@@ -15,17 +22,34 @@ function deselectAll(models) {
     }
 }
 
-function getPickedModel(models) {
-    var pickedModels = []
-    for (var i=0; i<models.count; i++)
-    {// Find out, which objects are selected
-        var stlModel = models.objectAt(i)
-        if (stlModel.isPicked) {
-            pickedModels.push(stlModel)
-        }
+function getSelected(modelsListContainer) {
+    var selectedModels = []
+    for (var i=0; i<modelsListContainer.count; i++)
+    {
+        var model = modelsListContainer.objectAt(i)
+        if (!model.isPicked)
+            continue
+        selectedModels.push(model)
     }
-    if (pickedModels.length != 1)
-        return undefined
+    return selectedModels
+}
 
-    return pickedModels[0]
+function getPositions(objects) {
+    var positions = []
+    for (var i=0; i<objects.length; i++)
+    {
+        var object = objects[i]
+        var pos = Qt.vector3d(object.position.x,
+                              object.position.y,
+                              object.position.z)
+        positions.push(pos)
+    }
+    return positions
+}
+
+function getPickedModel(modelsListContainer) {
+    var selectedModels = getSelected(modelsListContainer)
+    if (selectedModels.length !== 1)
+        return undefined
+    return selectedModels[0]
 }
