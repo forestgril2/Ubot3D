@@ -326,6 +326,8 @@ void TriangleGeometry::updateData()
 	if (!scene)
 		return;
 
+	_overhangingVertices.clear();
+
 	const uint32_t numfloatsPerPositionAttribute = 3u;
 	const uint32_t numfloatsPerColorAttribute = 4u;
 	uint32_t stride = numfloatsPerPositionAttribute * sizeof(float);
@@ -390,11 +392,11 @@ void TriangleGeometry::updateData()
 
 		const aiVector3D boundDiff = _maxBound-_minBound;
 
-		auto getColorForNormal = [this](const aiVector3D& normal) -> Eigen::Vector4f {
-			return normal*aiVector3D{0,0,1} > std::cosf(M_PI - _maxOverhangAngle) ? Eigen::Vector4f{1,1,1,1} : Eigen::Vector4f {1,0.3,0,1};
+		auto isVertexNormalOverhanging = [](const aiVector3D normal, float maxOverhangAngle) {
+			return normal*aiVector3D{0,0,1} > std::cosf(float(M_PI) - maxOverhangAngle);
 		};
 
-		auto setTriangleVertex = [this, &p, &pi, &boundDiff, floatsPerStride, getColorForNormal](uint32_t vertexIndex) {
+		auto setTriangleVertex = [this, &p, &pi, &boundDiff, floatsPerStride, isVertexNormalOverhanging](uint32_t vertexIndex) {
 			const aiVector3D vertex = scene->mMeshes[0]->mVertices[vertexIndex];
 			const aiVector3D normal = scene->mMeshes[0]->mNormals[vertexIndex];
 			*p++ = vertex.x + _warp*boundDiff.x*sin(vertex.z/2);
@@ -402,7 +404,12 @@ void TriangleGeometry::updateData()
 			*p++ = vertex.z;
 
 			// Set color
-			const Eigen::Vector4f color = getColorForNormal(normal);
+			const bool isVertexOverhanging = isVertexNormalOverhanging(normal, _overhangAngleMax);
+			const Eigen::Vector4f color = isVertexOverhanging ? _baseModelColor : _overhangColor;
+			if (isVertexOverhanging)
+			{
+				_overhangingVertices.push_back(vertex);
+			}
 			*p++ = color.x();
 			*p++ = color.y();
 			*p++ = color.z();

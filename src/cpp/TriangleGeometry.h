@@ -7,6 +7,7 @@
 #include <qqml.h>
 
 #include <assimp/scene.h>
+#include <Eigen/Geometry>
 
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\runtimerender\qssgrenderray_p.h>
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
@@ -98,6 +99,9 @@ private:
 	QSSGMeshBVH* _intersectionData = nullptr;
 	const aiScene* scene = nullptr;
 
+	Eigen::Vector4f _baseModelColor = {1,1,1,1};
+	Eigen::Vector4f _overhangColor = {1,0.3f,0,1};
+
 	aiVector3D _maxFloatBound;
 	aiVector3D _minFloatBound;
 
@@ -106,7 +110,9 @@ private:
 
 	const uint32_t _indexAttributeIndex = 2;
 
-	float _maxOverhangAngle = M_PI_4;
+	float _overhangAngleMax = M_PI_4;
+	std::vector<aiVector3D> _overhangingVertices;
+
 	bool _hasColors = true;
 	bool _hasNormals = false;
 	float _normalXY = 0.0f;
