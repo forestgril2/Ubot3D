@@ -47,6 +47,21 @@ function getPositions(objects) {
     return positions
 }
 
+function getRotations(objects) {
+    var rotations = []
+    for (var i=0; i<objects.length; i++)
+    {
+        var object = objects[i]
+        console.log(" ### object.rotation:" + object.rotation)
+        var rot = Qt.quaternion(object.rotation.x,
+                                object.rotation.y,
+                                object.rotation.z,
+                                object.rotation.w)
+        rotations.push(rot)
+    }
+    return rotations
+}
+
 function getPickedModel(modelsListContainer) {
     var selectedModels = getSelected(modelsListContainer)
     if (selectedModels.length !== 1)

@@ -10,6 +10,7 @@ MouseArea {
     property point pressStartPosition
     property int pressMoveIgnoreDist: 1
 
+    acceptedButtons: Qt.LeftButton | Qt.RightButton
     anchors.fill: view3d
     onDoubleClicked: {
         onDoubleClickedAction()
@@ -116,7 +117,12 @@ MouseArea {
 
         if (!coords) {
             // If there is no hit, pick point on the ground ground
-            coords = helper3D.getLinePlaneIntersection(origin, ray, Qt.vector3d(0,0,1), Qt.vector3d(0,0,0))
+            var planeHit =
+                    helper3D.getLinePlaneIntersection(origin, ray, Qt.vector3d(0,0,1), Qt.vector3d(0,0,0))
+
+            if (planeHit.isHit) {
+                coords = planeHit.intersection
+            }
         }
 
         return {object: object, coords: coords}

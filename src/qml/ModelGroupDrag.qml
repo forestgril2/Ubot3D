@@ -12,12 +12,12 @@ QtObject {
 
 //    property int dragType: PickArea.DragType.Position
     property bool isActive: false
-    property vector3d startPickPos
     property vector3d startDragPos
     property var pickedObject
     property bool wasDragStartedWithPick
     property var objects
     property var objectStartPositions
+    property var objectStartRotations
 
     function start(mouse) {
         var pickData = connectedPickArea.getPick(mouse)
@@ -27,13 +27,12 @@ QtObject {
                 return
 
             // In case of right drag, we will rotate.
-//            startPickPos = helper3D
+//            startDragPos = helper3D
         }
 
 //        dragType = mouse.PickArea.DragType.Position
-        startPickPos = pickData.coords
+        startDragPos = pickData.coords
         pickedObject = pickData.object
-        startDragPos = startPickPos
 
         if (pickedObject) {
             wasDragStartedWithPick = pickedObject.isPicked
@@ -42,6 +41,7 @@ QtObject {
 
         objects = QmlHelpers.getSelected(stlObjects)
         objectStartPositions = QmlHelpers.getPositions(objects)
+        objectStartRotations = QmlHelpers.getRotations(objects)
 
         isActive = true
     }
@@ -64,27 +64,39 @@ QtObject {
     }
 
     function rotateModels(dragStart, dragVector) {
+        console.assert(objects.length === objectStartPositions.length, "Operating on lists of different sizes.");
+
         var centerPosition = Qt.vector3d(0,0,0)
-        for (var i=0; i<objects.length; i++)
+        for (var i=0; i<objectStartPositions.length; i++)
         {
-            centerPosition = centerPosition.plus(objects[i].position)
+            centerPosition = centerPosition.plus(objectStartPositions[i])
         }
         centerPosition = centerPosition.times(1/objects.length)
 
-        console.log(" ### rotating!:" + "")
+        console.log(" ### centerPosition :" + centerPosition)
+
+        var startDir = dragStart.minus(centerPosition)
+        var endDir = startDir.plus(dragVector)
+        var additionalRotation = helper3D.getRotationFromAxes(startDir, endDir)
+
+        console.log(" ### additionalRotation :" + additionalRotation )
+
+        for (var i=0; i<objects.length; i++) {
+            objects[i].rotation = helper3D.getRotationFromQuaternions(objectStartRotations[i], additionalRotation)
+        }
     }
 
     function dragPositionChanged(origin, ray) {
         var planeIntersection =
-                helper3D.getLinePlaneIntersection(origin, ray, Qt.vector3d(0,0,1), modelGroupDrag.startPickPos)
+                helper3D.getLinePlaneIntersection(origin, ray, Qt.vector3d(0,0,1), modelGroupDrag.startDragPos)
 
-        var dragVector = planeIntersection.intersection.minus(modelGroupDrag.startPickPos)
+        var dragVector = planeIntersection.intersection.minus(modelGroupDrag.startDragPos)
 
         if (pickArea.pressedButtons & Qt.LeftButton) {
             modelGroupDrag.moveModels(dragVector)
         }
         if (pickArea.pressedButtons & Qt.RightButton) {
-            modelGroupDrag.rotateModels(modelGroupDrag.startPickPos, dragVector)
+            modelGroupDrag.rotateModels(modelGroupDrag.startDragPos, dragVector)
         }
     }
 }
