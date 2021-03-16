@@ -72,17 +72,17 @@ QtObject {
             centerPosition = centerPosition.plus(objectStartPositions[i])
         }
         centerPosition = centerPosition.times(1/objects.length)
-
-        console.log(" ### centerPosition :" + centerPosition)
+        centerPosition.z = dragStart.z
 
         var startDir = dragStart.minus(centerPosition)
         var endDir = startDir.plus(dragVector)
         var additionalRotation = helper3D.getRotationFromAxes(startDir, endDir)
 
-        console.log(" ### additionalRotation :" + additionalRotation )
-
         for (var i=0; i<objects.length; i++) {
             objects[i].rotation = helper3D.getRotationFromQuaternions(objectStartRotations[i], additionalRotation)
+            var initialObjectRadiusFromCenter = objectStartPositions[i].minus(centerPosition)
+            var rotatedObjectRadius = helper3D.getRotatedVector(additionalRotation, initialObjectRadiusFromCenter)
+            objects[i].position = centerPosition.plus(rotatedObjectRadius)
         }
     }
 

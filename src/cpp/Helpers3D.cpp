@@ -70,3 +70,8 @@ QVariantMap Helpers3D::getLinePlaneIntersection(const QVector3D& origin,
 
 	return QVariantMap{{"intersection", origin + ray.normalized()*lineParam}, {"isHit", true}};
 }
+
+QVector3D Helpers3D::getRotatedVector(const QQuaternion& q, const QVector3D v)
+{
+	return q*v;
+}

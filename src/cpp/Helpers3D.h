@@ -24,4 +24,5 @@ public:
 															const QVector3D& ray,
 															const QVector3D& planeNormal,
 															const QVector3D& planeCoord);
+	static Q_INVOKABLE QVector3D getRotatedVector(const QQuaternion& q, const QVector3D v);
 };

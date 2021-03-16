@@ -52,11 +52,15 @@ function getRotations(objects) {
     for (var i=0; i<objects.length; i++)
     {
         var object = objects[i]
-        console.log(" ### object.rotation:" + object.rotation)
-        var rot = Qt.quaternion(object.rotation.x,
+        var rot = Qt.quaternion(object.rotation.scalar,
+                                object.rotation.x,
                                 object.rotation.y,
-                                object.rotation.z,
-                                object.rotation.w)
+                                object.rotation.z)
+
+        if (rot.scalar === 0) {
+            // Handle ugly initial qml 3d object state.
+            rot.scalar = 1;
+        }
         rotations.push(rot)
     }
     return rotations
