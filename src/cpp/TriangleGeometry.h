@@ -110,6 +110,9 @@ private:
 	aiVector3D maxBound;
 	aiVector3D minBound;
 
+	const uint32_t _indexAttributeIndex = 2;
+
+	bool m_hasColors = true;
     bool m_hasNormals = false;
     float m_normalXY = 0.0f;
     bool m_hasUV = false;

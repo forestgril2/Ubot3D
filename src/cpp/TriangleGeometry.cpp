@@ -317,15 +317,23 @@ void TriangleGeometry::updateData()
 	if (!scene)
 		return;
 
-    int stride = 3 * sizeof(float);
-    if (m_hasNormals)
-    {
-        stride += 3 * sizeof(float);
-    }
-    if (m_hasUV)
-    {
-        stride += 2 * sizeof(float);
-    }
+	const uint32_t numfloatsPerPositionAttribute = 3u;
+	const uint32_t numfloatsPerColorAttribute = 4u;
+	uint32_t stride = numfloatsPerPositionAttribute * sizeof(float);
+	if (m_hasColors)
+	{
+		stride += numfloatsPerColorAttribute * sizeof(float);
+	}
+	const uint32_t floatsPerStride = stride / sizeof(float);
+
+//    if (m_hasNormals)
+//    {
+//        stride += 3 * sizeof(float);
+//    }
+//    if (m_hasUV)
+//    {
+//        stride += 2 * sizeof(float);
+//    }
 
 	unsigned numMeshFaces = scene->mMeshes[0]->mNumFaces;
 
@@ -373,13 +381,21 @@ void TriangleGeometry::updateData()
 
 		const aiVector3D boundDiff = maxBound-minBound;
 
-		auto setTriangleVertex = [this, &p, &pi, &boundDiff](unsigned vertexIndex) {
+		auto setTriangleVertex = [this, &p, &pi, &boundDiff, floatsPerStride](unsigned vertexIndex) {
 			const aiVector3D vertex = scene->mMeshes[0]->mVertices[vertexIndex];
 			*p++ = vertex.x + _warp*boundDiff.x*sin(vertex.z/2);
 			*p++ = vertex.y;
 			*p++ = vertex.z;
+
+			// Set color
+			*p++ = 1.0f;
+			*p++ = 1.0f;
+			*p++ = vertex.z > 10.0f ? 1.0f : 0.0;
+			*p++ = 1.0f;
+
 			*pi++ = vertexIndex;
-			updateBounds(p-3);
+
+			updateBounds(p-floatsPerStride);
 		};
 
 		setTriangleVertex(face.mIndices[0]);
@@ -397,6 +413,10 @@ void TriangleGeometry::updateData()
     addAttribute(QQuick3DGeometry::Attribute::PositionSemantic,
                  0,
                  QQuick3DGeometry::Attribute::F32Type);
+
+	addAttribute(QQuick3DGeometry::Attribute::ColorSemantic,
+				 numfloatsPerPositionAttribute * sizeof(float),
+				 QQuick3DGeometry::Attribute::F32Type);
 
 	addAttribute(QQuick3DGeometry::Attribute::IndexSemantic,
 				 0,
@@ -441,9 +461,9 @@ void TriangleGeometry::buildIntersectionData()
 	meshData.m_stride = stride();
 	meshData.m_attributeCount = attributeCount();
 	// TODO: Hacking... do it properly.... if needed :)
-	meshData.m_attributes[1].semantic = QSSGMeshUtilities::MeshData::Attribute::IndexSemantic;
-	meshData.m_attributes[1].offset = 0;
-	meshData.m_attributes[1].componentType = QSSGMeshUtilities::MeshData::Attribute::U32Type;
+	meshData.m_attributes[_indexAttributeIndex].semantic = QSSGMeshUtilities::MeshData::Attribute::IndexSemantic;
+	meshData.m_attributes[_indexAttributeIndex].offset = 0;
+	meshData.m_attributes[_indexAttributeIndex].componentType = QSSGMeshUtilities::MeshData::Attribute::U32Type;
 
 //	for (unsigned i = 0; i < meshData.m_attributeCount; ++i)
 //	{

@@ -8,7 +8,7 @@ MouseArea {
     property var postponedOnClickedActionData: undefined
     property var camera: undefined
     property point pressStartPosition
-    property int pressMoveIgnoreDist: 1
+    property int pressMoveIgnoreDist: 2
 
     acceptedButtons: Qt.LeftButton | Qt.RightButton
     anchors.fill: view3d
