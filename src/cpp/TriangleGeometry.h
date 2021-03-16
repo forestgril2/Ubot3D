@@ -49,16 +49,16 @@ public:
 	QString getInputFile() const;
 	void setInputFile(const QString& url);
 
-    bool normals() const { return m_hasNormals; }
+	bool normals() const { return _hasNormals; }
     void setNormals(bool enable);
 
-    float normalXY() const { return m_normalXY; }
+	float normalXY() const { return _normalXY; }
     void setNormalXY(float xy);
 
-    bool uv() const { return m_hasUV; }
+	bool uv() const { return _hasUV; }
     void setUV(bool enable);
 
-    float uvAdjust() const { return m_uvAdjust; }
+	float uvAdjust() const { return _uvAdjust; }
     void setUVAdjust(float f);
 
     float warp() const { return _warp;}
@@ -69,14 +69,7 @@ public:
 	QVector3D maxBounds() const;
 
 	bool isPicked() const;
-	void setPicked(const bool isPicked)
-	{
-		if (_isPicked == isPicked)
-			return;
-
-		_isPicked = isPicked;
-		isPickedChanged();
-	}
+	void setPicked(const bool isPicked);
 
 public slots:
     void setMinBounds(const QVector3D& minBounds);
@@ -93,6 +86,7 @@ signals:
 	void isPickedChanged();
 
 private:
+	bool importModelFromFile(const std::string& pFile);
 	void updateAllMeshBounds(const aiScene* scene, const unsigned meshIndex = 0u);
 	void updateBounds(const float* vertexMatrixXCoord);
     void updateData();
@@ -104,30 +98,30 @@ private:
 	QSSGMeshBVH* _intersectionData = nullptr;
 	const aiScene* scene = nullptr;
 
-	aiVector3D maxFloatBound;
-	aiVector3D minFloatBound;
+	aiVector3D _maxFloatBound;
+	aiVector3D _minFloatBound;
 
-	aiVector3D maxBound;
-	aiVector3D minBound;
+	aiVector3D _maxBound;
+	aiVector3D _minBound;
 
 	const uint32_t _indexAttributeIndex = 2;
 
-	bool m_hasColors = true;
-    bool m_hasNormals = false;
-    float m_normalXY = 0.0f;
-    bool m_hasUV = false;
-    float m_uvAdjust = 0.0f;
+	float _maxOverhangAngle = M_PI_4;
+	bool _hasColors = true;
+	bool _hasNormals = false;
+	float _normalXY = 0.0f;
+	bool _hasUV = false;
+	float _uvAdjust = 0.0f;
     float _warp = 0.0f;
 
 	bool _isPicked = false;
-	bool isAssimpReadDone = false;
+	bool _isAssimpReadDone = false;
 
 //	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 //	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
 	QString _inputFile;
 	//	QString _inputFile = "C:/ProjectsData/stl_files/mandoblasterlow.stl";
-	bool importModelFromFile(const std::string& pFile);
 };
 
 //class PointGeometry : public QQuick3DGeometry

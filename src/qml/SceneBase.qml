@@ -38,7 +38,7 @@ Node {
 
     PointLight {
         position: sceneCenter.plus(Qt.vector3d(30, 0, 100))
-        color: Qt.rgba(0.1, 1.0, 0.1, 1.0)
+        color: Qt.rgba(0.5, 0.5, 0.5, 1.0)
         ambientColor: Qt.rgba(0.2, 0.2, 0.2, 1.0)
     }
 

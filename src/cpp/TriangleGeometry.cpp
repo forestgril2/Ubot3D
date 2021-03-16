@@ -1,9 +1,7 @@
-#include "TriangleGeometry.h"
+#include <TriangleGeometry.h>
 
-#include <QRandomGenerator>
 #include <QVector3D>
 #include <QQuaternion>
-#include <TriangleGeometry.h>
 
 #include <algorithm>
 #include <cstdio>
@@ -30,7 +28,9 @@
 //#include <D:\Projects\qt6\qtquick3d\src\utils\qssgoption_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrenderlayer_p.h>
 
-#include "Chronograph.h"
+#include <Eigen/Geometry>
+
+#include <Chronograph.h>
 
 // To have QSG included
 QT_BEGIN_NAMESPACE
@@ -49,27 +49,27 @@ static void assimpLogScene(const aiScene* scene)
 
 void TriangleGeometry::updateBounds(const float* vertexMatrixXCoord)
 {
-	minBound.x = (std::min(minBound.x, *vertexMatrixXCoord));
-	maxBound.x = (std::max(maxBound.x, *vertexMatrixXCoord));
+	_minBound.x = (std::min(_minBound.x, *vertexMatrixXCoord));
+	_maxBound.x = (std::max(_maxBound.x, *vertexMatrixXCoord));
 	++vertexMatrixXCoord;
-	minBound.y = (std::min(minBound.y, *vertexMatrixXCoord));
-	maxBound.y = (std::max(maxBound.y, *vertexMatrixXCoord));
+	_minBound.y = (std::min(_minBound.y, *vertexMatrixXCoord));
+	_maxBound.y = (std::max(_maxBound.y, *vertexMatrixXCoord));
 	++vertexMatrixXCoord;
-	minBound.z = (std::min(minBound.z, *vertexMatrixXCoord));
-	maxBound.z = (std::max(maxBound.z, *vertexMatrixXCoord));
+	_minBound.z = (std::min(_minBound.z, *vertexMatrixXCoord));
+	_maxBound.z = (std::max(_maxBound.z, *vertexMatrixXCoord));
 }
 
 void TriangleGeometry::logBounds()
 {
-	std::cout << " ### aiScene minBound(x,y,z): [" << minBound.x << "," << minBound.y << "," << minBound.z << "]" << std::endl;
-	std::cout << " ### aiScene maxBound(x,y,z): [" << maxBound.x << "," << maxBound.y << "," << maxBound.z << "]" << std::endl;
+	std::cout << " ### aiScene minBound(x,y,z): [" << _minBound.x << "," << _minBound.y << "," << _minBound.z << "]" << std::endl;
+	std::cout << " ### aiScene maxBound(x,y,z): [" << _maxBound.x << "," << _maxBound.y << "," << _maxBound.z << "]" << std::endl;
 }
 
 void TriangleGeometry::updateAllMeshBounds(const aiScene* scene, const unsigned meshIndex)
 {
 	const unsigned numMeshVertices = scene->mMeshes[meshIndex]->mNumVertices;
-	minBound = minFloatBound;
-	maxBound = maxFloatBound;
+	_minBound = _minFloatBound;
+	_maxBound = _maxFloatBound;
 	for (unsigned i = 0; i < numMeshVertices; ++i)
 	{
 		updateBounds(&(scene->mMeshes[meshIndex]->mVertices[i].x));
@@ -97,16 +97,16 @@ bool TriangleGeometry::importModelFromFile(const std::string& pFile)
 
 //	assimpLogScene(scene);
 
-	isAssimpReadDone = true;
+	_isAssimpReadDone = true;
 	// We're done. Everything will be cleaned up by the importer destructor
 	return true;
 }
 
 TriangleGeometry::TriangleGeometry() :
-	maxFloatBound(aiVector3D(-FLT_MAX, -FLT_MAX, -FLT_MAX)),
-	minFloatBound(aiVector3D(FLT_MAX, FLT_MAX, FLT_MAX)),
-	maxBound(aiVector3D(-FLT_MAX, -FLT_MAX, -FLT_MAX)),
-	minBound(aiVector3D(FLT_MAX, FLT_MAX, FLT_MAX))
+	_maxFloatBound(aiVector3D(-FLT_MAX, -FLT_MAX, -FLT_MAX)),
+	_minFloatBound(aiVector3D(FLT_MAX, FLT_MAX, FLT_MAX)),
+	_maxBound(aiVector3D(-FLT_MAX, -FLT_MAX, -FLT_MAX)),
+	_minBound(aiVector3D(FLT_MAX, FLT_MAX, FLT_MAX))
 {
 	updateData();
 }
@@ -193,17 +193,17 @@ void TriangleGeometry::setInputFile(const QString& url)
 		return;
 
 	_inputFile = url;
-	isAssimpReadDone = false;
+	_isAssimpReadDone = false;
 	updateData();
 	update();
 }
 
 void TriangleGeometry::setNormals(bool enable)
 {
-	if (m_hasNormals == enable)
+	if (_hasNormals == enable)
 		return;
 
-    m_hasNormals = enable;
+	_hasNormals = enable;
     emit normalsChanged();
     updateData();
     update();
@@ -211,10 +211,10 @@ void TriangleGeometry::setNormals(bool enable)
 
 void TriangleGeometry::setNormalXY(float xy)
 {
-    if (m_normalXY == xy)
+	if (_normalXY == xy)
         return;
 
-    m_normalXY = xy;
+	_normalXY = xy;
     emit normalXYChanged();
     updateData();
     update();
@@ -222,10 +222,10 @@ void TriangleGeometry::setNormalXY(float xy)
 
 void TriangleGeometry::setUV(bool enable)
 {
-    if (m_hasUV == enable)
+	if (_hasUV == enable)
         return;
 
-    m_hasUV = enable;
+	_hasUV = enable;
     emit uvChanged();
     updateData();
     update();
@@ -233,10 +233,10 @@ void TriangleGeometry::setUV(bool enable)
 
 void TriangleGeometry::setUVAdjust(float f)
 {
-    if (m_uvAdjust == f)
+	if (_uvAdjust == f)
         return;
 
-    m_uvAdjust = f;
+	_uvAdjust = f;
     emit uvAdjustChanged();
     updateData();
     update();
@@ -257,8 +257,8 @@ void TriangleGeometry::setBounds(const QVector3D& min, const QVector3D& max)
 {
 	QQuick3DGeometry::setBounds(min, max);
 
-	minBound = {min.x(), min.y(), min.z()};
-	maxBound = {max.x(), max.y(), max.z()};
+	_minBound = {min.x(), min.y(), min.z()};
+	_maxBound = {max.x(), max.y(), max.z()};
 
 	emit boundsChanged();
 }
@@ -275,12 +275,12 @@ void TriangleGeometry::setMaxBounds(const QVector3D& maxBounds)
 
 QVector3D TriangleGeometry::minBounds() const
 {
-	return QVector3D(minBound.x, minBound.y, minBound.z);
+	return QVector3D(_minBound.x, _minBound.y, _minBound.z);
 }
 
 QVector3D TriangleGeometry::maxBounds() const
 {
-	return QVector3D(maxBound.x, maxBound.y, maxBound.z);
+	return QVector3D(_maxBound.x, _maxBound.y, _maxBound.z);
 }
 
 bool TriangleGeometry::isPicked() const
@@ -288,9 +288,18 @@ bool TriangleGeometry::isPicked() const
 	return _isPicked;
 }
 
+void TriangleGeometry::setPicked(const bool isPicked)
+{
+	if (_isPicked == isPicked)
+		return;
+
+	_isPicked = isPicked;
+	isPickedChanged();
+}
+
 void TriangleGeometry::reloadSceneIfNecessary()
 {
-	if (!isAssimpReadDone)
+	if (!_isAssimpReadDone)
 	{
 		if (_inputFile.isEmpty())
 		{
@@ -304,7 +313,7 @@ void TriangleGeometry::reloadSceneIfNecessary()
 		updateAllMeshBounds(scene);
 
 //		assimpLogScene(scene);
-		setBounds({minBound.x, minBound.y, minBound.z}, {maxBound.x, maxBound.y,maxBound.z});
+		setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
 		emit modelLoaded();
 	}
 	clear();
@@ -320,7 +329,7 @@ void TriangleGeometry::updateData()
 	const uint32_t numfloatsPerPositionAttribute = 3u;
 	const uint32_t numfloatsPerColorAttribute = 4u;
 	uint32_t stride = numfloatsPerPositionAttribute * sizeof(float);
-	if (m_hasColors)
+	if (_hasColors)
 	{
 		stride += numfloatsPerColorAttribute * sizeof(float);
 	}
@@ -379,19 +388,25 @@ void TriangleGeometry::updateData()
 			std::cout << "#### WARNING! face.mNumIndices != 3, but " << face.mNumIndices << std::endl;
 		}
 
-		const aiVector3D boundDiff = maxBound-minBound;
+		const aiVector3D boundDiff = _maxBound-_minBound;
 
-		auto setTriangleVertex = [this, &p, &pi, &boundDiff, floatsPerStride](unsigned vertexIndex) {
+		auto getColorForNormal = [this](const aiVector3D& normal) -> Eigen::Vector4f {
+			return normal*aiVector3D{0,0,1} > std::cosf(M_PI - _maxOverhangAngle) ? Eigen::Vector4f{1,1,1,1} : Eigen::Vector4f {1,0.3,0,1};
+		};
+
+		auto setTriangleVertex = [this, &p, &pi, &boundDiff, floatsPerStride, getColorForNormal](uint32_t vertexIndex) {
 			const aiVector3D vertex = scene->mMeshes[0]->mVertices[vertexIndex];
+			const aiVector3D normal = scene->mMeshes[0]->mNormals[vertexIndex];
 			*p++ = vertex.x + _warp*boundDiff.x*sin(vertex.z/2);
 			*p++ = vertex.y;
 			*p++ = vertex.z;
 
 			// Set color
-			*p++ = 1.0f;
-			*p++ = 1.0f;
-			*p++ = vertex.z > 10.0f ? 1.0f : 0.0;
-			*p++ = 1.0f;
+			const Eigen::Vector4f color = getColorForNormal(normal);
+			*p++ = color.x();
+			*p++ = color.y();
+			*p++ = color.z();
+			*p++ = color.w();
 
 			*pi++ = vertexIndex;
 
@@ -402,7 +417,7 @@ void TriangleGeometry::updateData()
 		setTriangleVertex(face.mIndices[1]);
 		setTriangleVertex(face.mIndices[2]);
 	}
-	setBounds({minBound.x, minBound.y, minBound.z}, {maxBound.x, maxBound.y,maxBound.z});
+	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
 
     setVertexData(v);
 	setIndexData(indices);
