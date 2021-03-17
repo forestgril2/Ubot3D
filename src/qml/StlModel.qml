@@ -37,10 +37,6 @@ Model {
         }
     ]
 
-    function exportModelToSTL(path) {
-        geometry.exportModelToSTL(path)
-    }
-
     function snapToFloor()
     {
 //        console.log(" ### snapToFloor:" + "")

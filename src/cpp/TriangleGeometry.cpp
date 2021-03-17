@@ -28,9 +28,11 @@
 //#include <D:\Projects\qt6\qtquick3d\src\utils\qssgoption_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrenderlayer_p.h>
 
-#include <Chronograph.h>
 //#include <CGAL/Delaunay_d.h>
 //#include <CGAL/Alpha_shape_2.h>
+
+#include <Chronograph.h>
+#include <Helpers3D.h>
 
 // To have QSG included
 QT_BEGIN_NAMESPACE
@@ -83,19 +85,19 @@ bool TriangleGeometry::importModelFromFile(const std::string& pFile)
 	// Usually - if speed is not the most important aspect for you - you'll
 	// probably to request more postprocessing than we do in this example.
 	static Assimp::Importer importer;
-	scene = importer.ReadFile(pFile,
+	_scene = importer.ReadFile(pFile,
 							  aiProcess_CalcTangentSpace |
 							  aiProcess_Triangulate |
 //							   aiProcess_JoinIdenticalVertices |
 							  aiProcess_SortByPType);
 	// If the import failed, report it
-	if(!scene)
+	if(!_scene)
 	{
 		assimpErrorLogging(std::string(importer.GetErrorString()));
 		return false;
 	}
 
-//	assimpLogScene(scene);
+	assimpLogScene(_scene);
 
 	_isAssimpReadDone = true;
 	// We're done. Everything will be cleaned up by the importer destructor
@@ -113,20 +115,7 @@ TriangleGeometry::TriangleGeometry() :
 
 void TriangleGeometry::exportModelToSTL(const QString& filePath)
 {
-	Assimp::Exporter exporter;
-
-//	// And have it read the given file with some example postprocessing
-//	// Usually - if speed is not the most important aspect for you - you'll
-//	// probably to request more postprocessing than we do in this example.
-//	if (AI_SUCCESS == exporter.Export(scene, "stl", filePath.toStdString()))
-//	{
-//		std::cout << " ### " << __FUNCTION__ << " filePATH:" << filePath.toStdString() << " export OK" << std::endl;
-//	}
-//	else
-//	{
-//		std::cout << " ### " << __FUNCTION__ << " ERROR for file:" << filePath.toStdString() << std::endl;
-//	}
-
+//	Helpers3D::exportModelsToSTL(filePath);
 }
 
 
@@ -185,6 +174,11 @@ QVariantMap TriangleGeometry::getPick(const QVector3D& origin,
 QVector<QVector3D> TriangleGeometry::getOverhangingVertices() const
 {
 	return _overhangingVertices;
+}
+
+const aiScene* TriangleGeometry::getAssimpScene() const
+{
+	return _scene;
 }
 
 QString TriangleGeometry::getInputFile() const
@@ -315,7 +309,7 @@ void TriangleGeometry::reloadSceneIfNecessary()
 		if (!importModelFromFile(_inputFile.toStdString().c_str()))
 			return;
 
-		updateAllMeshBounds(scene);
+		updateAllMeshBounds(_scene);
 
 //		assimpLogScene(scene);
 		setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
@@ -328,7 +322,7 @@ void TriangleGeometry::updateData()
 	Chronograph chronograph(__FUNCTION__, false);
 	reloadSceneIfNecessary();
 
-	if (!scene)
+	if (!_scene)
 		return;
 
 	_overhangingVertices.clear();
@@ -351,7 +345,7 @@ void TriangleGeometry::updateData()
 //        stride += 2 * sizeof(float);
 //    }
 
-	unsigned numMeshFaces = scene->mMeshes[0]->mNumFaces;
+	unsigned numMeshFaces = _scene->mMeshes[0]->mNumFaces;
 
     QByteArray v;
 	v.resize(3 * numMeshFaces * stride);
@@ -388,7 +382,7 @@ void TriangleGeometry::updateData()
 
 	for (unsigned i = 0; i < numMeshFaces; ++i)
 	{
-		const aiFace& face = scene->mMeshes[0]->mFaces[i];
+		const aiFace& face = _scene->mMeshes[0]->mFaces[i];
 
 		if (face.mNumIndices != 3)
 		{
@@ -402,8 +396,8 @@ void TriangleGeometry::updateData()
 		};
 
 		auto setTriangleVertex = [this, &p, &pi, &boundDiff, floatsPerStride, isVertexNormalOverhanging](uint32_t vertexIndex) {
-			const aiVector3D vertex = scene->mMeshes[0]->mVertices[vertexIndex];
-			const aiVector3D normal = scene->mMeshes[0]->mNormals[vertexIndex];
+			const aiVector3D vertex = _scene->mMeshes[0]->mVertices[vertexIndex];
+			const aiVector3D normal = _scene->mMeshes[0]->mNormals[vertexIndex];
 			*p++ = vertex.x + _warp*boundDiff.x*sin(vertex.z/2);
 			*p++ = vertex.y;
 			*p++ = vertex.z;

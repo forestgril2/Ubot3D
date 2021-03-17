@@ -49,6 +49,7 @@ public:
 
 	QVector<QVector3D> getOverhangingVertices() const;
 
+	const aiScene* getAssimpScene() const;
 
 	QString getInputFile() const;
 	void setInputFile(const QString& url);
@@ -101,7 +102,7 @@ private:
 	void logBounds();
 
 	QSSGMeshBVH* _intersectionData = nullptr;
-	const aiScene* scene = nullptr;
+	const aiScene* _scene = nullptr;
 
 	Eigen::Vector4f _baseModelColor = {1, 1, 1, 1};
 	Eigen::Vector4f _overhangColor = {1, 0.3f, 0, 1};

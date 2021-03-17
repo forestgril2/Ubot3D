@@ -82,6 +82,7 @@ else:unix: LIBS += -L$$PWD/../assimp-5.0.1/build/code/ -lassimp-vc142-mtd
 
 INCLUDEPATH += D:/Programy/CGAL/include
 INCLUDEPATH += $$PWD/../eigen
+INCLUDEPATH += $$PWD/../glm
 INCLUDEPATH += $$PWD/../gpr/src
 INCLUDEPATH += $$PWD/src/cpp
 DEPENDPATH += $$PWD/../gpr/src

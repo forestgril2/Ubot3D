@@ -22,16 +22,16 @@ MenuBar {
 
 			MenuItem {
                 text: qsTr("Import model(s) as STL")
-                onTriggered: fileDialog.importStl()
+                onTriggered: fileDialog.openImportStlFileDialog()
 			}
             MenuItem {
                 text: qsTr("Export selecion to STL")
 
-                onTriggered: fileDialog.exportStl()
+                onTriggered: fileDialog.openExportStlFileDialog()
             }
 			MenuItem{
                 text: qsTr("Import GCode")
-                onTriggered: fileDialog.importGcode()
+                onTriggered: fileDialog.openImportGcodeFileDialog()
 			}
 			MenuItem {
 				text: qsTr("Recently Opened...")

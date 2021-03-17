@@ -1,8 +1,18 @@
 #include "Helpers3D.h"
+
+#include <iostream>
+
 #include <QVector3D>
 #include <QQuaternion>
 #include <QVariantMap>
 
+#include <assimp/scene.h>
+#include <assimp/Exporter.hpp>
+#include <assimp/cexport.h>
+
+#include <glm/mat4x4.hpp>
+
+#include <TriangleGeometry.h>
 
 QQuaternion Helpers3D::getRotationFromDirection(const QVector3D& direction, const QVector3D& up)
 {
@@ -74,4 +84,77 @@ QVariantMap Helpers3D::getLinePlaneIntersection(const QVector3D& origin,
 QVector3D Helpers3D::getRotatedVector(const QQuaternion& q, const QVector3D v)
 {
 	return q*v;
+}
+
+bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QString filePath)
+{
+	Assimp::Exporter exporter;
+
+	assert(stlExportData.size() > 0);
+
+	const TriangleGeometry* stlGeometry = qvariant_cast<TriangleGeometry*>(stlExportData.back());
+
+	if (!stlGeometry) {
+		std::cout << " ### " << __FUNCTION__ << " cannot cast to TriangleGeometry:" << "" << "," << "" << std::endl;
+		return false;
+	}
+
+
+	aiScene* newScene;
+	aiCopyScene(stlGeometry->getAssimpScene(), &newScene);
+	std::cout << " ### " << __FUNCTION__ << " stlGeometry copied scene numVertices:" << newScene->mMeshes[0]->mNumVertices << "," << "" << std::endl;
+
+	// And have it read the given file with some example postprocessing
+	// Usually - if speed is not the most important aspect for you - you'll
+	// probably to request more postprocessing than we do in this example.
+//	if (AI_SUCCESS == exporter.Export(scene, "stl", filePath.toStdString()))
+//	{
+//		std::cout << " ### " << __FUNCTION__ << " filePATH:" << filePath.toStdString() << " export OK" << std::endl;
+//	}
+//	else
+//	{
+//		std::cout << " ### " << __FUNCTION__ << " ERROR for file:" << filePath.toStdString() << std::endl;
+//	}
+
+	return true;
+}
+
+void Helpers3D::mergeScenes(aiScene* scene, const aiScene* otherScene,
+						   const glm::mat4x4 transform) {
+	aiMesh ** new_meshes = new aiMesh*[scene->mNumMeshes + otherScene->mNumMeshes];
+	memcpy(new_meshes, scene->mMeshes, scene->mNumMeshes * sizeof(aiMesh*));
+	delete[] scene->mMeshes;
+	scene->mMeshes = new_meshes;
+	for (int i = 0, offset = scene->mNumMeshes; i < otherScene->mNumMeshes; i++, offset++) {
+		aiMesh *mesh = otherScene->mMeshes[i];
+		aiMesh *copy_mesh = scene->mMeshes[offset] = new aiMesh;
+
+		copy_mesh->mNumVertices = mesh->mNumVertices;
+		copy_mesh->mVertices = new aiVector3D[mesh->mNumVertices];
+		copy_mesh->mPrimitiveTypes = mesh->mPrimitiveTypes;
+		for (int j = 0; j < mesh->mNumVertices; j++) {
+			glm::vec4 v(mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z, 1);
+			v = transform * v;
+			copy_mesh->mVertices[j] = aiVector3D(v.x, v.y, v.z);
+		}
+		// copy_mesh->mMaterialIndex = mesh->mMaterialIndex; // FIXME
+		copy_mesh->mName = mesh->mName;
+		copy_mesh->mNumFaces = mesh->mNumFaces;
+		if (mesh->mNormals) {
+			copy_mesh->mNormals = new aiVector3D[mesh->mNumVertices];
+			for (int j = 0; j < mesh->mNumVertices; j++) {
+				glm::vec4 v(mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z, 0);
+				v = transform * v;
+				copy_mesh->mNormals[j] = aiVector3D(v.x, v.y, v.z);
+			}
+		}
+		copy_mesh->mFaces = new aiFace[mesh->mNumFaces];
+		for (int j = 0; j < mesh->mNumFaces; j++) {
+			copy_mesh->mFaces[j].mNumIndices = mesh->mFaces[j].mNumIndices;
+			copy_mesh->mFaces[j].mIndices = new unsigned[mesh->mFaces[j].mNumIndices];
+			memcpy(copy_mesh->mFaces[j].mIndices, mesh->mFaces[j].mIndices,
+				   mesh->mFaces[j].mNumIndices * sizeof(unsigned));
+		}
+	}
+	scene->mNumMeshes += otherScene->mNumMeshes;
 }

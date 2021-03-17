@@ -1,6 +1,7 @@
 import Qt.labs.platform 1.1
 import QtQuick.Controls 2.15
 import QtQuick 2.15
+import "HelperFunctions.js" as QmlHelpers
 
 FileDialog {
     id: root
@@ -35,8 +36,9 @@ FileDialog {
                 stlObjects.model = generateSystemFilepathList(fileDialog.currentFiles)
                 break
             case TypedFileDialog.StlExport:
-                stlModel.exportModelToSTL(generateSystemFilePath(fileDialog.currentFile))
-                console.log(" ### TypedFileDialog.StlExport: " + fullSystemFilePath)
+                helper3D.exportModelsToSTL(prepareStlExportData(QmlHelpers.getSelected(stlObjects)),
+                                           generateSystemFilePath(fileDialog.currentFile))
+                console.log(" ### TypedFileDialog.StlExport: " + fileDialog.currentFiles)
                 break
             case TypedFileDialog.GcodeImport:
                 gCodeObjects.model = [generateSystemFilePath(fileDialog.currentFile)]
@@ -46,7 +48,7 @@ FileDialog {
         }
     }
 
-    function importStl()
+    function openImportStlFileDialog()
     {
         nameFilters = ["STL files (*.stl *.STL)", "Object files (*.obj)"]
         fileMode = FileDialog.OpenFiles
@@ -54,7 +56,7 @@ FileDialog {
         open()
     }
 
-    function exportStl()
+    function openExportStlFileDialog()
     {
         nameFilters = ["STL files (*.stl *.STL)"]
         fileMode = FileDialog.SaveFile
@@ -62,11 +64,19 @@ FileDialog {
         open()
     }
 
-    function importGcode()
+    function openImportGcodeFileDialog()
     {
         nameFilters = ["Gcode files (*.gcode)"]
         fileMode = FileDialog.OpenFile
         fileType = TypedFileDialog.GcodeImport
         open()
+    }
+
+    function prepareStlExportData(stlModelList) {
+        var geometryList = []
+        for (var i=0; i<stlModelList.length; i++) {
+            geometryList.push(stlModelList[i].geometry)
+        }
+        return geometryList;
     }
 }
