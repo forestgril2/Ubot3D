@@ -28,9 +28,9 @@
 //#include <D:\Projects\qt6\qtquick3d\src\utils\qssgoption_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrenderlayer_p.h>
 
-#include <Eigen/Geometry>
-
 #include <Chronograph.h>
+//#include <CGAL/Delaunay_d.h>
+//#include <CGAL/Alpha_shape_2.h>
 
 // To have QSG included
 QT_BEGIN_NAMESPACE
@@ -180,6 +180,11 @@ QVariantMap TriangleGeometry::getPick(const QVector3D& origin,
 	}
 
 	return noHit;
+}
+
+QVector<QVector3D> TriangleGeometry::getOverhangingVertices() const
+{
+	return _overhangingVertices;
 }
 
 QString TriangleGeometry::getInputFile() const
@@ -393,7 +398,7 @@ void TriangleGeometry::updateData()
 		const aiVector3D boundDiff = _maxBound-_minBound;
 
 		auto isVertexNormalOverhanging = [](const aiVector3D normal, float maxOverhangAngle) {
-			return normal*aiVector3D{0,0,1} > std::cosf(float(M_PI) - maxOverhangAngle);
+			return normal*aiVector3D{0,0,1} < std::cosf(float(M_PI) - maxOverhangAngle);
 		};
 
 		auto setTriangleVertex = [this, &p, &pi, &boundDiff, floatsPerStride, isVertexNormalOverhanging](uint32_t vertexIndex) {
@@ -405,10 +410,10 @@ void TriangleGeometry::updateData()
 
 			// Set color
 			const bool isVertexOverhanging = isVertexNormalOverhanging(normal, _overhangAngleMax);
-			const Eigen::Vector4f color = isVertexOverhanging ? _baseModelColor : _overhangColor;
+			const Eigen::Vector4f color = isVertexOverhanging ? _overhangColor : _baseModelColor;
 			if (isVertexOverhanging)
 			{
-				_overhangingVertices.push_back(vertex);
+				_overhangingVertices.push_back(QVector3D(vertex.x, vertex.y, vertex.z));
 			}
 			*p++ = color.x();
 			*p++ = color.y();
@@ -425,6 +430,9 @@ void TriangleGeometry::updateData()
 		setTriangleVertex(face.mIndices[2]);
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
+
+	// Inform, that overhangings data was modified.
+	emit overhangingVerticesChanged();
 
     setVertexData(v);
 	setIndexData(indices);
@@ -513,40 +521,59 @@ void TriangleGeometry::buildIntersectionData()
 	_intersectionData = meshBVHBuilder.buildTree();
 }
 
-//PointGeometry::PointGeometry()
-//{
-//    updateData();
-//}
+PointGeometry::PointGeometry()
+{
+	const uint32_t numPoints = 1000000;
+	_points.resize(numPoints);
+	std::for_each(_points.begin(), _points.end(), [](QVector3D& point) {
+		point = {5.0f*rand()/RAND_MAX,5.0f*rand()/RAND_MAX,5.0f*rand()/RAND_MAX};
+	});
 
-//void PointGeometry::updateData()
-//{
-//	clear();
 
-//	unsigned numVertices = scene->mMeshes[0]->mNumVertices;
+	connect(this, &PointGeometry::pointsChanged, this, &PointGeometry::updateData);
 
-//    const int stride = 3 * sizeof(float);
+	updateData();
+}
 
-//    QByteArray v;
-//	v.resize(numVertices * stride);
-//    float *p = reinterpret_cast<float *>(v.data());
+void PointGeometry::updateData()
+{
+	clear();
 
-//	for (unsigned i = 0; i < numVertices; ++i)
-//	{
-//		const aiVector3D& vertex = scene->mMeshes[0]->mVertices[i];
-//		*p++ = vertex.x;
-//		*p++ = vertex.y;
-//		*p++ = vertex.z;
-//    }
+	uint32_t numPoints = uint32_t(_points.size());
 
-//    setVertexData(v);
-//    setStride(stride);
+	const int stride = 3 * sizeof(float);
 
-//    setPrimitiveType(QQuick3DGeometry::PrimitiveType::Points);
+	QByteArray v;
+	v.resize(numPoints * stride);
+	float *p = reinterpret_cast<float *>(v.data());
 
-//    addAttribute(QQuick3DGeometry::Attribute::PositionSemantic,
-//                 0,
-//                 QQuick3DGeometry::Attribute::F32Type);
-//}
+	for(const QVector3D& vertex : _points)
+	{
+		*p++ = vertex.x();
+		*p++ = vertex.y();
+		*p++ = vertex.z();
+	}
+
+	setVertexData(v);
+	setStride(stride);
+
+	setPrimitiveType(QQuick3DGeometry::PrimitiveType::Points);
+
+	addAttribute(QQuick3DGeometry::Attribute::PositionSemantic,
+				 0,
+				 QQuick3DGeometry::Attribute::F32Type);
+}
+
+QVector<QVector3D> PointGeometry::getPoints() const
+{
+	return _points;
+}
+
+void PointGeometry::setPoints(QList<QVector3D> newPoints)
+{
+	_points = newPoints;
+	emit pointsChanged();
+}
 
 
 QT_END_NAMESPACE

@@ -52,7 +52,7 @@ Window {
 
         Repeater3D {
             id: stlObjects
-
+            model: []
             delegate: StlModel {
                 id: stlModel
                 inputFile: stlObjects.model[index]
@@ -65,6 +65,26 @@ Window {
             model: []
             delegate: GCodeGeometryRepeaterModelDelegate {
                 inputFile: gCodeObjects.model[index]
+            }
+        }
+
+        Repeater3D {
+            id: overhangingPoints
+            model: stlObjects.model
+            delegate: Model {
+                visible: true
+                scale: Qt.vector3d(1, 1, 1)
+                geometry: PointGeometry {
+                    points: stlObjects.objectAt(index).geometry.overhangingVertices
+                }
+                materials: [
+                    DefaultMaterial {
+                        lighting: DefaultMaterial.NoLighting
+                        cullMode: DefaultMaterial.NoCulling
+                        diffuseColor: "yellow"
+                        //                    pointSize: sliderPointSize.value
+                    }
+                ]
             }
         }
 

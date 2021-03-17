@@ -80,6 +80,7 @@ win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/Debug/ -lassimp-vc142-mtd# -L$$PWD/../gpr/build/ -lmsys-gpr
 else:unix: LIBS += -L$$PWD/../assimp-5.0.1/build/code/ -lassimp-vc142-mtd
 
+INCLUDEPATH += D:/Programy/CGAL/include
 INCLUDEPATH += $$PWD/../eigen
 INCLUDEPATH += $$PWD/../gpr/src
 INCLUDEPATH += $$PWD/src/cpp
