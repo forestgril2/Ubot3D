@@ -101,6 +101,9 @@ private:
 	void buildIntersectionData();
 	void reloadSceneIfNecessary();
 
+	void performTriangulation();
+	int createCgalMesh();
+
 	void logBounds();
 
 	QSSGMeshBVH* _intersectionData = nullptr;

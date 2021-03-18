@@ -32,6 +32,22 @@
 #include <Chronograph.h>
 #include <Helpers3D.h>
 
+#include <fstream>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Triangulation_2.h>
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh.h>
+
+using K = CGAL::Exact_predicates_inexact_constructions_kernel;
+using Triangulation = CGAL::Triangulation_2<K>;
+using Vertex_circulator = Triangulation::Vertex_circulator;
+using Point = Triangulation::Point;
+
+using C = CGAL::Simple_cartesian<float>;
+using Mesh = CGAL::Surface_mesh<C::Point_3>;
+using vertex_descriptor = Mesh::Vertex_index;
+using face_descriptor = Mesh::Face_index ;
+
 // To have QSG included
 QT_BEGIN_NAMESPACE
 
@@ -573,5 +589,43 @@ void PointGeometry::setPoints(QList<QVector3D> newPoints)
 	emit pointsChanged();
 }
 
+
+int TriangleGeometry::performTriangulation()
+{
+  std::ifstream in("data/triangulation_prog1.cin");
+  std::istream_iterator<Point> begin(in);
+  std::istream_iterator<Point> end;
+
+  std::vector<Point> cgalPoints;
+  Triangulation t;
+  t.insert(begin, end);
+  Vertex_circulator vc = t.incident_vertices(t.infinite_vertex()),
+	done(vc);
+  if (vc != 0) {
+	do { std::cout << vc->point() << std::endl;
+	}while(++vc != done);
+  }
+  return 0;
+}
+
+
+int TriangleGeometry::createCgalMesh()
+{
+  Mesh m;
+  // Add the points as vertices
+  vertex_descriptor u = m.add_vertex(C::Point_3(0,1,0));
+  vertex_descriptor v = m.add_vertex(C::Point_3(0,0,0));
+  vertex_descriptor w = m.add_vertex(C::Point_3(1,1,0));
+  vertex_descriptor x = m.add_vertex(C::Point_3(1,0,0));
+  m.add_face(u,v,w);
+  face_descriptor f = m.add_face(u,v,x);
+  if(f == Mesh::null_face())
+  {
+	std::cerr<<"The face could not be added because of an orientation error."<<std::endl;
+	f = m.add_face(u,x,v);
+	assert(f != Mesh::null_face());
+  }
+  return 0;
+}
 
 QT_END_NAMESPACE
