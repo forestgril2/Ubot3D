@@ -121,7 +121,15 @@ bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QStri
 	Assimp::SceneCombiner::MergeScenes(&destScene, masterScene, sceneAttachments);
 
 	Assimp::Exporter exporter;
-	if (AI_SUCCESS == exporter.Export(destScene, "stl", filePath.toStdString()))
+
+//	for (uint32_t i=0; i<exporter.GetExportFormatCount(); ++i)
+//	{
+//		std::string desc(exporter.GetExportFormatDescription(i)->description);
+//		std::string formatIdentifier(exporter.GetExportFormatDescription(i)->id);
+//		std::cout << " ### " << __FUNCTION__ << ": " << desc << "," << formatIdentifier << ", " << i << std::endl << std::endl;
+//	}
+
+	if (AI_SUCCESS == exporter.Export(destScene, "stlb", filePath.toStdString()))
 	{
 		std::cout << " ### " << __FUNCTION__ << " filePATH:" << filePath.toStdString() << " export OK" << std::endl;
 	}
