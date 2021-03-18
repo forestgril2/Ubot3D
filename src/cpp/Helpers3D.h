@@ -31,5 +31,6 @@ public:
 	static Q_INVOKABLE QVector3D getRotatedVector(const QQuaternion& q, const QVector3D v);
 	static Q_INVOKABLE bool exportModelsToSTL(const QVariantList& stlExportData, const QString filePath);
 
-	void mergeScenes(aiScene* scene, const aiScene* otherScene, const glm::mat4x4 transform);
+private:
+	static void mergeScenes(aiScene* scene, const aiScene* otherScene, const glm::mat4x4 transform);
 };

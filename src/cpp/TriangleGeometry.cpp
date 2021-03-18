@@ -10,8 +10,6 @@
 #include <string>
 
 // ASSIMP LIBRARY INCLUDE
-#include <assimp/Importer.hpp>
-#include <assimp/Exporter.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <assimp/DefaultLogger.hpp>
@@ -84,11 +82,10 @@ bool TriangleGeometry::importModelFromFile(const std::string& pFile)
 	// And have it read the given file with some example postprocessing
 	// Usually - if speed is not the most important aspect for you - you'll
 	// probably to request more postprocessing than we do in this example.
-	static Assimp::Importer importer;
 	_scene = importer.ReadFile(pFile,
 							  aiProcess_CalcTangentSpace |
 							  aiProcess_Triangulate |
-//							   aiProcess_JoinIdenticalVertices |
+//							  aiProcess_JoinIdenticalVertices |
 							  aiProcess_SortByPType);
 	// If the import failed, report it
 	if(!_scene)
@@ -96,7 +93,6 @@ bool TriangleGeometry::importModelFromFile(const std::string& pFile)
 		assimpErrorLogging(std::string(importer.GetErrorString()));
 		return false;
 	}
-
 	assimpLogScene(_scene);
 
 	_isAssimpReadDone = true;

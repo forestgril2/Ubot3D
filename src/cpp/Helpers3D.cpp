@@ -9,6 +9,7 @@
 #include <assimp/scene.h>
 #include <assimp/Exporter.hpp>
 #include <assimp/cexport.h>
+#include <assimp/SceneCombiner.h>
 
 #include <glm/mat4x4.hpp>
 
@@ -88,44 +89,55 @@ QVector3D Helpers3D::getRotatedVector(const QQuaternion& q, const QVector3D v)
 
 bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QString filePath)
 {
-	Assimp::Exporter exporter;
 
 	assert(stlExportData.size() > 0);
 
-	const TriangleGeometry* stlGeometry = qvariant_cast<TriangleGeometry*>(stlExportData.back());
+	QList<QVariant>::const_iterator it = stlExportData.begin();
 
-	if (!stlGeometry) {
+	const TriangleGeometry* stlGeometryFirst = qvariant_cast<TriangleGeometry*>(*it);
+	it++;
+	const TriangleGeometry* stlGeometryBack = qvariant_cast<TriangleGeometry*>(*it);
+
+	if (!stlGeometryFirst) {
 		std::cout << " ### " << __FUNCTION__ << " cannot cast to TriangleGeometry:" << "" << "," << "" << std::endl;
 		return false;
 	}
 
+	aiScene* destScene = nullptr;
 
-	aiScene* newScene;
-	aiCopyScene(stlGeometry->getAssimpScene(), &newScene);
-	std::cout << " ### " << __FUNCTION__ << " stlGeometry copied scene numVertices:" << newScene->mMeshes[0]->mNumVertices << "," << "" << std::endl;
+	aiScene* newSceneFirst;
+	aiScene* newSceneBack;
 
-	// And have it read the given file with some example postprocessing
-	// Usually - if speed is not the most important aspect for you - you'll
-	// probably to request more postprocessing than we do in this example.
-//	if (AI_SUCCESS == exporter.Export(scene, "stl", filePath.toStdString()))
-//	{
-//		std::cout << " ### " << __FUNCTION__ << " filePATH:" << filePath.toStdString() << " export OK" << std::endl;
-//	}
-//	else
-//	{
-//		std::cout << " ### " << __FUNCTION__ << " ERROR for file:" << filePath.toStdString() << std::endl;
-//	}
+	Assimp::SceneCombiner::CopyScene(&newSceneFirst, stlGeometryFirst->getAssimpScene());
+	Assimp::SceneCombiner::CopyScene(&newSceneBack, stlGeometryBack->getAssimpScene());
+
+	std::vector<Assimp::AttachmentInfo> sceneAttachments{{newSceneFirst, newSceneFirst->mRootNode},
+														 {newSceneBack, newSceneFirst->mRootNode}};
+	Assimp::SceneCombiner::MergeScenes(&destScene, newSceneFirst, sceneAttachments);
+//	mergeScenes(newScene, stlGeometryBack->getAssimpScene(), glm::mat4x4());
+
+
+	Assimp::Exporter exporter;
+	if (AI_SUCCESS == exporter.Export(newSceneFirst, "stl", filePath.toStdString()))
+	{
+		std::cout << " ### " << __FUNCTION__ << " filePATH:" << filePath.toStdString() << " export OK" << std::endl;
+	}
+	else
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR for file:" << filePath.toStdString() << std::endl;
+	}
 
 	return true;
 }
 
-void Helpers3D::mergeScenes(aiScene* scene, const aiScene* otherScene,
-						   const glm::mat4x4 transform) {
+void Helpers3D::mergeScenes(aiScene* scene, const aiScene* otherScene, const glm::mat4x4 transform)
+{// This is a modified copy of: https://github.com/assimp/assimp/issues/203#issuecomment-293866481
 	aiMesh ** new_meshes = new aiMesh*[scene->mNumMeshes + otherScene->mNumMeshes];
 	memcpy(new_meshes, scene->mMeshes, scene->mNumMeshes * sizeof(aiMesh*));
 	delete[] scene->mMeshes;
 	scene->mMeshes = new_meshes;
-	for (int i = 0, offset = scene->mNumMeshes; i < otherScene->mNumMeshes; i++, offset++) {
+	for (int i = 0, offset = scene->mNumMeshes; i < otherScene->mNumMeshes; i++, offset++)
+	{
 		aiMesh *mesh = otherScene->mMeshes[i];
 		aiMesh *copy_mesh = scene->mMeshes[offset] = new aiMesh;
 
@@ -137,6 +149,7 @@ void Helpers3D::mergeScenes(aiScene* scene, const aiScene* otherScene,
 			v = transform * v;
 			copy_mesh->mVertices[j] = aiVector3D(v.x, v.y, v.z);
 		}
+
 		// copy_mesh->mMaterialIndex = mesh->mMaterialIndex; // FIXME
 		copy_mesh->mName = mesh->mName;
 		copy_mesh->mNumFaces = mesh->mNumFaces;
@@ -148,6 +161,7 @@ void Helpers3D::mergeScenes(aiScene* scene, const aiScene* otherScene,
 				copy_mesh->mNormals[j] = aiVector3D(v.x, v.y, v.z);
 			}
 		}
+
 		copy_mesh->mFaces = new aiFace[mesh->mNumFaces];
 		for (int j = 0; j < mesh->mNumFaces; j++) {
 			copy_mesh->mFaces[j].mNumIndices = mesh->mFaces[j].mNumIndices;

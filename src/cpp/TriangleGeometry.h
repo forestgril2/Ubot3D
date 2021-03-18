@@ -7,6 +7,8 @@
 #include <qqml.h>
 
 #include <assimp/scene.h>
+#include <assimp/Importer.hpp>
+
 #include <Eigen/Geometry>
 
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\runtimerender\qssgrenderray_p.h>
@@ -102,6 +104,8 @@ private:
 	void logBounds();
 
 	QSSGMeshBVH* _intersectionData = nullptr;
+
+	Assimp::Importer importer;
 	const aiScene* _scene = nullptr;
 
 	Eigen::Vector4f _baseModelColor = {1, 1, 1, 1};
