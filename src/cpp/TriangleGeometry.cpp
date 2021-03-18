@@ -341,7 +341,11 @@ void TriangleGeometry::updateData()
 //        stride += 2 * sizeof(float);
 //    }
 
-	unsigned numMeshFaces = _scene->mMeshes[0]->mNumFaces;
+	uint32_t numMeshFaces = 0;
+	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
+	{
+		numMeshFaces += _scene->mMeshes[m]->mNumFaces;
+	}
 
     QByteArray v;
 	v.resize(3 * numMeshFaces * stride);
@@ -376,48 +380,52 @@ void TriangleGeometry::updateData()
 
 // a triangle, front face = counter-clockwise
 
-	for (unsigned i = 0; i < numMeshFaces; ++i)
+	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
 	{
-		const aiFace& face = _scene->mMeshes[0]->mFaces[i];
-
-		if (face.mNumIndices != 3)
+		const uint32_t numFacesInThisMesh = _scene->mMeshes[m]->mNumFaces;
+		for (uint32_t f=0; f<numFacesInThisMesh; ++f)
 		{
-			std::cout << "#### WARNING! face.mNumIndices != 3, but " << face.mNumIndices << std::endl;
-		}
+			const aiFace& face = _scene->mMeshes[m]->mFaces[f];
 
-		const aiVector3D boundDiff = _maxBound-_minBound;
-
-		auto isVertexNormalOverhanging = [](const aiVector3D normal, float maxOverhangAngle) {
-			return normal*aiVector3D{0,0,1} < std::cosf(float(M_PI) - maxOverhangAngle);
-		};
-
-		auto setTriangleVertex = [this, &p, &pi, &boundDiff, floatsPerStride, isVertexNormalOverhanging](uint32_t vertexIndex) {
-			const aiVector3D vertex = _scene->mMeshes[0]->mVertices[vertexIndex];
-			const aiVector3D normal = _scene->mMeshes[0]->mNormals[vertexIndex];
-			*p++ = vertex.x + _warp*boundDiff.x*sin(vertex.z/2);
-			*p++ = vertex.y;
-			*p++ = vertex.z;
-
-			// Set color
-			const bool isVertexOverhanging = isVertexNormalOverhanging(normal, _overhangAngleMax);
-			const Eigen::Vector4f color = isVertexOverhanging ? _overhangColor : _baseModelColor;
-			if (isVertexOverhanging)
+			if (face.mNumIndices != 3)
 			{
-				_overhangingVertices.push_back(QVector3D(vertex.x, vertex.y, vertex.z));
+				std::cout << "#### WARNING! face.mNumIndices != 3, but " << face.mNumIndices << std::endl;
 			}
-			*p++ = color.x();
-			*p++ = color.y();
-			*p++ = color.z();
-			*p++ = color.w();
 
-			*pi++ = vertexIndex;
+			const aiVector3D boundDiff = _maxBound-_minBound;
 
-			updateBounds(p-floatsPerStride);
-		};
+			auto isVertexNormalOverhanging = [](const aiVector3D normal, float maxOverhangAngle) {
+				return normal*aiVector3D{0,0,1} < std::cosf(float(M_PI) - maxOverhangAngle);
+			};
 
-		setTriangleVertex(face.mIndices[0]);
-		setTriangleVertex(face.mIndices[1]);
-		setTriangleVertex(face.mIndices[2]);
+			auto setTriangleVertex = [this, &p, &pi, &boundDiff, floatsPerStride, isVertexNormalOverhanging](uint32_t vertexIndex) {
+				const aiVector3D vertex = _scene->mMeshes[0]->mVertices[vertexIndex];
+				const aiVector3D normal = _scene->mMeshes[0]->mNormals[vertexIndex];
+				*p++ = vertex.x + _warp*boundDiff.x*sin(vertex.z/2);
+				*p++ = vertex.y;
+				*p++ = vertex.z;
+
+				// Set color
+				const bool isVertexOverhanging = isVertexNormalOverhanging(normal, _overhangAngleMax);
+				const Eigen::Vector4f color = isVertexOverhanging ? _overhangColor : _baseModelColor;
+				if (isVertexOverhanging)
+				{
+					_overhangingVertices.push_back(QVector3D(vertex.x, vertex.y, vertex.z));
+				}
+				*p++ = color.x();
+				*p++ = color.y();
+				*p++ = color.z();
+				*p++ = color.w();
+
+				*pi++ = vertexIndex;
+
+				updateBounds(p-floatsPerStride);
+			};
+
+			setTriangleVertex(face.mIndices[0]);
+			setTriangleVertex(face.mIndices[1]);
+			setTriangleVertex(face.mIndices[2]);
+		}
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
 

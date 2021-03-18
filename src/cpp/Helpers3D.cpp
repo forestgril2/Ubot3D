@@ -103,7 +103,7 @@ bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QStri
 		return false;
 	}
 
-	aiScene* destScene = nullptr;
+	aiScene* destScene = new aiScene();
 
 	aiScene* newSceneFirst;
 	aiScene* newSceneBack;
@@ -112,13 +112,13 @@ bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QStri
 	Assimp::SceneCombiner::CopyScene(&newSceneBack, stlGeometryBack->getAssimpScene());
 
 	std::vector<Assimp::AttachmentInfo> sceneAttachments{{newSceneFirst, newSceneFirst->mRootNode},
-														 {newSceneBack, newSceneFirst->mRootNode}};
+														 {newSceneBack,  newSceneFirst->mRootNode}};
 	Assimp::SceneCombiner::MergeScenes(&destScene, newSceneFirst, sceneAttachments);
 //	mergeScenes(newScene, stlGeometryBack->getAssimpScene(), glm::mat4x4());
 
 
 	Assimp::Exporter exporter;
-	if (AI_SUCCESS == exporter.Export(newSceneFirst, "stl", filePath.toStdString()))
+	if (AI_SUCCESS == exporter.Export(destScene, "stl", filePath.toStdString()))
 	{
 		std::cout << " ### " << __FUNCTION__ << " filePATH:" << filePath.toStdString() << " export OK" << std::endl;
 	}
