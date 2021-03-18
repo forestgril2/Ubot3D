@@ -89,33 +89,36 @@ QVector3D Helpers3D::getRotatedVector(const QQuaternion& q, const QVector3D v)
 
 bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QString filePath)
 {
-
 	assert(stlExportData.size() > 0);
 
 	QList<QVariant>::const_iterator it = stlExportData.begin();
 
-	const TriangleGeometry* stlGeometryFirst = qvariant_cast<TriangleGeometry*>(*it);
-	it++;
-	const TriangleGeometry* stlGeometryBack = qvariant_cast<TriangleGeometry*>(*it);
+	std::vector<Assimp::AttachmentInfo> sceneAttachments;
 
-	if (!stlGeometryFirst) {
-		std::cout << " ### " << __FUNCTION__ << " cannot cast to TriangleGeometry:" << "" << "," << "" << std::endl;
-		return false;
+	aiNode* masterNode = nullptr;
+	aiScene* masterScene = nullptr;
+	for (const QVariant& data : stlExportData)
+	{
+		const TriangleGeometry* stlGeometry = qvariant_cast<TriangleGeometry*>(data);
+		if (!stlGeometry) {
+			std::cout << " ### " << __FUNCTION__ << " cannot cast to TriangleGeometry:" << "" << "," << "" << std::endl;
+			return false;
+		}
+
+		aiScene* geometryScene;// = nullptr;
+		Assimp::SceneCombiner::CopyScene(&geometryScene, stlGeometry->getAssimpScene());
+
+		if (!masterNode)
+		{
+			masterNode = geometryScene->mRootNode;
+			masterScene = geometryScene;
+		}
+
+		sceneAttachments.push_back({geometryScene, masterNode});
 	}
 
 	aiScene* destScene = new aiScene();
-
-	aiScene* newSceneFirst;
-	aiScene* newSceneBack;
-
-	Assimp::SceneCombiner::CopyScene(&newSceneFirst, stlGeometryFirst->getAssimpScene());
-	Assimp::SceneCombiner::CopyScene(&newSceneBack, stlGeometryBack->getAssimpScene());
-
-	std::vector<Assimp::AttachmentInfo> sceneAttachments{{newSceneFirst, newSceneFirst->mRootNode},
-														 {newSceneBack,  newSceneFirst->mRootNode}};
-	Assimp::SceneCombiner::MergeScenes(&destScene, newSceneFirst, sceneAttachments);
-//	mergeScenes(newScene, stlGeometryBack->getAssimpScene(), glm::mat4x4());
-
+	Assimp::SceneCombiner::MergeScenes(&destScene, masterScene, sceneAttachments);
 
 	Assimp::Exporter exporter;
 	if (AI_SUCCESS == exporter.Export(destScene, "stl", filePath.toStdString()))
@@ -128,47 +131,4 @@ bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QStri
 	}
 
 	return true;
-}
-
-void Helpers3D::mergeScenes(aiScene* scene, const aiScene* otherScene, const glm::mat4x4 transform)
-{// This is a modified copy of: https://github.com/assimp/assimp/issues/203#issuecomment-293866481
-	aiMesh ** new_meshes = new aiMesh*[scene->mNumMeshes + otherScene->mNumMeshes];
-	memcpy(new_meshes, scene->mMeshes, scene->mNumMeshes * sizeof(aiMesh*));
-	delete[] scene->mMeshes;
-	scene->mMeshes = new_meshes;
-	for (int i = 0, offset = scene->mNumMeshes; i < otherScene->mNumMeshes; i++, offset++)
-	{
-		aiMesh *mesh = otherScene->mMeshes[i];
-		aiMesh *copy_mesh = scene->mMeshes[offset] = new aiMesh;
-
-		copy_mesh->mNumVertices = mesh->mNumVertices;
-		copy_mesh->mVertices = new aiVector3D[mesh->mNumVertices];
-		copy_mesh->mPrimitiveTypes = mesh->mPrimitiveTypes;
-		for (int j = 0; j < mesh->mNumVertices; j++) {
-			glm::vec4 v(mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z, 1);
-			v = transform * v;
-			copy_mesh->mVertices[j] = aiVector3D(v.x, v.y, v.z);
-		}
-
-		// copy_mesh->mMaterialIndex = mesh->mMaterialIndex; // FIXME
-		copy_mesh->mName = mesh->mName;
-		copy_mesh->mNumFaces = mesh->mNumFaces;
-		if (mesh->mNormals) {
-			copy_mesh->mNormals = new aiVector3D[mesh->mNumVertices];
-			for (int j = 0; j < mesh->mNumVertices; j++) {
-				glm::vec4 v(mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z, 0);
-				v = transform * v;
-				copy_mesh->mNormals[j] = aiVector3D(v.x, v.y, v.z);
-			}
-		}
-
-		copy_mesh->mFaces = new aiFace[mesh->mNumFaces];
-		for (int j = 0; j < mesh->mNumFaces; j++) {
-			copy_mesh->mFaces[j].mNumIndices = mesh->mFaces[j].mNumIndices;
-			copy_mesh->mFaces[j].mIndices = new unsigned[mesh->mFaces[j].mNumIndices];
-			memcpy(copy_mesh->mFaces[j].mIndices, mesh->mFaces[j].mIndices,
-				   mesh->mFaces[j].mNumIndices * sizeof(unsigned));
-		}
-	}
-	scene->mNumMeshes += otherScene->mNumMeshes;
 }
