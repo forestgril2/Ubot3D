@@ -101,8 +101,10 @@ private:
 	void buildIntersectionData();
 	void reloadSceneIfNecessary();
 
+	// TODO: CGAL related - extract to Helpers3D or whatever.
 	int performTriangulation();
 	int createCgalMesh();
+	int drawTriangulation(const QList<QVector3D>& points);
 
 	void logBounds();
 

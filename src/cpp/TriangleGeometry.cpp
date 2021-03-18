@@ -33,8 +33,11 @@
 #include <Helpers3D.h>
 
 #include <fstream>
+
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Triangulation_2.h>
+#include <CGAL/draw_triangulation_2.h>
+
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 
@@ -445,6 +448,8 @@ void TriangleGeometry::updateData()
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
 
+	drawTriangulation(_overhangingVertices);
+
 	// Inform, that overhangings data was modified.
 	emit overhangingVerticesChanged();
 
@@ -626,6 +631,24 @@ int TriangleGeometry::createCgalMesh()
 	assert(f != Mesh::null_face());
   }
   return 0;
+}
+
+
+int TriangleGeometry::drawTriangulation(const QList<QVector3D>& points)
+{
+//  std::ifstream in((argc>1)?argv[1]:"data/triangulation_prog1.cin");
+//  std::istream_iterator<Point> begin(in);
+//  std::istream_iterator<Point> end;
+
+  std::vector<Point> points2;
+  std::for_each(points.begin(), points.end(), [&points2](const QVector3D& point) {
+	  points2.push_back({point.x(), point.y()});
+  });
+
+  Triangulation t;
+  t.insert(points2.begin(), points2.end());
+  CGAL::draw(t);
+  return EXIT_SUCCESS;
 }
 
 QT_END_NAMESPACE
