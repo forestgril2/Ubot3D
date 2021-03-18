@@ -10,6 +10,11 @@ CONFIG += c++20
 # depend on your compiler). Refer to the documentation for the
 # deprecated API to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
+
+# TODO: Don't use GMP library yet, but build it if necessary.
+# CGAL\include\CGAL\internal\enable_third_party_libraries.h
+DEFINES += CGAL_NO_GMP
+
 #DEFINES += QT_BUILD_QUICK3DASSETIMPORT_LIB
 
 # You can also make your code fail to compile if it uses deprecated APIs.

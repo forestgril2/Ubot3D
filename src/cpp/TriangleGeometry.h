@@ -101,7 +101,7 @@ private:
 	void buildIntersectionData();
 	void reloadSceneIfNecessary();
 
-	void performTriangulation();
+	int performTriangulation();
 	int createCgalMesh();
 
 	void logBounds();
