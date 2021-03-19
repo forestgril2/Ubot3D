@@ -26,34 +26,10 @@
 //#include <D:\Projects\qt6\qtquick3d\src\utils\qssgoption_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrenderlayer_p.h>
 
-//#include <CGAL/Delaunay_d.h>
-//#include <CGAL/Alpha_shape_2.h>
-
 #include <Chronograph.h>
 #include <Helpers3D.h>
 
 #include <fstream>
-
-#define USE_CGAL
-
-#ifdef USE_CGAL
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Triangulation_2.h>
-//#include <CGAL/draw_triangulation_2.h>
-
-//#include <CGAL/Simple_cartesian.h>
-//#include <CGAL/Surface_mesh.h>
-
-using K = CGAL::Exact_predicates_inexact_constructions_kernel;
-using Triangulation = CGAL::Triangulation_2<K>;
-using Vertex_circulator = Triangulation::Vertex_circulator;
-using Point = Triangulation::Point;
-
-//using C = CGAL::Simple_cartesian<float>;
-//using Mesh = CGAL::Surface_mesh<C::Point_3>;
-//using vertex_descriptor = Mesh::Vertex_index;
-//using face_descriptor = Mesh::Face_index ;
-#endif
 
 // To have QSG included
 QT_BEGIN_NAMESPACE
@@ -477,7 +453,7 @@ void TriangleGeometry::updateData()
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
 
-	_triangulationResult = getConvexHull(_overhangingPoints);
+	_triangulationResult = Helpers3D::getConvexHull(_overhangingPoints);
 
 	// Inform, that overhangings data was modified.
 	emit overhangingTriangleVerticesChanged();
@@ -569,82 +545,6 @@ void TriangleGeometry::buildIntersectionData()
 	auto &outputMesh = meshBuilder->getMesh();
 	QSSGMeshBVHBuilder meshBVHBuilder(mesh);
 	_intersectionData = meshBVHBuilder.buildTree();
-}
-
-
-
-QVector<QVector3D> TriangleGeometry::getConvexHull(const QVector<QVector3D>& points)
-{
-QVector<QVector3D> result;
-#ifdef USE_CGAL
-//  std::ifstream in("data/triangulation_prog1.cin");
-//  std::istream_iterator<Point> points2.begin(in);
-//  std::istream_iterator<Point> points2.end;
-
-  std::vector<Point> points2;
-  std::for_each(points.begin(), points.end(), [&points2](const QVector3D& point) {
-	  points2.push_back({point.x(), point.y()});
-  });
-
-  Triangulation t;
-  t.insert(points2.begin(), points2.end());
-  Vertex_circulator vc = t.incident_vertices(t.infinite_vertex());
-  Vertex_circulator done(vc);
-  if (vc != nullptr)
-  {
-	  do
-	  {
-//		  std::cout << vc->point() << std::endl;
-		  result.push_back({static_cast<float>(vc->point().x()), static_cast<float>(vc->point().y()), 0});
-	  }
-	  while(++vc != done);
-  }
-  result.push_back(result.front());
-#endif
-  return result;
-}
-
-
-int TriangleGeometry::createCgalMesh()
-{
-#ifdef USE_CGAL
-//  Mesh m;
-//  // Add the points as vertices
-//  vertex_descriptor u = m.add_vertex(C::Point_3(0,1,0));
-//  vertex_descriptor v = m.add_vertex(C::Point_3(0,0,0));
-//  vertex_descriptor w = m.add_vertex(C::Point_3(1,1,0));
-//  vertex_descriptor x = m.add_vertex(C::Point_3(1,0,0));
-//  m.add_face(u,v,w);
-//  face_descriptor f = m.add_face(u,v,x);
-//  if(f == Mesh::null_face())
-//  {
-//	std::cerr<<"The face could not be added because of an orientation error."<<std::endl;
-//	f = m.add_face(u,x,v);
-//	assert(f != Mesh::null_face());
-//  }
-#endif
-  return 0;
-}
-
-
-int TriangleGeometry::drawTriangulation(const QVector<QVector3D>& points)
-{
-#ifdef USE_CGAL
-//  std::ifstream in((argc>1)?argv[1]:"data/triangulation_prog1.cin");
-//  std::istream_iterator<Point> begin(in);
-//  std::istream_iterator<Point> end;
-
-  std::vector<Point> points2;
-  std::for_each(points.begin(), points.end(), [&points2](const QVector3D& point) {
-	  points2.push_back({point.x(), point.y()});
-  });
-
-  Triangulation t;
-  t.insert(points2.begin(), points2.end());
-  //C:\Projects\qt5-build\qtbase\include\QtGui
-//  CGAL::draw(t);
-#endif
-  return EXIT_SUCCESS;
 }
 
 QT_END_NAMESPACE

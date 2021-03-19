@@ -30,4 +30,9 @@ public:
 															const QVector3D& planeCoord);
 	static Q_INVOKABLE QVector3D getRotatedVector(const QQuaternion& q, const QVector3D v);
 	static Q_INVOKABLE bool exportModelsToSTL(const QVariantList& stlExportData, const QString filePath);
+
+	// TODO: CGAL related - extract to CGAL class or whatever.
+	static QVector<QVector3D> getConvexHull(const QVector<QVector3D>& points);
+	static int createCgalMesh();
+	static int drawTriangulation(const QVector<QVector3D>& points);
 };
