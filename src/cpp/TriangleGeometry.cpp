@@ -260,17 +260,6 @@ void TriangleGeometry::setUVAdjust(float f)
     update();
 }
 
-void TriangleGeometry::setWarp(float warp)
-{
-	if (qFuzzyCompare(_warp, warp))
-		return;
-
-	_warp = warp;
-	emit warpChanged();
-	updateData();
-    update();
-}
-
 void TriangleGeometry::setBounds(const QVector3D& min, const QVector3D& max)
 {
 	QQuick3DGeometry::setBounds(min, max);
@@ -417,15 +406,15 @@ void TriangleGeometry::updateData()
 
 			const aiVector3D boundDiff = _maxBound-_minBound;
 
-			auto isTriangleNormalOverhanging = [](const Vec3 n1, const Vec3 n2, const Vec3 n3, float maxOverhangAngle)
+			auto isTriangleNormalOverhanging = [](const Vec3 no, const Vec3 n1, const Vec3 n2, float maxOverhangAngle)
 			{// Judge based on an average of three triangle vertex normals.
-				Vec3 normal = (n1 + n2 + n3)*0.3333333;
+				Vec3 normal = (no + n1 + n2)*0.3333333;
 				return normal.dot(Vec3{0,0,1}) < std::cosf(float(M_PI) - maxOverhangAngle);
 			};
 
 			auto setTriangleVertex = [this, &p, &pi, &boundDiff, floatsPerStride, m](uint32_t vertexIndex, const bool isVertexOverhanging) {
 				const aiVector3D vertex = _scene->mMeshes[m]->mVertices[vertexIndex];
-				*p++ = vertex.x + _warp*boundDiff.x*sin(vertex.z/2);
+				*p++ = vertex.x;
 				*p++ = vertex.y;
 				*p++ = vertex.z;
 
@@ -433,7 +422,7 @@ void TriangleGeometry::updateData()
 				const Eigen::Vector4f color = isVertexOverhanging ? _overhangColor : _baseModelColor;
 				if (isVertexOverhanging)
 				{
-					_overhangingTriangleVertices.push_back(QVector3D(vertex.x, vertex.y, vertex.z));
+					_overhangingTriangleVertices.push_back(*reinterpret_cast<const QVector3D*>(&vertex));
 				}
 				*p++ = color.x();
 				*p++ = color.y();
@@ -452,13 +441,22 @@ void TriangleGeometry::updateData()
 
 				const bool isTriangleOverhanging = isTriangleNormalOverhanging(n0, n1, n2, _overhangAngleMax);
 
+				// First side: vertex0 to vertex1
 				setTriangleVertex(face.mIndices[0], isTriangleOverhanging);
 				setTriangleVertex(face.mIndices[1], isTriangleOverhanging);
+
+				// Second side: vertex1 to vertex2
+				if (isTriangleOverhanging)
+				{
+					_overhangingTriangleVertices.push_back(_overhangingTriangleVertices.back());
+				}
 				setTriangleVertex(face.mIndices[2], isTriangleOverhanging);
 
 				if (!isTriangleOverhanging)
 					return;
 
+				// Third side: vertex2 to vertex0
+				_overhangingTriangleVertices.push_back(_overhangingTriangleVertices.back());
 				_overhangingTriangleVertices.push_back(*reinterpret_cast<QVector3D*>(&(_scene->mMeshes[m]->mVertices[face.mIndices[0]])));
 			};
 
@@ -607,7 +605,7 @@ QVector<QVector3D> LineGeometry::getPoints() const
 	return _points;
 }
 
-void LineGeometry::setPoints(QList<QVector3D> newPoints)
+void LineGeometry::setPoints(QVector<QVector3D> newPoints)
 {
 	_points = newPoints;
 	emit pointsChanged();
@@ -661,7 +659,7 @@ QVector<QVector3D> PointGeometry::getPoints() const
 	return _points;
 }
 
-void PointGeometry::setPoints(QList<QVector3D> newPoints)
+void PointGeometry::setPoints(QVector<QVector3D> newPoints)
 {
 	_points = newPoints;
 	emit pointsChanged();

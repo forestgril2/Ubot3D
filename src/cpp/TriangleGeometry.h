@@ -27,7 +27,6 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(float normalXY READ normalXY WRITE setNormalXY NOTIFY normalXYChanged)
 	Q_PROPERTY(bool uv READ uv WRITE setUV NOTIFY uvChanged)
 	Q_PROPERTY(float uvAdjust READ uvAdjust WRITE setUVAdjust NOTIFY uvAdjustChanged)
-	Q_PROPERTY(float warp READ warp WRITE setWarp NOTIFY warpChanged)
 	Q_PROPERTY(QVector3D minBounds READ minBounds WRITE setMinBounds NOTIFY boundsChanged)
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
@@ -69,9 +68,6 @@ public:
 	float uvAdjust() const { return _uvAdjust; }
 	void setUVAdjust(float f);
 
-	float warp() const { return _warp;}
-	void setWarp(float warp);
-
 	void setBounds(const QVector3D &min, const QVector3D &max);
 	QVector3D minBounds() const;
 	QVector3D maxBounds() const;
@@ -88,7 +84,6 @@ signals:
 	void normalXYChanged();
 	void uvChanged();
 	void uvAdjustChanged();
-	void warpChanged();
 	void boundsChanged();
 	void modelLoaded();
 	void isPickedChanged();
@@ -134,7 +129,6 @@ private:
 	float _normalXY = 0.0f;
 	bool _hasUV = false;
 	float _uvAdjust = 0.0f;
-	float _warp = 0.0f;
 
 	bool _isPicked = false;
 	bool _isAssimpReadDone = false;
@@ -158,14 +152,14 @@ public:
 
 	Q_INVOKABLE void updateData();
 
-	QList<QVector3D> getPoints() const;
-	void setPoints(QList<QVector3D> newPoints);
+	QVector<QVector3D> getPoints() const;
+	void setPoints(QVector<QVector3D> newPoints);
 
 signals:
 	void pointsChanged();
 
 private:
-	QList<QVector3D> _points;
+	QVector<QVector3D> _points;
 };
 
 class LineGeometry : public QQuick3DGeometry
@@ -180,12 +174,12 @@ public:
 
 	Q_INVOKABLE void updateData();
 
-	QList<QVector3D> getPoints() const;
-	void setPoints(QList<QVector3D> newPoints);
+	QVector<QVector3D> getPoints() const;
+	void setPoints(QVector<QVector3D> newPoints);
 
 signals:
 	void pointsChanged();
 
 private:
-	QList<QVector3D> _points;
+	QVector<QVector3D> _points;
 };

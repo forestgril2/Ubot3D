@@ -15,7 +15,6 @@ Model {
 
     geometry: TriangleGeometry {
         id: geometry
-        warp: 0//modelControls.triangleModelWarpSlider.value
 
         onBoundsChanged: {
 //            var modelCenter = rootModel.geometry.minBounds.plus(rootModel.geometry.maxBounds).times(0.5)
