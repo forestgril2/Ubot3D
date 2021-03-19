@@ -10,6 +10,7 @@
 #include <assimp/Importer.hpp>
 
 #include <Eigen/Geometry>
+using Vec3 = Eigen::Vector3f;
 
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\runtimerender\qssgrenderray_p.h>
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
@@ -31,7 +32,7 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
-	Q_PROPERTY(QList<QVector3D> overhangingVertices READ getOverhangingVertices NOTIFY overhangingVerticesChanged)// NOTIFY inputFileChanged)
+	Q_PROPERTY(QVector<QVector3D> overhangingVertices READ getOverhangingVertices NOTIFY overhangingVerticesChanged)// NOTIFY inputFileChanged)
 
 public:
 	TriangleGeometry();
@@ -125,7 +126,8 @@ private:
 	const uint32_t _indexAttributeIndex = 2;
 
 	float _overhangAngleMax = float(M_PI_4);
-	QList<QVector3D> _overhangingVertices;
+	// TODO: Make it a QVector
+	QVector<QVector3D> _overhangingTriangleVertices;
 
 	bool _hasColors = true;
 	bool _hasNormals = false;

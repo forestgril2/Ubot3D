@@ -34,6 +34,9 @@
 
 #include <fstream>
 
+//#define USE_CGAL
+
+#ifdef USE_CGAL
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Triangulation_2.h>
 //#include <CGAL/draw_triangulation_2.h>
@@ -50,6 +53,7 @@ using C = CGAL::Simple_cartesian<float>;
 using Mesh = CGAL::Surface_mesh<C::Point_3>;
 using vertex_descriptor = Mesh::Vertex_index;
 using face_descriptor = Mesh::Face_index ;
+#endif
 
 // To have QSG included
 QT_BEGIN_NAMESPACE
@@ -188,7 +192,7 @@ QVariantMap TriangleGeometry::getPick(const QVector3D& origin,
 
 QVector<QVector3D> TriangleGeometry::getOverhangingVertices() const
 {
-	return _overhangingVertices;
+	return _overhangingTriangleVertices;
 }
 
 const aiScene* TriangleGeometry::getAssimpScene() const
@@ -340,7 +344,7 @@ void TriangleGeometry::updateData()
 	if (!_scene)
 		return;
 
-	_overhangingVertices.clear();
+	_overhangingTriangleVertices.clear();
 
 	const uint32_t numfloatsPerPositionAttribute = 3u;
 	const uint32_t numfloatsPerColorAttribute = 4u;
@@ -413,23 +417,23 @@ void TriangleGeometry::updateData()
 
 			const aiVector3D boundDiff = _maxBound-_minBound;
 
-			auto isVertexNormalOverhanging = [](const aiVector3D normal, float maxOverhangAngle) {
-				return normal*aiVector3D{0,0,1} < std::cosf(float(M_PI) - maxOverhangAngle);
+			auto isTriangleNormalOverhanging = [](const Vec3 n1, const Vec3 n2, const Vec3 n3, float maxOverhangAngle)
+			{// Judge based on an average of three triangle vertex normals.
+				Vec3 normal = (n1 + n2 + n3)*0.3333333;
+				return normal.dot(Vec3{0,0,1}) < std::cosf(float(M_PI) - maxOverhangAngle);
 			};
 
-			auto setTriangleVertex = [this, &p, &pi, &boundDiff, floatsPerStride, isVertexNormalOverhanging](uint32_t vertexIndex) {
-				const aiVector3D vertex = _scene->mMeshes[0]->mVertices[vertexIndex];
-				const aiVector3D normal = _scene->mMeshes[0]->mNormals[vertexIndex];
+			auto setTriangleVertex = [this, &p, &pi, &boundDiff, floatsPerStride, m](uint32_t vertexIndex, const bool isVertexOverhanging) {
+				const aiVector3D vertex = _scene->mMeshes[m]->mVertices[vertexIndex];
 				*p++ = vertex.x + _warp*boundDiff.x*sin(vertex.z/2);
 				*p++ = vertex.y;
 				*p++ = vertex.z;
 
 				// Set color
-				const bool isVertexOverhanging = isVertexNormalOverhanging(normal, _overhangAngleMax);
 				const Eigen::Vector4f color = isVertexOverhanging ? _overhangColor : _baseModelColor;
 				if (isVertexOverhanging)
 				{
-					_overhangingVertices.push_back(QVector3D(vertex.x, vertex.y, vertex.z));
+					_overhangingTriangleVertices.push_back(QVector3D(vertex.x, vertex.y, vertex.z));
 				}
 				*p++ = color.x();
 				*p++ = color.y();
@@ -441,14 +445,29 @@ void TriangleGeometry::updateData()
 				updateBounds(p-floatsPerStride);
 			};
 
-			setTriangleVertex(face.mIndices[0]);
-			setTriangleVertex(face.mIndices[1]);
-			setTriangleVertex(face.mIndices[2]);
+			auto setTriangleVertexesAndOverhangingTriangles = [this, setTriangleVertex, isTriangleNormalOverhanging, &face, m](){
+				const Vec3 n0 = *reinterpret_cast<Vec3*>(&(_scene->mMeshes[m]->mNormals[face.mIndices[0]]));
+				const Vec3 n1 = *reinterpret_cast<Vec3*>(&(_scene->mMeshes[m]->mNormals[face.mIndices[1]]));
+				const Vec3 n2 = *reinterpret_cast<Vec3*>(&(_scene->mMeshes[m]->mNormals[face.mIndices[2]]));
+
+				const bool isTriangleOverhanging = isTriangleNormalOverhanging(n0, n1, n2, _overhangAngleMax);
+
+				setTriangleVertex(face.mIndices[0], isTriangleOverhanging);
+				setTriangleVertex(face.mIndices[1], isTriangleOverhanging);
+				setTriangleVertex(face.mIndices[2], isTriangleOverhanging);
+
+				if (!isTriangleOverhanging)
+					return;
+
+				_overhangingTriangleVertices.push_back(*reinterpret_cast<QVector3D*>(&(_scene->mMeshes[m]->mVertices[face.mIndices[0]])));
+			};
+
+			setTriangleVertexesAndOverhangingTriangles();
 		}
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
 
-	drawTriangulation(_overhangingVertices);
+	drawTriangulation(_overhangingTriangleVertices);
 
 	// Inform, that overhangings data was modified.
 	emit overhangingVerticesChanged();
@@ -651,6 +670,7 @@ void PointGeometry::setPoints(QList<QVector3D> newPoints)
 
 int TriangleGeometry::performTriangulation()
 {
+#ifdef USE_CGAL
   std::ifstream in("data/triangulation_prog1.cin");
   std::istream_iterator<Point> begin(in);
   std::istream_iterator<Point> end;
@@ -664,12 +684,14 @@ int TriangleGeometry::performTriangulation()
 	do { std::cout << vc->point() << std::endl;
 	}while(++vc != done);
   }
+#endif
   return 0;
 }
 
 
 int TriangleGeometry::createCgalMesh()
 {
+#ifdef USE_CGAL
   Mesh m;
   // Add the points as vertices
   vertex_descriptor u = m.add_vertex(C::Point_3(0,1,0));
@@ -684,12 +706,14 @@ int TriangleGeometry::createCgalMesh()
 	f = m.add_face(u,x,v);
 	assert(f != Mesh::null_face());
   }
+#endif
   return 0;
 }
 
 
 int TriangleGeometry::drawTriangulation(const QList<QVector3D>& points)
 {
+#ifdef USE_CGAL
 //  std::ifstream in((argc>1)?argv[1]:"data/triangulation_prog1.cin");
 //  std::istream_iterator<Point> begin(in);
 //  std::istream_iterator<Point> end;
@@ -703,6 +727,7 @@ int TriangleGeometry::drawTriangulation(const QList<QVector3D>& points)
   t.insert(points2.begin(), points2.end());
   //C:\Projects\qt5-build\qtbase\include\QtGui
 //  CGAL::draw(t);
+#endif
   return EXIT_SUCCESS;
 }
 
