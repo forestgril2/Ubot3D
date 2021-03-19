@@ -69,22 +69,44 @@ Window {
         }
 
         Repeater3D {
-            id: overhangingPoints
+            id: overhangingTriangles
             model: stlObjects.model
             delegate: Model {
                 visible: true
                 scale: Qt.vector3d(1, 1, 1)
-                geometry: LineGeometry {
-                    points: stlObjects.objectAt(index).geometry.overhangingVertices
+                geometry: SimplexGeometry {
+                    simplexType: SimplexGeometry.Lines
+                    points: stlObjects.objectAt(index).geometry.overhangingTriangleVertices
                 }
                 materials: [
-                    PrincipledMaterial {
+                    DefaultMaterial {
                         pointSize: 5
                         lineWidth: 5
                         lighting: DefaultMaterial.NoLighting
                         cullMode: DefaultMaterial.NoCulling
-//                        diffuseColor: "yellow"
-                        //                    pointSize: sliderPointSize.value
+                        diffuseColor: "yellow"
+                    }
+                ]
+            }
+        }
+
+        Repeater3D {
+            id: triangulationResult
+            model: stlObjects.model
+            delegate: Model {
+                visible: true
+                scale: Qt.vector3d(1, 1, 1)
+                geometry: SimplexGeometry {
+                    simplexType: SimplexGeometry.LineStrip
+                    points: stlObjects.objectAt(index).geometry.triangulationResult
+                }
+                materials: [
+                    DefaultMaterial {
+                        pointSize: 5
+                        lineWidth: 5
+                        lighting: DefaultMaterial.NoLighting
+                        cullMode: DefaultMaterial.NoCulling
+                        diffuseColor: "red"
                     }
                 ]
             }

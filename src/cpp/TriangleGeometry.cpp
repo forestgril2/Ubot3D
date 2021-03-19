@@ -34,25 +34,25 @@
 
 #include <fstream>
 
-//#define USE_CGAL
+#define USE_CGAL
 
 #ifdef USE_CGAL
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Triangulation_2.h>
 //#include <CGAL/draw_triangulation_2.h>
 
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Surface_mesh.h>
+//#include <CGAL/Simple_cartesian.h>
+//#include <CGAL/Surface_mesh.h>
 
 using K = CGAL::Exact_predicates_inexact_constructions_kernel;
 using Triangulation = CGAL::Triangulation_2<K>;
 using Vertex_circulator = Triangulation::Vertex_circulator;
 using Point = Triangulation::Point;
 
-using C = CGAL::Simple_cartesian<float>;
-using Mesh = CGAL::Surface_mesh<C::Point_3>;
-using vertex_descriptor = Mesh::Vertex_index;
-using face_descriptor = Mesh::Face_index ;
+//using C = CGAL::Simple_cartesian<float>;
+//using Mesh = CGAL::Surface_mesh<C::Point_3>;
+//using vertex_descriptor = Mesh::Vertex_index;
+//using face_descriptor = Mesh::Face_index ;
 #endif
 
 // To have QSG included
@@ -190,9 +190,19 @@ QVariantMap TriangleGeometry::getPick(const QVector3D& origin,
 	return noHit;
 }
 
-QVector<QVector3D> TriangleGeometry::getOverhangingVertices() const
+QVector<QVector3D> TriangleGeometry::getOverhangingTriangleVertices() const
 {
 	return _overhangingTriangleVertices;
+}
+
+QVector<QVector3D> TriangleGeometry::getOverhangingPoints() const
+{
+	return _overhangingPoints;
+}
+
+QVector<QVector3D> TriangleGeometry::getTriangulationResult() const
+{
+	return _triangulationResult;
 }
 
 const aiScene* TriangleGeometry::getAssimpScene() const
@@ -334,6 +344,7 @@ void TriangleGeometry::updateData()
 		return;
 
 	_overhangingTriangleVertices.clear();
+	_overhangingPoints.clear();
 
 	const uint32_t numfloatsPerPositionAttribute = 3u;
 	const uint32_t numfloatsPerColorAttribute = 4u;
@@ -423,6 +434,7 @@ void TriangleGeometry::updateData()
 				if (isVertexOverhanging)
 				{
 					_overhangingTriangleVertices.push_back(*reinterpret_cast<const QVector3D*>(&vertex));
+					_overhangingPoints.push_back(_overhangingTriangleVertices.back());
 				}
 				*p++ = color.x();
 				*p++ = color.y();
@@ -465,10 +477,12 @@ void TriangleGeometry::updateData()
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
 
-	drawTriangulation(_overhangingTriangleVertices);
+	_triangulationResult = getConvexHull(_overhangingPoints);
 
 	// Inform, that overhangings data was modified.
-	emit overhangingVerticesChanged();
+	emit overhangingTriangleVerticesChanged();
+	emit overhangingPointsChanged();
+	emit triangulationResultChanged();
 
     setVertexData(v);
 	setIndexData(indices);
@@ -557,159 +571,63 @@ void TriangleGeometry::buildIntersectionData()
 	_intersectionData = meshBVHBuilder.buildTree();
 }
 
-LineGeometry::LineGeometry()
+
+
+QVector<QVector3D> TriangleGeometry::getConvexHull(const QVector<QVector3D>& points)
 {
-	const uint32_t numPoints = 1000000;
-	_points.resize(numPoints);
-	std::for_each(_points.begin(), _points.end(), [](QVector3D& point) {
-		point = {5.0f*rand()/RAND_MAX,5.0f*rand()/RAND_MAX,5.0f*rand()/RAND_MAX};
-	});
-
-
-	connect(this, &LineGeometry::pointsChanged, this, &LineGeometry::updateData);
-
-	updateData();
-}
-
-void LineGeometry::updateData()
-{
-	clear();
-
-	uint32_t numPoints = uint32_t(_points.size());
-
-	const int stride = 3 * sizeof(float);
-
-	QByteArray v;
-	v.resize(numPoints * stride);
-	float *p = reinterpret_cast<float *>(v.data());
-
-	for(const QVector3D& vertex : _points)
-	{
-		*p++ = vertex.x();
-		*p++ = vertex.y();
-		*p++ = vertex.z();
-	}
-
-	setVertexData(v);
-	setStride(stride);
-
-	setPrimitiveType(QQuick3DGeometry::PrimitiveType::Lines);
-
-	addAttribute(QQuick3DGeometry::Attribute::PositionSemantic,
-				 0,
-				 QQuick3DGeometry::Attribute::F32Type);
-}
-
-QVector<QVector3D> LineGeometry::getPoints() const
-{
-	return _points;
-}
-
-void LineGeometry::setPoints(QVector<QVector3D> newPoints)
-{
-	_points = newPoints;
-	emit pointsChanged();
-}
-
-PointGeometry::PointGeometry()
-{
-	const uint32_t numPoints = 10000;
-	_points.resize(numPoints);
-	std::for_each(_points.begin(), _points.end(), [](QVector3D& point) {
-		point = {5.0f*rand()/RAND_MAX,5.0f*rand()/RAND_MAX,5.0f*rand()/RAND_MAX};
-	});
-
-
-	connect(this, &PointGeometry::pointsChanged, this, &PointGeometry::updateData);
-
-	updateData();
-}
-
-void PointGeometry::updateData()
-{
-	clear();
-
-	uint32_t numPoints = uint32_t(_points.size());
-
-	const int stride = 3 * sizeof(float);
-
-	QByteArray v;
-	v.resize(numPoints * stride);
-	float *p = reinterpret_cast<float *>(v.data());
-
-	for(const QVector3D& vertex : _points)
-	{
-		*p++ = vertex.x();
-		*p++ = vertex.y();
-		*p++ = vertex.z();
-	}
-
-	setVertexData(v);
-	setStride(stride);
-
-	setPrimitiveType(QQuick3DGeometry::PrimitiveType::Points);
-
-	addAttribute(QQuick3DGeometry::Attribute::PositionSemantic,
-				 0,
-				 QQuick3DGeometry::Attribute::F32Type);
-}
-
-QVector<QVector3D> PointGeometry::getPoints() const
-{
-	return _points;
-}
-
-void PointGeometry::setPoints(QVector<QVector3D> newPoints)
-{
-	_points = newPoints;
-	emit pointsChanged();
-}
-
-
-int TriangleGeometry::performTriangulation()
-{
+QVector<QVector3D> result;
 #ifdef USE_CGAL
-  std::ifstream in("data/triangulation_prog1.cin");
-  std::istream_iterator<Point> begin(in);
-  std::istream_iterator<Point> end;
+//  std::ifstream in("data/triangulation_prog1.cin");
+//  std::istream_iterator<Point> points2.begin(in);
+//  std::istream_iterator<Point> points2.end;
 
-  std::vector<Point> cgalPoints;
+  std::vector<Point> points2;
+  std::for_each(points.begin(), points.end(), [&points2](const QVector3D& point) {
+	  points2.push_back({point.x(), point.y()});
+  });
+
   Triangulation t;
-  t.insert(begin, end);
-  Vertex_circulator vc = t.incident_vertices(t.infinite_vertex()),
-	done(vc);
-  if (vc != 0) {
-	do { std::cout << vc->point() << std::endl;
-	}while(++vc != done);
+  t.insert(points2.begin(), points2.end());
+  Vertex_circulator vc = t.incident_vertices(t.infinite_vertex());
+  Vertex_circulator done(vc);
+  if (vc != nullptr)
+  {
+	  do
+	  {
+//		  std::cout << vc->point() << std::endl;
+		  result.push_back({static_cast<float>(vc->point().x()), static_cast<float>(vc->point().y()), 0});
+	  }
+	  while(++vc != done);
   }
+  result.push_back(result.front());
 #endif
-  return 0;
+  return result;
 }
 
 
 int TriangleGeometry::createCgalMesh()
 {
 #ifdef USE_CGAL
-  Mesh m;
-  // Add the points as vertices
-  vertex_descriptor u = m.add_vertex(C::Point_3(0,1,0));
-  vertex_descriptor v = m.add_vertex(C::Point_3(0,0,0));
-  vertex_descriptor w = m.add_vertex(C::Point_3(1,1,0));
-  vertex_descriptor x = m.add_vertex(C::Point_3(1,0,0));
-  m.add_face(u,v,w);
-  face_descriptor f = m.add_face(u,v,x);
-  if(f == Mesh::null_face())
-  {
-	std::cerr<<"The face could not be added because of an orientation error."<<std::endl;
-	f = m.add_face(u,x,v);
-	assert(f != Mesh::null_face());
-  }
+//  Mesh m;
+//  // Add the points as vertices
+//  vertex_descriptor u = m.add_vertex(C::Point_3(0,1,0));
+//  vertex_descriptor v = m.add_vertex(C::Point_3(0,0,0));
+//  vertex_descriptor w = m.add_vertex(C::Point_3(1,1,0));
+//  vertex_descriptor x = m.add_vertex(C::Point_3(1,0,0));
+//  m.add_face(u,v,w);
+//  face_descriptor f = m.add_face(u,v,x);
+//  if(f == Mesh::null_face())
+//  {
+//	std::cerr<<"The face could not be added because of an orientation error."<<std::endl;
+//	f = m.add_face(u,x,v);
+//	assert(f != Mesh::null_face());
+//  }
 #endif
   return 0;
 }
 
 
-int TriangleGeometry::drawTriangulation(const QList<QVector3D>& points)
+int TriangleGeometry::drawTriangulation(const QVector<QVector3D>& points)
 {
 #ifdef USE_CGAL
 //  std::ifstream in((argc>1)?argv[1]:"data/triangulation_prog1.cin");

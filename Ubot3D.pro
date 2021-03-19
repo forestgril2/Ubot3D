@@ -32,6 +32,7 @@ CONFIG += ordered
 SUBDIRS += src/cpp src/qml
 
 SOURCES += src/cpp/main.cpp \
+    src/cpp/SimplexGeometry.cpp \
     src/cpp/GCodeProgramProcessor.cpp \
     src/cpp/Helpers3D.cpp \
     src/cpp/TriangleGeometry.cpp \
@@ -43,6 +44,7 @@ SOURCES += src/cpp/main.cpp \
 
 HEADERS +=  src/cpp/TriangleGeometry.h \
         ../gpr/src/CommonDefs.h \
+        src/cpp/SimplexGeometry.h \
         src/cpp/GCodeGeometry.h \
         src/cpp/Chronograph.h \
         $$PWD/../gpr/src/gcode_program.h \

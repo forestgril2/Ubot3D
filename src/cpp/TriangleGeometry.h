@@ -31,7 +31,9 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
-	Q_PROPERTY(QVector<QVector3D> overhangingVertices READ getOverhangingVertices NOTIFY overhangingVerticesChanged)// NOTIFY inputFileChanged)
+	Q_PROPERTY(QVector<QVector3D> overhangingTriangleVertices READ getOverhangingTriangleVertices NOTIFY overhangingTriangleVerticesChanged)
+	Q_PROPERTY(QVector<QVector3D> overhangingPoints READ getOverhangingPoints NOTIFY overhangingPointsChanged)
+	Q_PROPERTY(QVector<QVector3D> triangulationResult READ getTriangulationResult NOTIFY triangulationResultChanged)
 
 public:
 	TriangleGeometry();
@@ -49,7 +51,9 @@ public:
 									const QVector3D& direction,
 									const QMatrix4x4& globalTransform);
 
-	QVector<QVector3D> getOverhangingVertices() const;
+	QVector<QVector3D> getOverhangingTriangleVertices() const;
+	QVector<QVector3D> getOverhangingPoints() const;
+	QVector<QVector3D> getTriangulationResult() const;
 
 	const aiScene* getAssimpScene() const;
 
@@ -87,7 +91,10 @@ signals:
 	void boundsChanged();
 	void modelLoaded();
 	void isPickedChanged();
-	void overhangingVerticesChanged();
+
+	void overhangingTriangleVerticesChanged();
+	void overhangingPointsChanged();
+	void triangulationResultChanged();
 
 private:
 	bool importModelFromFile(const std::string& pFile);
@@ -98,9 +105,9 @@ private:
 	void reloadSceneIfNecessary();
 
 	// TODO: CGAL related - extract to Helpers3D or whatever.
-	int performTriangulation();
+	QVector<QVector3D> getConvexHull(const QVector<QVector3D>& points);
 	int createCgalMesh();
-	int drawTriangulation(const QList<QVector3D>& points);
+	int drawTriangulation(const QVector<QVector3D>& points);
 
 	void logBounds();
 
@@ -121,8 +128,9 @@ private:
 	const uint32_t _indexAttributeIndex = 2;
 
 	float _overhangAngleMax = float(M_PI_4);
-	// TODO: Make it a QVector
 	QVector<QVector3D> _overhangingTriangleVertices;
+	QVector<QVector3D> _overhangingPoints;
+	QVector<QVector3D> _triangulationResult;
 
 	bool _hasColors = true;
 	bool _hasNormals = false;
@@ -138,48 +146,4 @@ private:
 
 	QString _inputFile;
 	//	QString _inputFile = "C:/ProjectsData/stl_files/mandoblasterlow.stl";
-};
-
-class PointGeometry : public QQuick3DGeometry
-{
-	Q_OBJECT
-	QML_NAMED_ELEMENT(PointGeometry)
-
-public:
-	Q_PROPERTY(QList<QVector3D> points READ getPoints WRITE setPoints NOTIFY pointsChanged)
-
-	PointGeometry();
-
-	Q_INVOKABLE void updateData();
-
-	QVector<QVector3D> getPoints() const;
-	void setPoints(QVector<QVector3D> newPoints);
-
-signals:
-	void pointsChanged();
-
-private:
-	QVector<QVector3D> _points;
-};
-
-class LineGeometry : public QQuick3DGeometry
-{
-	Q_OBJECT
-	QML_NAMED_ELEMENT(LineGeometry)
-
-public:
-	Q_PROPERTY(QList<QVector3D> points READ getPoints WRITE setPoints NOTIFY pointsChanged)
-
-	LineGeometry();
-
-	Q_INVOKABLE void updateData();
-
-	QVector<QVector3D> getPoints() const;
-	void setPoints(QVector<QVector3D> newPoints);
-
-signals:
-	void pointsChanged();
-
-private:
-	QVector<QVector3D> _points;
 };
