@@ -97,7 +97,7 @@ Window {
                 visible: true
                 scale: Qt.vector3d(1, 1, 1)
                 geometry: SimplexGeometry {
-                    simplexType: SimplexGeometry.LineStrip
+                    simplexType: SimplexGeometry.Lines
                     points: stlObjects.objectAt(index).geometry.triangulationResult
                 }
                 materials: [

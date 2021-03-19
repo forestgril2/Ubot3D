@@ -14,6 +14,7 @@ class Helpers3D : public QObject
 {
 	Q_OBJECT
 	QML_NAMED_ELEMENT(Helpers3D)
+
 public:
 	static Q_INVOKABLE QQuaternion getRotationFromDirection(const QVector3D& direction, const QVector3D& up);
 	static Q_INVOKABLE QQuaternion getRotationFromAxes(const QVector3D& axisFrom, const QVector3D& axisTo);
@@ -32,7 +33,20 @@ public:
 	static Q_INVOKABLE bool exportModelsToSTL(const QVariantList& stlExportData, const QString filePath);
 
 	// TODO: CGAL related - extract to CGAL class or whatever.
-	static QVector<QVector3D> getConvexHull(const QVector<QVector3D>& points);
+	static QVector<QVector3D> computeConvexHull(const QVector<QVector3D>& points);
+	static QVector<QVector3D> computeAlphaShape(const QVector<QVector3D>& points);
 	static int createCgalMesh();
 	static int drawTriangulation(const QVector<QVector3D>& points);
+
+private:
+	template<class P>
+	static std::vector<P> getCgalPoints2(const QVector<QVector3D>& points)
+	{
+		std::vector<P> points2;
+		std::for_each(points.begin(), points.end(), [&points2](const QVector3D& point) {
+			points2.push_back({point.x(), point.y()});
+		});
+		return points2;
+	}
+
 };

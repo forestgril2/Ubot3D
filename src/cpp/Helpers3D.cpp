@@ -20,6 +20,19 @@
 #ifdef USE_CGAL
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Triangulation_2.h>
+#include <CGAL/Alpha_shape_2.h>
+#include <CGAL/Alpha_shape_vertex_base_2.h>
+#include <CGAL/Alpha_shape_face_base_2.h>
+#include <CGAL/Delaunay_triangulation_2.h>
+
+#include <CGAL/algorithm.h>
+#include <CGAL/assertions.h>
+
+#include <fstream>
+#include <iostream>
+#include <list>
+#include <vector>
+
 //#include <CGAL/draw_triangulation_2.h>
 
 //#include <CGAL/Simple_cartesian.h>
@@ -28,13 +41,126 @@
 using K = CGAL::Exact_predicates_inexact_constructions_kernel;
 using Triangulation = CGAL::Triangulation_2<K>;
 using Vertex_circulator = Triangulation::Vertex_circulator;
-using Point = Triangulation::Point;
+using TPoint = Triangulation::Point;
 
 //using C = CGAL::Simple_cartesian<float>;
 //using Mesh = CGAL::Surface_mesh<C::Point_3>;
 //using vertex_descriptor = Mesh::Vertex_index;
 //using face_descriptor = Mesh::Face_index ;
+
+
+typedef K::FT                                                FT;
+typedef K::Point_2                                           Point;
+typedef K::Segment_2                                         Segment;
+typedef CGAL::Alpha_shape_vertex_base_2<K>                   Vb;
+typedef CGAL::Alpha_shape_face_base_2<K>                     Fb;
+typedef CGAL::Triangulation_data_structure_2<Vb,Fb>          Tds;
+typedef CGAL::Delaunay_triangulation_2<K,Tds>                Triangulation_2;
+typedef CGAL::Alpha_shape_2<Triangulation_2>                 Alpha_shape_2;
+typedef Alpha_shape_2::Alpha_shape_edges_iterator            Alpha_shape_edges_iterator;
+template <class OutputIterator>
 #endif
+
+void alpha_edges( const Alpha_shape_2& A, OutputIterator out)
+{
+  Alpha_shape_edges_iterator it = A.alpha_shape_edges_begin(),
+							 end = A.alpha_shape_edges_end();
+  for( ; it!=end; ++it)
+	*out++ = A.segment(*it);
+}
+
+QVector<QVector3D> Helpers3D::computeAlphaShape(const QVector<QVector3D>& points)
+{
+	QVector<QVector3D> result;
+#ifdef USE_CGAL
+
+	std::vector<Point> points2 = getCgalPoints2<Point>(points);
+	Alpha_shape_2 A(points2.begin(), points2.end(),
+					FT(160),
+					Alpha_shape_2::GENERAL);
+	std::vector<Segment> segments;
+	alpha_edges(A, std::back_inserter(segments));
+	std::cout << "Alpha Shape computed" << std::endl;
+	std::cout << segments.size() << " alpha shape edges" << std::endl;
+	std::cout << "Optimal alpha: " << *A.find_optimal_alpha(1)<<std::endl;
+
+	std::for_each(segments.begin(), segments.end(), [&result](const Segment& s) {
+		result.push_back({static_cast<float>(s[0].x()), static_cast<float>(s[0].y()), 0});
+		result.push_back({static_cast<float>(s[1].x()), static_cast<float>(s[1].y()), 0});
+	});
+#endif
+	return result;
+}
+
+QVector<QVector3D> Helpers3D::computeConvexHull(const QVector<QVector3D>& points)
+{
+QVector<QVector3D> result;
+#ifdef USE_CGAL
+//  std::ifstream in("data/triangulation_prog1.cin");
+//  std::istream_iterator<Point> points2.begin(in);
+//  std::istream_iterator<Point> points2.end;
+
+  std::vector<TPoint> points2 = getCgalPoints2<TPoint>(points);
+
+  Triangulation t;
+  t.insert(points2.begin(), points2.end());
+  Vertex_circulator vc = t.incident_vertices(t.infinite_vertex());
+  Vertex_circulator done(vc);
+  if (vc != nullptr)
+  {
+	  do
+	  {
+//		  std::cout << vc->point() << std::endl;
+		  result.push_back({static_cast<float>(vc->point().x()), static_cast<float>(vc->point().y()), 0});
+	  }
+	  while(++vc != done);
+  }
+  result.push_back(result.front());
+#endif
+  return result;
+}
+
+
+int Helpers3D::createCgalMesh()
+{
+#ifdef USE_CGAL
+//  Mesh m;
+//  // Add the points as vertices
+//  vertex_descriptor u = m.add_vertex(C::Point_3(0,1,0));
+//  vertex_descriptor v = m.add_vertex(C::Point_3(0,0,0));
+//  vertex_descriptor w = m.add_vertex(C::Point_3(1,1,0));
+//  vertex_descriptor x = m.add_vertex(C::Point_3(1,0,0));
+//  m.add_face(u,v,w);
+//  face_descriptor f = m.add_face(u,v,x);
+//  if(f == Mesh::null_face())
+//  {
+//	std::cerr<<"The face could not be added because of an orientation error."<<std::endl;
+//	f = m.add_face(u,x,v);
+//	assert(f != Mesh::null_face());
+//  }
+#endif
+  return 0;
+}
+
+int Helpers3D::drawTriangulation(const QVector<QVector3D>& points)
+{
+#ifdef USE_CGAL
+//  std::ifstream in((argc>1)?argv[1]:"data/triangulation_prog1.cin");
+//  std::istream_iterator<Point> begin(in);
+//  std::istream_iterator<Point> end;
+
+  std::vector<Point> points2;
+  std::for_each(points.begin(), points.end(), [&points2](const QVector3D& point) {
+	  points2.push_back({point.x(), point.y()});
+  });
+
+  Triangulation t;
+  t.insert(points2.begin(), points2.end());
+  //C:\Projects\qt5-build\qtbase\include\QtGui
+//  CGAL::draw(t);
+#endif
+  return EXIT_SUCCESS;
+}
 
 QQuaternion Helpers3D::getRotationFromDirection(const QVector3D& direction, const QVector3D& up)
 {
@@ -160,79 +286,5 @@ bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QStri
 	}
 
 	return true;
-}
-
-QVector<QVector3D> Helpers3D::getConvexHull(const QVector<QVector3D>& points)
-{
-QVector<QVector3D> result;
-#ifdef USE_CGAL
-//  std::ifstream in("data/triangulation_prog1.cin");
-//  std::istream_iterator<Point> points2.begin(in);
-//  std::istream_iterator<Point> points2.end;
-
-  std::vector<Point> points2;
-  std::for_each(points.begin(), points.end(), [&points2](const QVector3D& point) {
-	  points2.push_back({point.x(), point.y()});
-  });
-
-  Triangulation t;
-  t.insert(points2.begin(), points2.end());
-  Vertex_circulator vc = t.incident_vertices(t.infinite_vertex());
-  Vertex_circulator done(vc);
-  if (vc != nullptr)
-  {
-	  do
-	  {
-//		  std::cout << vc->point() << std::endl;
-		  result.push_back({static_cast<float>(vc->point().x()), static_cast<float>(vc->point().y()), 0});
-	  }
-	  while(++vc != done);
-  }
-  result.push_back(result.front());
-#endif
-  return result;
-}
-
-
-int Helpers3D::createCgalMesh()
-{
-#ifdef USE_CGAL
-//  Mesh m;
-//  // Add the points as vertices
-//  vertex_descriptor u = m.add_vertex(C::Point_3(0,1,0));
-//  vertex_descriptor v = m.add_vertex(C::Point_3(0,0,0));
-//  vertex_descriptor w = m.add_vertex(C::Point_3(1,1,0));
-//  vertex_descriptor x = m.add_vertex(C::Point_3(1,0,0));
-//  m.add_face(u,v,w);
-//  face_descriptor f = m.add_face(u,v,x);
-//  if(f == Mesh::null_face())
-//  {
-//	std::cerr<<"The face could not be added because of an orientation error."<<std::endl;
-//	f = m.add_face(u,x,v);
-//	assert(f != Mesh::null_face());
-//  }
-#endif
-  return 0;
-}
-
-
-int Helpers3D::drawTriangulation(const QVector<QVector3D>& points)
-{
-#ifdef USE_CGAL
-//  std::ifstream in((argc>1)?argv[1]:"data/triangulation_prog1.cin");
-//  std::istream_iterator<Point> begin(in);
-//  std::istream_iterator<Point> end;
-
-  std::vector<Point> points2;
-  std::for_each(points.begin(), points.end(), [&points2](const QVector3D& point) {
-	  points2.push_back({point.x(), point.y()});
-  });
-
-  Triangulation t;
-  t.insert(points2.begin(), points2.end());
-  //C:\Projects\qt5-build\qtbase\include\QtGui
-//  CGAL::draw(t);
-#endif
-  return EXIT_SUCCESS;
 }
 

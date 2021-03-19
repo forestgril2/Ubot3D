@@ -453,7 +453,7 @@ void TriangleGeometry::updateData()
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
 
-	_triangulationResult = Helpers3D::getConvexHull(_overhangingPoints);
+	_triangulationResult = Helpers3D::computeAlphaShape(_overhangingPoints);
 
 	// Inform, that overhangings data was modified.
 	emit overhangingTriangleVerticesChanged();
