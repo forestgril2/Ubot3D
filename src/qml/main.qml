@@ -74,14 +74,16 @@ Window {
             delegate: Model {
                 visible: true
                 scale: Qt.vector3d(1, 1, 1)
-                geometry: PointGeometry {
+                geometry: LineGeometry {
                     points: stlObjects.objectAt(index).geometry.overhangingVertices
                 }
                 materials: [
-                    DefaultMaterial {
+                    PrincipledMaterial {
+                        pointSize: 5
+                        lineWidth: 5
                         lighting: DefaultMaterial.NoLighting
                         cullMode: DefaultMaterial.NoCulling
-                        diffuseColor: "yellow"
+//                        diffuseColor: "yellow"
                         //                    pointSize: sliderPointSize.value
                     }
                 ]

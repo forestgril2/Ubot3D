@@ -36,7 +36,7 @@
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Triangulation_2.h>
-#include <CGAL/draw_triangulation_2.h>
+//#include <CGAL/draw_triangulation_2.h>
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
@@ -540,9 +540,63 @@ void TriangleGeometry::buildIntersectionData()
 	_intersectionData = meshBVHBuilder.buildTree();
 }
 
-PointGeometry::PointGeometry()
+LineGeometry::LineGeometry()
 {
 	const uint32_t numPoints = 1000000;
+	_points.resize(numPoints);
+	std::for_each(_points.begin(), _points.end(), [](QVector3D& point) {
+		point = {5.0f*rand()/RAND_MAX,5.0f*rand()/RAND_MAX,5.0f*rand()/RAND_MAX};
+	});
+
+
+	connect(this, &LineGeometry::pointsChanged, this, &LineGeometry::updateData);
+
+	updateData();
+}
+
+void LineGeometry::updateData()
+{
+	clear();
+
+	uint32_t numPoints = uint32_t(_points.size());
+
+	const int stride = 3 * sizeof(float);
+
+	QByteArray v;
+	v.resize(numPoints * stride);
+	float *p = reinterpret_cast<float *>(v.data());
+
+	for(const QVector3D& vertex : _points)
+	{
+		*p++ = vertex.x();
+		*p++ = vertex.y();
+		*p++ = vertex.z();
+	}
+
+	setVertexData(v);
+	setStride(stride);
+
+	setPrimitiveType(QQuick3DGeometry::PrimitiveType::Lines);
+
+	addAttribute(QQuick3DGeometry::Attribute::PositionSemantic,
+				 0,
+				 QQuick3DGeometry::Attribute::F32Type);
+}
+
+QVector<QVector3D> LineGeometry::getPoints() const
+{
+	return _points;
+}
+
+void LineGeometry::setPoints(QList<QVector3D> newPoints)
+{
+	_points = newPoints;
+	emit pointsChanged();
+}
+
+PointGeometry::PointGeometry()
+{
+	const uint32_t numPoints = 10000;
 	_points.resize(numPoints);
 	std::for_each(_points.begin(), _points.end(), [](QVector3D& point) {
 		point = {5.0f*rand()/RAND_MAX,5.0f*rand()/RAND_MAX,5.0f*rand()/RAND_MAX};
@@ -647,7 +701,8 @@ int TriangleGeometry::drawTriangulation(const QList<QVector3D>& points)
 
   Triangulation t;
   t.insert(points2.begin(), points2.end());
-  CGAL::draw(t);
+  //C:\Projects\qt5-build\qtbase\include\QtGui
+//  CGAL::draw(t);
   return EXIT_SUCCESS;
 }
 

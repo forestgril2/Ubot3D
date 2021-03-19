@@ -165,3 +165,25 @@ signals:
 private:
 	QList<QVector3D> _points;
 };
+
+class LineGeometry : public QQuick3DGeometry
+{
+	Q_OBJECT
+	QML_NAMED_ELEMENT(LineGeometry)
+
+public:
+	Q_PROPERTY(QList<QVector3D> points READ getPoints WRITE setPoints NOTIFY pointsChanged)
+
+	LineGeometry();
+
+	Q_INVOKABLE void updateData();
+
+	QList<QVector3D> getPoints() const;
+	void setPoints(QList<QVector3D> newPoints);
+
+signals:
+	void pointsChanged();
+
+private:
+	QList<QVector3D> _points;
+};
