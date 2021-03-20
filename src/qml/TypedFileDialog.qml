@@ -73,10 +73,13 @@ FileDialog {
     }
 
     function prepareStlExportData(stlModelList) {
-        var geometryList = []
+        var exportDataList = []
         for (var i=0; i<stlModelList.length; i++) {
-            geometryList.push(stlModelList[i].geometry)
+            exportDataList.push({
+                                 geometry:  stlModelList[i].geometry,
+                                 transform: stlModelList[i].sceneTransform
+                               })
         }
-        return geometryList;
+        return exportDataList;
     }
 }

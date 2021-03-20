@@ -379,6 +379,7 @@ void TriangleGeometry::updateData()
 
 // a triangle, front face = counter-clockwise
 
+	// TODO: We should probably perform subsequent mesh node transformations here.
 	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
 	{
 		const uint32_t numFacesInThisMesh = _scene->mMeshes[m]->mNumFaces;

@@ -238,15 +238,16 @@ bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QStri
 {
 	assert(stlExportData.size() > 0);
 
-	QList<QVariant>::const_iterator it = stlExportData.begin();
+//	QList<QVariantMap>::const_iterator it = stlExportData.begin();
 
 	std::vector<Assimp::AttachmentInfo> sceneAttachments;
 
 	aiNode* masterNode = nullptr;
 	aiScene* masterScene = nullptr;
-	for (const QVariant& data : stlExportData)
+	for (const QVariant& exportData : stlExportData)
 	{
-		const TriangleGeometry* stlGeometry = qvariant_cast<TriangleGeometry*>(data);
+		QVariantMap map = exportData.toMap();
+		const TriangleGeometry* stlGeometry = qvariant_cast<TriangleGeometry*>(map.value("geometry"));
 		if (!stlGeometry) {
 			std::cout << " ### " << __FUNCTION__ << " cannot cast to TriangleGeometry:" << "" << "," << "" << std::endl;
 			return false;
@@ -254,6 +255,29 @@ bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QStri
 
 		aiScene* geometryScene;// = nullptr;
 		Assimp::SceneCombiner::CopyScene(&geometryScene, stlGeometry->getAssimpScene());
+
+		const QMatrix4x4 transform = qvariant_cast<QMatrix4x4>(map.value("transform"));
+		aiMatrix4x4 aiTransform = *reinterpret_cast<const aiMatrix4x4*>(&transform);
+		aiTransform.Transpose();
+
+		// TODO: Remove and regenerate normals.
+//		geometryScene->mRootNode->mTransformation = aiTransform;
+
+		for (uint32_t m=0; m<geometryScene->mNumMeshes; ++m)
+		{// Transform all vertices according to their root node.
+			const uint32_t numFacesInThisMesh = geometryScene->mMeshes[m]->mNumFaces;
+			for (uint32_t f=0; f<numFacesInThisMesh; ++f)
+			{
+				aiFace& face = geometryScene->mMeshes[m]->mFaces[f];
+				const uint32_t numFaceIndexes = face.mNumIndices;
+				for (uint32_t fi=0; fi<numFaceIndexes; ++fi)
+				{
+					aiVector3D& vertex = geometryScene->mMeshes[m]->mVertices[face.mIndices[fi]];
+					vertex *= aiTransform;
+//					std::cout << " ### " << __FUNCTION__ << " :" << "" << "," << "" << std::endl;
+				}
+			}
+		}
 
 		if (!masterNode)
 		{
