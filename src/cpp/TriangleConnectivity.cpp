@@ -11,7 +11,7 @@ TriangleConnectivity::TriangleConnectivity(const std::vector<uint32_t>& indices)
 	_indices(indices)
 {
 	createTriangles();
-	setupNeighbours();
+	setupTriangleNeighbours();
 }
 
 std::vector<IslandShared> TriangleConnectivity::operator()()
@@ -21,72 +21,80 @@ std::vector<IslandShared> TriangleConnectivity::operator()()
 
 void TriangleConnectivity::createTriangles()
 {
-	for (uint32_t i : _indices)
-	{
-		_triangles.push_back(std::make_shared<Triangle>(i, _indices));
+	for (uint32_t index=0; index<_indices.size(); index += 3)
+	{// Jump through all first triangle vertex indices.
+		_triangles.push_back(std::make_shared<Triangle>(index, _indices));
 	}
 }
 
-void TriangleConnectivity::setupNeighbours()
+void TriangleConnectivity::setupTriangleNeighbours()
 {
-	std::map<uint32_t, std::set<uint32_t>> vertex_to_tris;
+	// For every vertex index, assign a set of indices,
+	// which mark (first vertices of) triangles incident to that vertex.
+	std::map<uint32_t, std::set<uint32_t>> trianglesToVertex;
 
 	const uint32_t numIndices = uint32_t(_indices.size());
-	for (uint32_t i=0; i<numIndices; i+=3)
+	for (uint32_t vertexIndex=0; vertexIndex<numIndices; vertexIndex+=3)
 	{
-		vertex_to_tris[_indices[i]].insert(i);
-		vertex_to_tris[_indices[i+1]].insert(i);
-		vertex_to_tris[_indices[i+2]].insert(i);
+		std::pair<std::set<uint32_t>::iterator, bool> insertion;
+		insertion = trianglesToVertex[_indices[vertexIndex   ]].insert(vertexIndex);
+		assert(insertion.second == true);
+		insertion = trianglesToVertex[_indices[vertexIndex +1]].insert(vertexIndex);
+		assert(insertion.second == true);
+		insertion = trianglesToVertex[_indices[vertexIndex +2]].insert(vertexIndex);
+		assert(insertion.second == true);
 	}
 
 	const uint32_t numTriangles = uint32_t(_triangles.size());
-	for (uint32_t i = 0; i < numTriangles; ++i)
-	{
-		Triangle& t = *_triangles[i];
-		std::set<uint32_t> temp_neighbours;
-		for (uint32_t j = 0; j < 3; ++j)
-		{
-			uint32_t test_index = uint32_t(t.getIndex(j));
-			for (std::set<uint32_t>::iterator it = vertex_to_tris[test_index].begin(); it != vertex_to_tris[test_index].end(); ++it)
-			{
-				if (*it != i) temp_neighbours.insert(*it/3); //divide by 3 to get the 'actual' tri index
+	for (uint32_t triangleIndex=0; triangleIndex<numTriangles; ++triangleIndex)
+	{// For every triangle.
+		Triangle& triangle = *_triangles[triangleIndex];
+
+		std::set<uint32_t> foundTriangleNeighbours;
+		for (uint32_t v=0; v<3; ++v)
+		{// For every vertex in triangle.
+			uint32_t vertexIndexInTriangle = uint32_t(triangle.getVertexIndex(v));
+			for (uint32_t incidentTriangleFirstIndex : trianglesToVertex[vertexIndexInTriangle])
+			{// For every triangle incident to this vertex.
+				if (incidentTriangleFirstIndex == triangleIndex)
+					continue; // Skip index for the triangle in question.
+				// Divide by 3 to get the 'actual' neighbour triangle index.
+				foundTriangleNeighbours.insert(incidentTriangleFirstIndex/3);
 			}
 		}
 
-		for (std::set<uint32_t>::iterator it = temp_neighbours.begin(); it != temp_neighbours.end(); ++it)
+		for (uint32_t neighbourTriangleIndex : foundTriangleNeighbours)
 		{
-			Triangle& other = *_triangles[*it];
-			t.addNeighbour(other);
+			Triangle& other = *_triangles[neighbourTriangleIndex];
+			triangle.addNeighbour(other);
 		}
 	}
 }
 
-std::vector<std::shared_ptr<Island>> TriangleConnectivity::calculateIslands()
+std::vector<std::shared_ptr<TriangleIsland>> TriangleConnectivity::calculateIslands()
 {
-	std::vector<std::shared_ptr<Island>> islandsRet;
-	for (uint32_t i=0; i<uint32_t(_triangles.size()); ++i)
+	std::vector<std::shared_ptr<TriangleIsland>> islands;
+	for (TriangleShared& triangle : _triangles)
 	{
-		Triangle& t = *_triangles[i];
-		if(!t.isAdded())
-		{
-			islandsRet.push_back(std::make_shared<Island>());
-			islandsRet.back()->recursiveAdd(t);
-		}
+		Triangle& t = *triangle;
+		if(t.isAdded())
+			continue;
+		islands.push_back(std::make_shared<TriangleIsland>());
+		islands.back()->recursiveAdd(t);
 	}
-	return islandsRet;
+	return islands;
 }
 
-uint32_t Triangle::getIndex(uint32_t i) const
+uint32_t Triangle::getVertexIndex(uint32_t i) const
 {
-	return _indices[_positionIndex + i];
+	return _vertexIndices[_firstIndexPos + i];
 }
 
-Triangle::Triangle(uint32_t positionIndex, const std::vector<uint32_t>& indices) :
-	_positionIndex(positionIndex),
-	_indices(indices),
+Triangle::Triangle(uint32_t index, const std::vector<uint32_t>& indices) :
+	_firstIndexPos(index),
+	_vertexIndices(indices),
 	_isAdded(false)
 {
-
 }
 
 bool Triangle::isNeighbour(const Triangle& other)
@@ -95,7 +103,7 @@ bool Triangle::isNeighbour(const Triangle& other)
 	{
 		for (uint32_t j=0; j<3; ++j)
 		{
-			if (getIndex(i) != other.getIndex(j))
+			if (getVertexIndex(i) != other.getVertexIndex(j))
 				continue;
 			return true;
 		}
@@ -118,9 +126,9 @@ uint32_t Triangle::getNeighbourCount() const
 	return uint32_t(_neighbours.size());
 }
 
-Triangle& Triangle::getNeighbour(uint32_t i)
+Triangles& Triangle::getNeighbours()
 {
-	return *_neighbours[i];
+	return _neighbours;
 }
 
 void Triangle::addNeighbour(Triangle& neighbour)
@@ -128,23 +136,23 @@ void Triangle::addNeighbour(Triangle& neighbour)
 	_neighbours.push_back(std::shared_ptr<Triangle>(&neighbour));//changed to set
 }
 
-void Island::recursiveAdd(Triangle& t)
+void TriangleIsland::recursiveAdd(Triangle& triangle)
 {
-	addAndSetAdded(t);
-	for(uint32_t i = 0; i < t.getNeighbourCount(); i++)
+	addAndSetAdded(triangle);
+	for(TriangleShared& neighbourTriangle: triangle.getNeighbours())
 	{
-		if (t.getNeighbour(i).isAdded())
+		if (neighbourTriangle->isAdded())
 			continue;
 
-		recursiveAdd(t.getNeighbour(i));
+		recursiveAdd(*neighbourTriangle);
 	}
 }
 
-std::set<TriangleShared> Island::get()
+std::set<TriangleShared> TriangleIsland::getTriangles()
 {
 	return _triangles;
 }
-void Island::addAndSetAdded(Triangle& t)
+void TriangleIsland::addAndSetAdded(Triangle& t)
 {
 	t.setAdded();
 	_triangles.insert(TriangleShared(&t));

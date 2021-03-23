@@ -461,7 +461,9 @@ void TriangleGeometry::updateData()
 		}
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
+//	std::vector<IslandShared> triangleIslands = TriangleConnectivity(_overhangingTriangleIndices)();
 
+//	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
 
 
 	_triangulationResult = Helpers3D::computeAlphaShape(_overhangingPoints);

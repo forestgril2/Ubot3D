@@ -124,7 +124,7 @@ private:
 
 	float _overhangAngleMax = float(M_PI_4);
 	QVector<QVector3D> _overhangingTriangleVertices;
-	QVector<uint32_t> _overhangingTriangleIndices;
+	std::vector<uint32_t> _overhangingTriangleIndices;
 	QVector<QVector3D> _overhangingPoints;
 	QVector<QVector3D> _triangulationResult;
 

@@ -5,18 +5,16 @@
 #include <memory>
 
 class Triangle;
-class Island;
+class TriangleIsland;
 
 using TriangleShared = std::shared_ptr<Triangle>;
-using IslandShared = std::shared_ptr<Island>;
+using IslandShared = std::shared_ptr<TriangleIsland>;
 using Triangles = std::vector<TriangleShared>;
 
 class Triangle
 {
 public:
-	explicit Triangle(uint32_t positionIndex, const std::vector<uint32_t>& indices);
-
-	uint32_t getIndex(uint32_t i); // only valid with 0, 1, 2
+	explicit Triangle(uint32_t index, const std::vector<uint32_t>& indices);
 
 	bool isNeighbour(const Triangle& other);
 
@@ -24,23 +22,23 @@ public:
 	void setAdded();
 
 	uint32_t getNeighbourCount() const;
-	Triangle& getNeighbour(uint32_t i);
+	Triangles& getNeighbours();
 	void addNeighbour(Triangle& neighbour);
-	uint32_t getIndex(uint32_t i) const;
+	uint32_t getVertexIndex(uint32_t i) const;
 
 private:
 	Triangles _neighbours; //changed to set
-	uint32_t _positionIndex; // position of the first index of this triangle in the global vert array (which is in  3's)
-	const std::vector<uint32_t>& _indices;
+	uint32_t _firstIndexPos; // position of the first index of this triangle in the global vert array (which is in  3's)
+	const std::vector<uint32_t>& _vertexIndices;
 	bool _isAdded;
 };
 
 
-class Island
+class TriangleIsland
 {
 public:
-	void recursiveAdd(Triangle& t);
-	std::set<TriangleShared> get();
+	void recursiveAdd(Triangle& triangle);
+	std::set<TriangleShared> getTriangles();
 
 private:
 	void addAndSetAdded(Triangle& t);
@@ -54,7 +52,7 @@ public:
 	std::vector<IslandShared> operator()();
 
 private:
-	void setupNeighbours();
+	void setupTriangleNeighbours();
 	void createTriangles();
 	std::vector<IslandShared> calculateIslands();
 
