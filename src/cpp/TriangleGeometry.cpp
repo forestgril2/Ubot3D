@@ -28,6 +28,7 @@
 
 #include <Chronograph.h>
 #include <Helpers3D.h>
+#include <TriangleConnectivity.h>
 
 #include <fstream>
 
@@ -392,7 +393,7 @@ void TriangleGeometry::updateData()
 				std::cout << "#### WARNING! face.mNumIndices != 3, but " << face.mNumIndices << std::endl;
 			}
 
-			const aiVector3D boundDiff = _maxBound-_minBound;
+//			const aiVector3D boundDiff = _maxBound-_minBound;
 
 			auto isTriangleNormalOverhanging = [](const Vec3 no, const Vec3 n1, const Vec3 n2, float maxOverhangAngle)
 			{// Judge based on an average of three triangle vertex normals.
@@ -400,7 +401,7 @@ void TriangleGeometry::updateData()
 				return normal.dot(Vec3{0,0,1}) < std::cosf(float(M_PI) - maxOverhangAngle);
 			};
 
-			auto setTriangleVertex = [this, &p, &pi, &boundDiff, floatsPerStride, m](uint32_t vertexIndex, const bool isVertexOverhanging) {
+			auto setTriangleVertex = [this, &p, &pi, floatsPerStride, m](uint32_t vertexIndex, const bool isVertexOverhanging) {
 				const aiVector3D vertex = _scene->mMeshes[m]->mVertices[vertexIndex];
 				*p++ = vertex.x;
 				*p++ = vertex.y;
@@ -423,13 +424,15 @@ void TriangleGeometry::updateData()
 				updateBounds(p-floatsPerStride);
 			};
 
-			auto setTriangleVertexesAndOverhangingTriangles = [this, setTriangleVertex, isTriangleNormalOverhanging, &face, m](){
+			static const auto setTriangleVertexesAndOverhangingTriangles = [this, setTriangleVertex, isTriangleNormalOverhanging, &face, m](){
+				//TODO: All this is a little messy, come back here and make it better.
 				const Vec3 n0 = *reinterpret_cast<Vec3*>(&(_scene->mMeshes[m]->mNormals[face.mIndices[0]]));
 				const Vec3 n1 = *reinterpret_cast<Vec3*>(&(_scene->mMeshes[m]->mNormals[face.mIndices[1]]));
 				const Vec3 n2 = *reinterpret_cast<Vec3*>(&(_scene->mMeshes[m]->mNormals[face.mIndices[2]]));
 
 				const bool isTriangleOverhanging = isTriangleNormalOverhanging(n0, n1, n2, _overhangAngleMax);
 
+				//TODO: I mean this: _overhangingTriangleVertices are push_back'ed inside setTriangleVertex(), which looks nice - not.
 				// First side: vertex0 to vertex1
 				setTriangleVertex(face.mIndices[0], isTriangleOverhanging);
 				setTriangleVertex(face.mIndices[1], isTriangleOverhanging);
@@ -447,12 +450,19 @@ void TriangleGeometry::updateData()
 				// Third side: vertex2 to vertex0
 				_overhangingTriangleVertices.push_back(_overhangingTriangleVertices.back());
 				_overhangingTriangleVertices.push_back(*reinterpret_cast<QVector3D*>(&(_scene->mMeshes[m]->mVertices[face.mIndices[0]])));
+
+				//TODO: BTW, this should be the main way to define/collect triangles - almost always by indices (sometimes by stripes, fans, maybe).
+				_overhangingTriangleIndices.push_back(face.mIndices[0]);
+				_overhangingTriangleIndices.push_back(face.mIndices[1]);
+				_overhangingTriangleIndices.push_back(face.mIndices[2]);
 			};
 
 			setTriangleVertexesAndOverhangingTriangles();
 		}
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
+
+
 
 	_triangulationResult = Helpers3D::computeAlphaShape(_overhangingPoints);
 
@@ -463,7 +473,7 @@ void TriangleGeometry::updateData()
 
     setVertexData(v);
 	setIndexData(indices);
-    setStride(stride);
+	setStride(int(stride));
 
     setPrimitiveType(QQuick3DGeometry::PrimitiveType::Triangles);
 

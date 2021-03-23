@@ -35,6 +35,7 @@ SOURCES += src/cpp/main.cpp \
     src/cpp/SimplexGeometry.cpp \
     src/cpp/GCodeProgramProcessor.cpp \
     src/cpp/Helpers3D.cpp \
+    src/cpp/TriangleConnectivity.cpp \
     src/cpp/TriangleGeometry.cpp \
     src/cpp/GCodeGeometry.cpp \
     src/cpp/Chronograph.cpp \
@@ -50,7 +51,8 @@ HEADERS +=  src/cpp/TriangleGeometry.h \
         $$PWD/../gpr/src/gcode_program.h \
         $$PWD/../gpr/src/parser.h \
         src/cpp/GCodeProgramProcessor.h \
-        src/cpp/Helpers3D.h
+        src/cpp/Helpers3D.h \
+        src/cpp/TriangleConnectivity.h
 
 RESOURCES += \
     src/qml/qml.qrc \
