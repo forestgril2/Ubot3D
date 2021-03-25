@@ -71,6 +71,9 @@ void alpha_edges( const Alpha_shape_2& A, OutputIterator out)
 
 QVector<QVector3D> Helpers3D::computeAlphaShape(const QVector<QVector3D>& points)
 {
+	if (points.size() == 0)
+		return QVector<QVector3D>();
+
 	QVector<QVector3D> result;
 #ifdef USE_CGAL
 
