@@ -424,7 +424,7 @@ void TriangleGeometry::updateData()
 				updateBounds(p-floatsPerStride);
 			};
 
-			static const auto setTriangleVertexesAndOverhangingTriangles = [this, setTriangleVertex, isTriangleNormalOverhanging, &face, m](){
+			auto setTriangleVertexesAndOverhangingTriangles = [this, setTriangleVertex, isTriangleNormalOverhanging, &face, m](){
 				//TODO: All this is a little messy, come back here and make it better.
 				const Vec3 n0 = *reinterpret_cast<Vec3*>(&(_scene->mMeshes[m]->mNormals[face.mIndices[0]]));
 				const Vec3 n1 = *reinterpret_cast<Vec3*>(&(_scene->mMeshes[m]->mNormals[face.mIndices[1]]));
@@ -461,9 +461,9 @@ void TriangleGeometry::updateData()
 		}
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
-//	std::vector<IslandShared> triangleIslands = TriangleConnectivity(_overhangingTriangleIndices)();
 
-//	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
+	std::vector<TriangleIsland> triangleIslands = TriangleConnectivity(_overhangingTriangleIndices)();
+	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
 
 
 	_triangulationResult = Helpers3D::computeAlphaShape(_overhangingPoints);

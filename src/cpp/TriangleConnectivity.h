@@ -8,8 +8,10 @@ class Triangle;
 class TriangleIsland;
 
 using TriangleShared = std::shared_ptr<Triangle>;
-using IslandShared = std::shared_ptr<TriangleIsland>;
+using TriangleWeak = std::weak_ptr<Triangle>;
 using Triangles = std::vector<TriangleShared>;
+using TrianglesWeak = std::vector<TriangleWeak>;
+using TriangleSet = std::set<TriangleShared>;
 
 class Triangle
 {
@@ -22,12 +24,12 @@ public:
 	void setAdded();
 
 	uint32_t getNeighbourCount() const;
-	Triangles& getNeighbours();
-	void addNeighbour(Triangle& neighbour);
+	TrianglesWeak& getNeighbours();
+	void addNeighbour(TriangleShared& neighbour);
 	uint32_t getVertexIndex(uint32_t i) const;
 
 private:
-	Triangles _neighbours; //changed to set
+	TrianglesWeak _neighbours; //changed to set
 	uint32_t _firstIndexPos; // position of the first index of this triangle in the global vert array (which is in  3's)
 	const std::vector<uint32_t>& _vertexIndices;
 	bool _isAdded;
@@ -37,25 +39,25 @@ private:
 class TriangleIsland
 {
 public:
-	void recursiveAdd(Triangle& triangle);
-	std::set<TriangleShared> getTriangles();
+	void recursiveAdd(TriangleShared& triangle);
+	TriangleSet& getTriangles();
 
 private:
-	void addAndSetAdded(Triangle& t);
-	std::set<TriangleShared> _triangles;
+	void addAndSetAdded(TriangleShared& triangle);
+	TriangleSet _triangles;
 };
 
 class TriangleConnectivity
 {
 public:
 	TriangleConnectivity(const std::vector<uint32_t>& indices);
-	std::vector<IslandShared> operator()();
+	std::vector<TriangleIsland> operator()();
 
 private:
 	void setupTriangleNeighbours();
 	void createTriangles();
-	std::vector<IslandShared> calculateIslands();
+	std::vector<TriangleIsland> calculateIslands();
 
-	std::vector<std::shared_ptr<Triangle>> _triangles;
+	Triangles _triangles;
 	const std::vector<uint32_t>& _indices;
 };

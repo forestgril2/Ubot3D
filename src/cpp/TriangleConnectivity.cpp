@@ -14,7 +14,7 @@ TriangleConnectivity::TriangleConnectivity(const std::vector<uint32_t>& indices)
 	setupTriangleNeighbours();
 }
 
-std::vector<IslandShared> TriangleConnectivity::operator()()
+std::vector<TriangleIsland> TriangleConnectivity::operator ()()
 {
 	return calculateIslands();
 }
@@ -65,22 +65,20 @@ void TriangleConnectivity::setupTriangleNeighbours()
 
 		for (uint32_t neighbourTriangleIndex : foundTriangleNeighbours)
 		{
-			Triangle& other = *_triangles[neighbourTriangleIndex];
-			triangle.addNeighbour(other);
+			triangle.addNeighbour(_triangles[neighbourTriangleIndex]);
 		}
 	}
 }
 
-std::vector<std::shared_ptr<TriangleIsland>> TriangleConnectivity::calculateIslands()
+std::vector<TriangleIsland> TriangleConnectivity::calculateIslands()
 {
-	std::vector<std::shared_ptr<TriangleIsland>> islands;
+	std::vector<TriangleIsland> islands;
 	for (TriangleShared& triangle : _triangles)
 	{
-		Triangle& t = *triangle;
-		if(t.isAdded())
+		if(triangle->isAdded())
 			continue;
-		islands.push_back(std::make_shared<TriangleIsland>());
-		islands.back()->recursiveAdd(t);
+		islands.push_back(TriangleIsland());
+		islands.back().recursiveAdd(triangle);
 	}
 	return islands;
 }
@@ -126,34 +124,36 @@ uint32_t Triangle::getNeighbourCount() const
 	return uint32_t(_neighbours.size());
 }
 
-Triangles& Triangle::getNeighbours()
+TrianglesWeak& Triangle::getNeighbours()
 {
 	return _neighbours;
 }
 
-void Triangle::addNeighbour(Triangle& neighbour)
+void Triangle::addNeighbour(TriangleShared& neighbour)
 {
-	_neighbours.push_back(std::shared_ptr<Triangle>(&neighbour));//changed to set
+	_neighbours.push_back(TriangleWeak(neighbour));//changed to set
 }
 
-void TriangleIsland::recursiveAdd(Triangle& triangle)
+void TriangleIsland::recursiveAdd(TriangleShared& triangle)
 {
 	addAndSetAdded(triangle);
-	for(TriangleShared& neighbourTriangle: triangle.getNeighbours())
+	for(TriangleWeak& neighbourTriangle: triangle->getNeighbours())
 	{
-		if (neighbourTriangle->isAdded())
+		TriangleShared neighboor = neighbourTriangle.lock();
+		assert(neighboor);
+		if (neighboor->isAdded())
 			continue;
 
-		recursiveAdd(*neighbourTriangle);
+		recursiveAdd(neighboor);
 	}
 }
 
-std::set<TriangleShared> TriangleIsland::getTriangles()
+TriangleSet& TriangleIsland::getTriangles()
 {
 	return _triangles;
 }
-void TriangleIsland::addAndSetAdded(Triangle& t)
+void TriangleIsland::addAndSetAdded(TriangleShared& triangle)
 {
-	t.setAdded();
-	_triangles.insert(TriangleShared(&t));
+	triangle->setAdded();
+	_triangles.insert(triangle);
 }
