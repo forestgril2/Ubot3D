@@ -51,12 +51,11 @@ class TriangleConnectivity
 {
 public:
 	TriangleConnectivity(const std::vector<uint32_t>& indices);
-	std::vector<TriangleIsland> operator()();
+	std::vector<TriangleIsland> calculateIslands();
 
 private:
 	void setupTriangleNeighbours();
 	void createTriangles();
-	std::vector<TriangleIsland> calculateIslands();
 
 	Triangles _triangles;
 	const std::vector<uint32_t>& _indices;

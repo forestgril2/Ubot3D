@@ -10,13 +10,12 @@
 TriangleConnectivity::TriangleConnectivity(const std::vector<uint32_t>& indices) :
 	_indices(indices)
 {
+//	for(auto index : indices)
+//	{
+//		std::cout << " ### " << __FUNCTION__ << " index:" << index << "," << "" << std::endl;
+//	}
 	createTriangles();
 	setupTriangleNeighbours();
-}
-
-std::vector<TriangleIsland> TriangleConnectivity::operator ()()
-{
-	return calculateIslands();
 }
 
 void TriangleConnectivity::createTriangles()

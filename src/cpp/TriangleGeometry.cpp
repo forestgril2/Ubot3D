@@ -42,9 +42,9 @@ void assimpErrorLogging(const std::string&& pError)
 
 static void assimpLogScene(const aiScene* scene)
 {
-	std::cout << "DoTheSceneProcessing(), numMeshes:                       " << scene->mNumMeshes << std::endl;
-	std::cout << "DoTheSceneProcessing(), scene->mMeshes[0]->mNumFaces:    " << scene->mMeshes[0]->mNumFaces << std::endl;
-	std::cout << "DoTheSceneProcessing(), scene->mMeshes[0]->mNumVertices: " << scene->mMeshes[0]->mNumVertices << std::endl;
+	std::cout << "assimpLogScene(), numMeshes:                       " << scene->mNumMeshes << std::endl;
+	std::cout << "assimpLogScene(), scene->mMeshes[0]->mNumFaces:    " << scene->mMeshes[0]->mNumFaces << std::endl;
+	std::cout << "assimpLogScene(), scene->mMeshes[0]->mNumVertices: " << scene->mMeshes[0]->mNumVertices << std::endl;
 }
 
 void TriangleGeometry::updateBounds(const float* vertexMatrixXCoord)
@@ -83,10 +83,13 @@ bool TriangleGeometry::importModelFromFile(const std::string& pFile)
 	// Usually - if speed is not the most important aspect for you - you'll
 	// probably to request more postprocessing than we do in this example.
 	_scene = importer.ReadFile(pFile,
-							  aiProcess_CalcTangentSpace |
-							  aiProcess_Triangulate |
-//							  aiProcess_JoinIdenticalVertices |
-							  aiProcess_SortByPType);
+							  aiProcess_CalcTangentSpace
+//							  aiProcess_Triangulate |
+//							  aiProcess_JoinIdenticalVertices
+//							  aiProcess_FixInfacingNormals |
+//							  aiProcess_ImproveCacheLocality
+//							  aiProcess_SortByPType
+							   );
 	// If the import failed, report it
 	if(!_scene)
 	{
@@ -342,13 +345,15 @@ void TriangleGeometry::updateData()
 //    }
 
 	uint32_t numMeshFaces = 0;
+	uint32_t numVertices = 0;
 	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
 	{
 		numMeshFaces += _scene->mMeshes[m]->mNumFaces;
+		numVertices += _scene->mMeshes[m]->mNumVertices;
 	}
 
     QByteArray v;
-	v.resize(3 * numMeshFaces * stride);
+	v.resize(numVertices * stride);
 	float* p = reinterpret_cast<float*>(v.data());
 
 	QByteArray indices;
@@ -462,8 +467,16 @@ void TriangleGeometry::updateData()
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
 
-	std::vector<TriangleIsland> triangleIslands = TriangleConnectivity(_overhangingTriangleIndices)();
+	std::vector<TriangleIsland> triangleIslands = TriangleConnectivity(_overhangingTriangleIndices).calculateIslands();
 	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
+//	for (TriangleIsland& island : triangleIslands)
+//	{
+//		std::cout << " ### " << __FUNCTION__ << " island size:" << island.getTriangles().size() << "," << "" << std::endl;
+////		for (auto triangleSetIt : island.getTriangles())
+////		{
+////			std::cout << " ### " << __FUNCTION__ << " :" << (*triangleSetIt).getNeighbourCount() << "," << "" << std::endl;
+////		}
+//	}
 
 
 	_triangulationResult = Helpers3D::computeAlphaShape(_overhangingPoints);
