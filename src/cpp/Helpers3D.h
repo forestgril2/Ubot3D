@@ -2,11 +2,19 @@
 
 #include <qqml.h>
 
+#include <map>
+#include <vector>
+
 #include <QObject>
 #include <QVector3D>
 #include <QQuaternion>
 
 #include <glm/mat4x4.hpp>
+#include <glm/mat4x4.hpp>
+
+
+#include <Eigen/Geometry>
+using Vec3 = Eigen::Vector3f;
 
 struct aiScene;
 
@@ -38,6 +46,8 @@ public:
 	static int createCgalMesh();
 	static int drawTriangulation(const QVector<QVector3D>& points);
 
+	static std::map<Vec3, uint32_t> vertexIndexing(const std::vector<Vec3>& vertices);
+
 private:
 	template<class P>
 	static std::vector<P> getCgalPoints2(const QVector<QVector3D>& points)
@@ -50,3 +60,8 @@ private:
 	}
 
 };
+
+bool approximatelyEqual(float a, float b, float epsilon);
+bool essentiallyEqual(float a, float b, float epsilon);
+bool definitelyGreaterThan(float a, float b, float epsilon);
+bool definitelyLessThan(float a, float b, float epsilon);

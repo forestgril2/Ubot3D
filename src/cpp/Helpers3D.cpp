@@ -165,6 +165,11 @@ int Helpers3D::drawTriangulation(const QVector<QVector3D>& points)
   return EXIT_SUCCESS;
 }
 
+std::map<Vec3, uint32_t> Helpers3D::vertexIndexing(const std::vector<Vec3>& vertices)
+{
+	return std::map<Vec3, uint32_t>{};
+}
+
 QQuaternion Helpers3D::getRotationFromDirection(const QVector3D& direction, const QVector3D& up)
 {
 	return QQuaternion::fromDirection(-direction, up);
@@ -315,3 +320,23 @@ bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QStri
 	return true;
 }
 
+
+bool approximatelyEqual(float a, float b, float epsilon)
+{
+	return std::abs(a - b) <= ( (std::abs(a) < std::abs(b) ? std::abs(b) : std::abs(a)) * epsilon);
+}
+
+bool essentiallyEqual(float a, float b, float epsilon)
+{
+	return std::abs(a - b) <= ( (std::abs(a) > std::abs(b) ? std::abs(b) : std::abs(a)) * epsilon);
+}
+
+bool definitelyGreaterThan(float a, float b, float epsilon)
+{
+	return (a - b) > ( (std::abs(a) < std::abs(b) ? std::abs(b) : std::abs(a)) * epsilon);
+}
+
+bool definitelyLessThan(float a, float b, float epsilon)
+{
+	return (b - a) > ( (std::abs(a) < std::abs(b) ? std::abs(b) : std::abs(a)) * epsilon);
+}

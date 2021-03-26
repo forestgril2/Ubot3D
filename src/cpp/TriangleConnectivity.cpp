@@ -36,12 +36,9 @@ void TriangleConnectivity::setupTriangleNeighbours()
 	for (uint32_t vertexIndex=0; vertexIndex<numIndices; vertexIndex+=3)
 	{
 		std::pair<std::set<uint32_t>::iterator, bool> insertion;
-		insertion = trianglesToVertex[_indices[vertexIndex   ]].insert(vertexIndex);
-		assert(insertion.second == true);
-		insertion = trianglesToVertex[_indices[vertexIndex +1]].insert(vertexIndex);
-		assert(insertion.second == true);
-		insertion = trianglesToVertex[_indices[vertexIndex +2]].insert(vertexIndex);
-		assert(insertion.second == true);
+		trianglesToVertex[_indices[vertexIndex   ]].insert(vertexIndex);
+		trianglesToVertex[_indices[vertexIndex +1]].insert(vertexIndex);
+		trianglesToVertex[_indices[vertexIndex +2]].insert(vertexIndex);
 	}
 
 	const uint32_t numTriangles = uint32_t(_triangles.size());

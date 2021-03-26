@@ -317,7 +317,7 @@ void TriangleGeometry::reloadSceneIfNecessary()
 }
 void TriangleGeometry::updateData()
 {
-	Chronograph chronograph(__FUNCTION__, false);
+	Chronograph chronograph(__FUNCTION__, true);
 	reloadSceneIfNecessary();
 
 	if (!_scene)
@@ -351,6 +351,62 @@ void TriangleGeometry::updateData()
 		numMeshFaces += _scene->mMeshes[m]->mNumFaces;
 		numVertices += _scene->mMeshes[m]->mNumVertices;
 	}
+
+	chronograph.start("Creating Vec3 vertices table");
+	std::vector<Vec3> vertices(numVertices);
+	Vec3* vertexPtr = &vertices[0];
+	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
+	{
+		for (uint32_t v=0; v<_scene->mMeshes[m]->mNumVertices; ++v, ++vertexPtr)
+		{
+			*vertexPtr = *reinterpret_cast<Vec3*>(&_scene->mMeshes[m]->mVertices[v]);
+		}
+	}
+	chronograph.log("Creating Vec3 vertices table");
+
+	auto vertexLess = [](const Vec3& a, const Vec3& b) {
+		if (definitelyLessThan(a.z(), b.z(), FLT_MIN))
+			return true;
+		if (definitelyGreaterThan(a.z(), b.z(), FLT_MIN))
+			return false;
+
+		if (definitelyLessThan(a.y(), b.y(), FLT_MIN))
+			return true;
+		if (definitelyGreaterThan(a.y(), b.y(), FLT_MIN))
+			return false;
+
+		if (definitelyLessThan(a.x(), b.x(), FLT_MIN))
+			return true;
+
+		return false;
+	};
+
+	chronograph.start("Creating std::map<Vec3, uint32_t> ");
+	std::map<Vec3, uint32_t, bool(*)(const Vec3& a, const Vec3& b)> vertexToIndices(vertexLess);
+	uint32_t currIndex = 0;
+	for(const Vec3& vertex : vertices)
+	{
+		auto it = vertexToIndices.find(vertex);
+		if (it == vertexToIndices.end())
+		{
+			vertexToIndices[vertex] = currIndex++;
+		}
+	}
+	chronograph.log("Creating std::map<Vec3, uint32_t> ");
+
+	chronograph.start("Assigning indices by searching map");
+	std::vector<uint32_t> newIndices;
+	newIndices.reserve(numVertices);
+	for(const Vec3& vertex : vertices)
+	{
+		auto it = vertexToIndices.find(vertex);
+		assert(it != vertexSet.end());
+		newIndices.push_back((*it).second);
+	}
+	chronograph.log("Assigning indices by searching map");
+
+	std::cout << " ### " << __FUNCTION__ << " :" << "" << "," << "" << std::endl;
+
 
     QByteArray v;
 	v.resize(numVertices * stride);

@@ -15,6 +15,7 @@
 
 #include <Chronograph.h>
 #include <GCodeProgramProcessor.h>
+#include <Helpers3D.h>
 
 
 #include <Eigen/Geometry>
@@ -33,35 +34,14 @@ static Vector3f minFloatBound(FLT_MAX, FLT_MAX, FLT_MAX);
 static Vector3f maxBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 static Vector3f minBound(FLT_MAX, FLT_MAX, FLT_MAX);
 
+
+// To have QSG included
+QT_BEGIN_NAMESPACE
+
 bool isFinite(const Vector3f &v)
 {
 	return qIsFinite(v.x()) && qIsFinite(v.y()) && qIsFinite(v.z());
 }
-
-
-
-static bool approximatelyEqual(float a, float b, float epsilon)
-{
-	return std::abs(a - b) <= ( (std::abs(a) < std::abs(b) ? std::abs(b) : std::abs(a)) * epsilon);
-}
-
-static bool essentiallyEqual(float a, float b, float epsilon)
-{
-	return std::abs(a - b) <= ( (std::abs(a) > std::abs(b) ? std::abs(b) : std::abs(a)) * epsilon);
-}
-
-static bool definitelyGreaterThan(float a, float b, float epsilon)
-{
-	return (a - b) > ( (std::abs(a) < std::abs(b) ? std::abs(b) : std::abs(a)) * epsilon);
-}
-
-static bool definitelyLessThan(float a, float b, float epsilon)
-{
-	return (b - a) > ( (std::abs(a) < std::abs(b) ? std::abs(b) : std::abs(a)) * epsilon);
-}
-
-// To have QSG included
-QT_BEGIN_NAMESPACE
 
 template <typename T>
 static std::vector<T> range(const unsigned N) {
