@@ -206,50 +206,6 @@ void TriangleGeometry::setInputFile(const QString& url)
 	update();
 }
 
-void TriangleGeometry::setNormals(bool enable)
-{
-	if (_hasNormals == enable)
-		return;
-
-	_hasNormals = enable;
-    emit normalsChanged();
-    updateData();
-    update();
-}
-
-void TriangleGeometry::setNormalXY(float xy)
-{
-	if (_normalXY == xy)
-        return;
-
-	_normalXY = xy;
-    emit normalXYChanged();
-    updateData();
-    update();
-}
-
-void TriangleGeometry::setUV(bool enable)
-{
-	if (_hasUV == enable)
-        return;
-
-	_hasUV = enable;
-    emit uvChanged();
-    updateData();
-    update();
-}
-
-void TriangleGeometry::setUVAdjust(float f)
-{
-	if (_uvAdjust == f)
-        return;
-
-	_uvAdjust = f;
-    emit uvAdjustChanged();
-    updateData();
-    update();
-}
-
 void TriangleGeometry::setBounds(const QVector3D& min, const QVector3D& max)
 {
 	QQuick3DGeometry::setBounds(min, max);
@@ -335,15 +291,8 @@ void TriangleGeometry::updateData()
 	}
 	const uint32_t floatsPerStride = stride / sizeof(float);
 
-//    if (m_hasNormals)
-//    {
-//        stride += 3 * sizeof(float);
-//    }
-//    if (m_hasUV)
-//    {
-//        stride += 2 * sizeof(float);
-//    }
-
+	uint32_t numAssimpMeshFaces = 0;
+	uint32_t numAssimpVertices = 0;
 	uint32_t numMeshFaces = 0;
 	uint32_t numVertices = 0;
 	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
@@ -415,31 +364,6 @@ void TriangleGeometry::updateData()
 	QByteArray indices;
 	indices.resize(3 * numMeshFaces * sizeof(uint32_t));
 	uint32_t* pi = reinterpret_cast<uint32_t*>(indices.data());
-
-    // a triangle, front face = counter-clockwise
-//    *p++ = -1.0f; *p++ = -1.0f; *p++ = 0.0f;
-//    if (m_hasNormals) {
-//        *p++ = m_normalXY; *p++ = m_normalXY; *p++ = 1.0f;
-//    }
-//    if (m_hasUV) {
-//        *p++ = 0.0f + m_uvAdjust; *p++ = 0.0f + m_uvAdjust;
-//    }
-//    *p++ = 1.0f; *p++ = -1.0f; *p++ = 0.0f;
-//    if (m_hasNormals) {
-//        *p++ = m_normalXY; *p++ = m_normalXY; *p++ = 1.0f;
-//    }
-//    if (m_hasUV) {
-//        *p++ = 1.0f - m_uvAdjust; *p++ = 0.0f + m_uvAdjust;
-//    }
-//    *p++ = 0.0f; *p++ = 1.0f; *p++ = 0.0f;
-//    if (m_hasNormals) {
-//        *p++ = m_normalXY; *p++ = m_normalXY; *p++ = 1.0f;
-//    }
-//    if (m_hasUV) {
-//        *p++ = 1.0f - m_uvAdjust; *p++ = 1.0f - m_uvAdjust;
-//    }
-
-// a triangle, front face = counter-clockwise
 
 	// TODO: We should probably perform subsequent mesh node transformations here.
 	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
@@ -559,18 +483,6 @@ void TriangleGeometry::updateData()
 	addAttribute(QQuick3DGeometry::Attribute::IndexSemantic,
 				 0,
 				 QQuick3DGeometry::Attribute::U32Type);
-
-//    if (m_hasNormals) {
-//        addAttribute(QQuick3DGeometry::Attribute::NormalSemantic,
-//                     3 * sizeof(float),
-//                     QQuick3DGeometry::Attribute::F32Type);
-//    }
-
-//    if (m_hasUV) {
-//        addAttribute(QQuick3DGeometry::Attribute::TexCoordSemantic,
-//                     m_hasNormals ? 6 * sizeof(float) : 3 * sizeof(float),
-//                     QQuick3DGeometry::Attribute::F32Type);
-//    }
 
 	buildIntersectionData();
 }

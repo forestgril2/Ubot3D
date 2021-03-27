@@ -23,10 +23,6 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_OBJECT
 	QML_NAMED_ELEMENT(TriangleGeometry)
 
-	Q_PROPERTY(bool normals READ normals WRITE setNormals NOTIFY normalsChanged)
-	Q_PROPERTY(float normalXY READ normalXY WRITE setNormalXY NOTIFY normalXYChanged)
-	Q_PROPERTY(bool uv READ uv WRITE setUV NOTIFY uvChanged)
-	Q_PROPERTY(float uvAdjust READ uvAdjust WRITE setUVAdjust NOTIFY uvAdjustChanged)
 	Q_PROPERTY(QVector3D minBounds READ minBounds WRITE setMinBounds NOTIFY boundsChanged)
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
@@ -59,18 +55,6 @@ public:
 
 	QString getInputFile() const;
 	void setInputFile(const QString& url);
-
-	bool normals() const { return _hasNormals; }
-	void setNormals(bool enable);
-
-	float normalXY() const { return _normalXY; }
-	void setNormalXY(float xy);
-
-	bool uv() const { return _hasUV; }
-	void setUV(bool enable);
-
-	float uvAdjust() const { return _uvAdjust; }
-	void setUVAdjust(float f);
 
 	void setBounds(const QVector3D &min, const QVector3D &max);
 	QVector3D minBounds() const;
@@ -129,10 +113,6 @@ private:
 	QVector<QVector3D> _triangulationResult;
 
 	bool _hasColors = true;
-	bool _hasNormals = false;
-	float _normalXY = 0.0f;
-	bool _hasUV = false;
-	float _uvAdjust = 0.0f;
 
 	bool _isPicked = false;
 	bool _isAssimpReadDone = false;
