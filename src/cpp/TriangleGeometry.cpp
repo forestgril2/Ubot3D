@@ -289,29 +289,31 @@ void TriangleGeometry::updateData()
 	{
 		stride += numfloatsPerColorAttribute * sizeof(float);
 	}
-	const uint32_t floatsPerStride = stride / sizeof(float);
 
 	uint32_t numAssimpMeshFaces = 0;
 	uint32_t numAssimpVertices = 0;
-	uint32_t numMeshFaces = 0;
-	uint32_t numVertices = 0;
 	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
 	{
-		numMeshFaces += _scene->mMeshes[m]->mNumFaces;
-		numVertices += _scene->mMeshes[m]->mNumVertices;
+		numAssimpMeshFaces += _scene->mMeshes[m]->mNumFaces;
+		numAssimpVertices += _scene->mMeshes[m]->mNumVertices;
 	}
 
-	chronograph.start("Creating Vec3 vertices table");
-	std::vector<Vec3> vertices(numVertices);
-	Vec3* vertexPtr = &vertices[0];
+	// Assimp vertices from STL are not unique, will remove duplicates and remap indices.
+	chronograph.start("Creating Vec3 vertices and normals table from Assimp");
+	std::vector<Vec3> assimpVertices(numAssimpVertices);
+	std::vector<Vec3> assimpNormals(numAssimpVertices);
+	Vec3* vertexPtr = &assimpVertices[0];
+	Vec3* normalsPtr = &assimpNormals[0];
 	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
 	{
 		for (uint32_t v=0; v<_scene->mMeshes[m]->mNumVertices; ++v, ++vertexPtr)
 		{
+			// TODO: We should probably perform subsequent mesh node transformations here.
 			*vertexPtr = *reinterpret_cast<Vec3*>(&_scene->mMeshes[m]->mVertices[v]);
+			*normalsPtr = *reinterpret_cast<Vec3*>(&_scene->mMeshes[m]->mNormals[v]);
 		}
 	}
-	chronograph.log("Creating Vec3 vertices table");
+	chronograph.log("Creating Vec3 vertices and normals table from Assimp");
 
 	auto vertexLess = [](const Vec3& a, const Vec3& b) {
 		if (definitelyLessThan(a.z(), b.z(), FLT_MIN))
@@ -330,125 +332,99 @@ void TriangleGeometry::updateData()
 		return false;
 	};
 
-	chronograph.start("Creating std::map<Vec3, uint32_t> ");
-	std::map<Vec3, uint32_t, bool(*)(const Vec3& a, const Vec3& b)> vertexToIndices(vertexLess);
+	chronograph.start("Creating std::map<Vec3, uint32_t> and corresponding normals");
+	std::vector<Vec3> uniqueNormals;
+	std::map<Vec3, uint32_t, bool(*)(const Vec3& a, const Vec3& b)> indicesToUniqueVertices(vertexLess);
 	uint32_t currIndex = 0;
-	for(const Vec3& vertex : vertices)
+	const uint32_t assimpVerticesSize = uint32_t(assimpVertices.size());
+	for(uint32_t v=0; v<assimpVerticesSize; ++v)
 	{
-		auto it = vertexToIndices.find(vertex);
-		if (it == vertexToIndices.end())
+		const Vec3& vertex = assimpVertices[v];
+		auto it = indicesToUniqueVertices.find(vertex);
+		if (it == indicesToUniqueVertices.end())
 		{
-			vertexToIndices[vertex] = currIndex++;
+			indicesToUniqueVertices[vertex] = currIndex++;
+			uniqueNormals.push_back(assimpNormals[v]);
 		}
 	}
-	chronograph.log("Creating std::map<Vec3, uint32_t> ");
+	chronograph.log("Creating std::map<Vec3, uint32_t> and corresponding normals");
+	std::cout << " ### " << "uniqueVerticesToIndices.size()" << " :" << indicesToUniqueVertices.size() << "," << "" << std::endl;
 
-	chronograph.start("Assigning indices by searching map");
-	std::vector<uint32_t> newIndices;
-	newIndices.reserve(numVertices);
-	for(const Vec3& vertex : vertices)
+	chronograph.start("Remapping new indices to all unique vertices by searching map");
+	std::vector<uint32_t> remappedVertexIndices;
+	remappedVertexIndices.reserve(numAssimpVertices);
+	for(const Vec3& vertex : assimpVertices)
 	{
-		auto it = vertexToIndices.find(vertex);
-		assert(it != vertexSet.end());
-		newIndices.push_back((*it).second);
+		auto mapIt = indicesToUniqueVertices.find(vertex);
+		assert(mapIt != indicesToUniqueVertices.end());
+		remappedVertexIndices.push_back(mapIt->second);
 	}
-	chronograph.log("Assigning indices by searching map");
+	chronograph.log("Remapping new indices to all unique vertices by searching map");
 
-	std::cout << " ### " << __FUNCTION__ << " :" << "" << "," << "" << std::endl;
+	// Copy indices to qt array.
+	QByteArray qtIndices;
+	qtIndices.resize(qsizetype(numAssimpVertices * sizeof(uint32_t)));
+	uint32_t* pi = reinterpret_cast<uint32_t*>(qtIndices.data());
+//	std::memcpy(qtIndices.data(), &remappedVertexIndices, uint32_t(qtIndices.size()));
+	for (uint32_t i=0; i<numAssimpVertices; ++i)
+	{
+		*pi++ = remappedVertexIndices[i];
+	}
 
-
-    QByteArray v;
-	v.resize(numVertices * stride);
+	// Prepare array for triangles.
+	QByteArray v;
+	const uint32_t numUniqueVertices = uint32_t(indicesToUniqueVertices.size());
+	v.resize(qsizetype(numUniqueVertices * stride));
 	float* p = reinterpret_cast<float*>(v.data());
 
-	QByteArray indices;
-	indices.resize(3 * numMeshFaces * sizeof(uint32_t));
-	uint32_t* pi = reinterpret_cast<uint32_t*>(indices.data());
-
-	// TODO: We should probably perform subsequent mesh node transformations here.
-	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
+	auto mapIt = indicesToUniqueVertices.begin();
+	for (uint32_t vertexIndex=0; vertexIndex<numUniqueVertices; ++vertexIndex, ++mapIt)
 	{
-		const uint32_t numFacesInThisMesh = _scene->mMeshes[m]->mNumFaces;
-		for (uint32_t f=0; f<numFacesInThisMesh; ++f)
+		const Vec3& vertex = mapIt->first;
+		const Vec3& normal = uniqueNormals[vertexIndex];
+
+		auto isVertexOverhanging = [](const Vec3& normal, float maxOverhangAngle)
 		{
-			const aiFace& face = _scene->mMeshes[m]->mFaces[f];
+			return normal.dot(Vec3{0,0,1}) < std::cosf(float(M_PI) - maxOverhangAngle);
+		};
 
-			if (face.mNumIndices != 3)
-			{
-				std::cout << "#### WARNING! face.mNumIndices != 3, but " << face.mNumIndices << std::endl;
-			}
+		auto setTriangleVertex = [this, &p](const Vec3& vertex) {
+			*p++ = vertex.x();
+			*p++ = vertex.y();
+			*p++ = vertex.z();
+			updateBounds(p-3);
+		};
 
-//			const aiVector3D boundDiff = _maxBound-_minBound;
+		auto setTriangleColor = [this, &p](const bool isVertexOverhanging) {
+			const Eigen::Vector4f color = isVertexOverhanging ? _overhangColor : _baseModelColor;
+			*p++ = color.x();
+			*p++ = color.y();
+			*p++ = color.z();
+			*p++ = color.w();
+		};
 
-			auto isTriangleNormalOverhanging = [](const Vec3 no, const Vec3 n1, const Vec3 n2, float maxOverhangAngle)
-			{// Judge based on an average of three triangle vertex normals.
-				Vec3 normal = (no + n1 + n2)*0.3333333;
-				return normal.dot(Vec3{0,0,1}) < std::cosf(float(M_PI) - maxOverhangAngle);
-			};
+		auto conditionallyPushOverhangingTriangleVertex = [this](const Vec3& vertex, const bool isVertexOverhanging) {
+			if (!isVertexOverhanging)
+				return;
+			_overhangingTriangleVertices.push_back(*reinterpret_cast<const QVector3D*>(&vertex));
+			_overhangingPoints.push_back(_overhangingTriangleVertices.back());
+		};
 
-			auto setTriangleVertex = [this, &p, &pi, floatsPerStride, m](uint32_t vertexIndex, const bool isVertexOverhanging) {
-				const aiVector3D vertex = _scene->mMeshes[m]->mVertices[vertexIndex];
-				*p++ = vertex.x;
-				*p++ = vertex.y;
-				*p++ = vertex.z;
+		setTriangleVertex(vertex);
+		bool isOverhangingVertex = isVertexOverhanging(normal, _overhangAngleMax);
+		setTriangleColor(isOverhangingVertex);
+//		conditionallyPushOverhangingTriangleVertex(vertex, isOverhangingVertex);
 
-				// Set color
-				const Eigen::Vector4f color = isVertexOverhanging ? _overhangColor : _baseModelColor;
-				if (isVertexOverhanging)
-				{
-					_overhangingTriangleVertices.push_back(*reinterpret_cast<const QVector3D*>(&vertex));
-					_overhangingPoints.push_back(_overhangingTriangleVertices.back());
-				}
-				*p++ = color.x();
-				*p++ = color.y();
-				*p++ = color.z();
-				*p++ = color.w();
+//		//TODO: BTW, this should be the main way to define/collect triangles - almost always by indices (sometimes by stripes, fans, maybe).
+//		_overhangingTriangleIndices.push_back(face.mIndices[0]);
+//		_overhangingTriangleIndices.push_back(face.mIndices[1]);
+//		_overhangingTriangleIndices.push_back(face.mIndices[2]);
 
-				*pi++ = vertexIndex;
-
-				updateBounds(p-floatsPerStride);
-			};
-
-			auto setTriangleVertexesAndOverhangingTriangles = [this, setTriangleVertex, isTriangleNormalOverhanging, &face, m](){
-				//TODO: All this is a little messy, come back here and make it better.
-				const Vec3 n0 = *reinterpret_cast<Vec3*>(&(_scene->mMeshes[m]->mNormals[face.mIndices[0]]));
-				const Vec3 n1 = *reinterpret_cast<Vec3*>(&(_scene->mMeshes[m]->mNormals[face.mIndices[1]]));
-				const Vec3 n2 = *reinterpret_cast<Vec3*>(&(_scene->mMeshes[m]->mNormals[face.mIndices[2]]));
-
-				const bool isTriangleOverhanging = isTriangleNormalOverhanging(n0, n1, n2, _overhangAngleMax);
-
-				//TODO: I mean this: _overhangingTriangleVertices are push_back'ed inside setTriangleVertex(), which looks nice - not.
-				// First side: vertex0 to vertex1
-				setTriangleVertex(face.mIndices[0], isTriangleOverhanging);
-				setTriangleVertex(face.mIndices[1], isTriangleOverhanging);
-
-				// Second side: vertex1 to vertex2
-				if (isTriangleOverhanging)
-				{
-					_overhangingTriangleVertices.push_back(_overhangingTriangleVertices.back());
-				}
-				setTriangleVertex(face.mIndices[2], isTriangleOverhanging);
-
-				if (!isTriangleOverhanging)
-					return;
-
-				// Third side: vertex2 to vertex0
-				_overhangingTriangleVertices.push_back(_overhangingTriangleVertices.back());
-				_overhangingTriangleVertices.push_back(*reinterpret_cast<QVector3D*>(&(_scene->mMeshes[m]->mVertices[face.mIndices[0]])));
-
-				//TODO: BTW, this should be the main way to define/collect triangles - almost always by indices (sometimes by stripes, fans, maybe).
-				_overhangingTriangleIndices.push_back(face.mIndices[0]);
-				_overhangingTriangleIndices.push_back(face.mIndices[1]);
-				_overhangingTriangleIndices.push_back(face.mIndices[2]);
-			};
-
-			setTriangleVertexesAndOverhangingTriangles();
-		}
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
 
-	std::vector<TriangleIsland> triangleIslands = TriangleConnectivity(_overhangingTriangleIndices).calculateIslands();
-	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
+//	std::vector<TriangleIsland> triangleIslands = TriangleConnectivity(_overhangingTriangleIndices).calculateIslands();
+//	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
 //	for (TriangleIsland& island : triangleIslands)
 //	{
 //		std::cout << " ### " << __FUNCTION__ << " island size:" << island.getTriangles().size() << "," << "" << std::endl;
@@ -459,15 +435,15 @@ void TriangleGeometry::updateData()
 //	}
 
 
-	_triangulationResult = Helpers3D::computeAlphaShape(_overhangingPoints);
+//	_triangulationResult = Helpers3D::computeAlphaShape(_overhangingPoints);
 
 	// Inform, that overhangings data was modified.
-	emit overhangingTriangleVerticesChanged();
-	emit overhangingPointsChanged();
-	emit triangulationResultChanged();
+//	emit overhangingTriangleVerticesChanged();
+//	emit overhangingPointsChanged();
+//	emit triangulationResultChanged();
 
     setVertexData(v);
-	setIndexData(indices);
+	setIndexData(qtIndices);
 	setStride(int(stride));
 
     setPrimitiveType(QQuick3DGeometry::PrimitiveType::Triangles);
