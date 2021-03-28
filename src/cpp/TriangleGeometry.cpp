@@ -83,10 +83,10 @@ bool TriangleGeometry::importModelFromFile(const std::string& pFile)
 	// Usually - if speed is not the most important aspect for you - you'll
 	// probably to request more postprocessing than we do in this example.
 	_scene = importer.ReadFile(pFile,
-							  aiProcess_CalcTangentSpace
-//							  aiProcess_Triangulate |
+							  aiProcess_CalcTangentSpace |
+							  aiProcess_Triangulate |
 //							  aiProcess_JoinIdenticalVertices
-//							  aiProcess_FixInfacingNormals |
+							  aiProcess_FixInfacingNormals
 //							  aiProcess_ImproveCacheLocality
 //							  aiProcess_SortByPType
 							   );
@@ -306,7 +306,7 @@ void TriangleGeometry::updateData()
 	Vec3* normalsPtr = &assimpNormals[0];
 	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
 	{
-		for (uint32_t v=0; v<_scene->mMeshes[m]->mNumVertices; ++v, ++vertexPtr)
+		for (uint32_t v=0; v<_scene->mMeshes[m]->mNumVertices; ++v, ++vertexPtr, ++normalsPtr)
 		{
 			// TODO: We should probably perform subsequent mesh node transformations here.
 			*vertexPtr = *reinterpret_cast<Vec3*>(&_scene->mMeshes[m]->mVertices[v]);
@@ -336,19 +336,35 @@ void TriangleGeometry::updateData()
 	std::vector<Vec3> uniqueNormals;
 	std::map<Vec3, uint32_t, bool(*)(const Vec3& a, const Vec3& b)> indicesToUniqueVertices(vertexLess);
 	uint32_t currIndex = 0;
-	const uint32_t assimpVerticesSize = uint32_t(assimpVertices.size());
-	for(uint32_t v=0; v<assimpVerticesSize; ++v)
+	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
 	{
-		const Vec3& vertex = assimpVertices[v];
-		auto it = indicesToUniqueVertices.find(vertex);
-		if (it == indicesToUniqueVertices.end())
+		const aiMesh* mesh = _scene->mMeshes[m];
+		for (uint32_t f=0; f<mesh->mNumFaces; ++f)
 		{
-			indicesToUniqueVertices[vertex] = currIndex++;
-			uniqueNormals.push_back(assimpNormals[v]);
+			const aiFace& face = mesh->mFaces[f];
+			for (uint32_t vi=0; vi<face.mNumIndices; ++vi)
+			{
+				const Vec3& vertex = assimpVertices[face.mIndices[vi]];
+				const Vec3& normal = assimpNormals[face.mIndices[vi]];
+				auto it = indicesToUniqueVertices.find(vertex);
+				if (it == indicesToUniqueVertices.end())
+				{
+					indicesToUniqueVertices[vertex] = currIndex++;
+					uniqueNormals.push_back(normal);
+				}
+			}
 		}
 	}
 	chronograph.log("Creating std::map<Vec3, uint32_t> and corresponding normals");
-	std::cout << " ### " << "uniqueVerticesToIndices.size()" << " :" << indicesToUniqueVertices.size() << "," << "" << std::endl;
+	const uint32_t numUniqueVertices = uint32_t(indicesToUniqueVertices.size());
+	std::cout << " ### " << "numUniqueVertices" << " :" << numUniqueVertices << "," << "" << std::endl;
+
+	std::vector<Vec3> uniqueVertices;
+	uniqueVertices.reserve(numUniqueVertices);
+	for (const auto& indexToVertexvertexPair : indicesToUniqueVertices)
+	{
+		uniqueVertices.emplace_back(indexToVertexvertexPair.first);
+	}
 
 	chronograph.start("Remapping new indices to all unique vertices by searching map");
 	std::vector<uint32_t> remappedVertexIndices;
@@ -357,7 +373,7 @@ void TriangleGeometry::updateData()
 	{
 		auto mapIt = indicesToUniqueVertices.find(vertex);
 		assert(mapIt != indicesToUniqueVertices.end());
-		remappedVertexIndices.push_back(mapIt->second);
+		remappedVertexIndices.emplace_back(mapIt->second);
 	}
 	chronograph.log("Remapping new indices to all unique vertices by searching map");
 
@@ -367,20 +383,18 @@ void TriangleGeometry::updateData()
 	uint32_t* pi = reinterpret_cast<uint32_t*>(qtIndices.data());
 //	std::memcpy(qtIndices.data(), &remappedVertexIndices, uint32_t(qtIndices.size()));
 	for (uint32_t i=0; i<numAssimpVertices; ++i)
-	{
+	{//TODO: memcpy
 		*pi++ = remappedVertexIndices[i];
 	}
 
 	// Prepare array for triangles.
 	QByteArray v;
-	const uint32_t numUniqueVertices = uint32_t(indicesToUniqueVertices.size());
 	v.resize(qsizetype(numUniqueVertices * stride));
 	float* p = reinterpret_cast<float*>(v.data());
 
-	auto mapIt = indicesToUniqueVertices.begin();
-	for (uint32_t vertexIndex=0; vertexIndex<numUniqueVertices; ++vertexIndex, ++mapIt)
+	for (uint32_t vertexIndex=0; vertexIndex<numUniqueVertices; ++vertexIndex)
 	{
-		const Vec3& vertex = mapIt->first;
+		const Vec3& vertex = uniqueVertices[vertexIndex];
 		const Vec3& normal = uniqueNormals[vertexIndex];
 
 		auto isVertexOverhanging = [](const Vec3& normal, float maxOverhangAngle)
