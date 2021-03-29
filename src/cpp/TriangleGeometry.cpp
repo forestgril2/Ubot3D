@@ -35,6 +35,8 @@
 // To have QSG included
 QT_BEGIN_NAMESPACE
 
+static const uint32_t kNumfloatsPerPositionAttribute = 3u;
+
 void assimpErrorLogging(const std::string&& pError)
 {
 	std::cout << __FUNCTION__ << " : " << pError << std::endl;
@@ -271,39 +273,47 @@ void TriangleGeometry::reloadSceneIfNecessary()
 	}
 	clear();
 }
-void TriangleGeometry::updateData()
+uint32_t TriangleGeometry::calculateAndSetStride()
 {
-	Chronograph chronograph(__FUNCTION__, true);
-	reloadSceneIfNecessary();
-
-	if (!_scene)
-		return;
-
-	_overhangingTriangleVertices.clear();
-	_overhangingPoints.clear();
-
-	const uint32_t numfloatsPerPositionAttribute = 3u;
-	const uint32_t numfloatsPerColorAttribute = 4u;
-	uint32_t stride = numfloatsPerPositionAttribute * sizeof(float);
+	static const uint32_t numfloatsPerColorAttribute = 4u;
+	uint32_t stride = kNumfloatsPerPositionAttribute * sizeof(float);
 	if (_hasColors)
 	{
 		stride += numfloatsPerColorAttribute * sizeof(float);
 	}
+	setStride(int(stride));
+	return stride;
+}
 
-	uint32_t numAssimpMeshFaces = 0;
-	uint32_t numAssimpVertices = 0;
+void TriangleGeometry::clearData()
+{
+	_overhangingTriangleVertices.clear();
+	_overhangingPoints.clear();
+}
+
+void TriangleGeometry::countAssimpFacesAndVertices(uint32_t& numAssimpMeshFaces, uint32_t& numAssimpVertices)
+{
 	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
 	{
 		numAssimpMeshFaces += _scene->mMeshes[m]->mNumFaces;
 		numAssimpVertices += _scene->mMeshes[m]->mNumVertices;
 	}
+}
 
-	// Assimp vertices from STL are not unique, will remove duplicates and remap indices.
-	chronograph.start("Creating Vec3 vertices and normals table from Assimp");
-	std::vector<Vec3> assimpVertices(numAssimpVertices);
-	std::vector<Vec3> assimpNormals(numAssimpVertices);
+void TriangleGeometry::getContiguousAssimpVerticesAndNormals(std::vector<Vec3>& assimpVertices, std::vector<Vec3>& assimpNormals)
+{
+	Chronograph chronograph(__FUNCTION__, true);
+
+	uint32_t numAssimpMeshFaces = 0;
+	uint32_t numAssimpVertices = 0;
+	countAssimpFacesAndVertices(numAssimpMeshFaces, numAssimpVertices);
+
+	assimpVertices.resize(numAssimpVertices);
+	assimpNormals.resize(numAssimpVertices);
+
 	Vec3* vertexPtr = &assimpVertices[0];
 	Vec3* normalsPtr = &assimpNormals[0];
+
 	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
 	{
 		for (uint32_t v=0; v<_scene->mMeshes[m]->mNumVertices; ++v, ++vertexPtr, ++normalsPtr)
@@ -313,9 +323,16 @@ void TriangleGeometry::updateData()
 			*normalsPtr = *reinterpret_cast<Vec3*>(&_scene->mMeshes[m]->mNormals[v]);
 		}
 	}
-	chronograph.log("Creating Vec3 vertices and normals table from Assimp");
+}
 
-	auto vertexLess = [](const Vec3& a, const Vec3& b) {
+IndicesToVertices TriangleGeometry::mapIndicesToUniqueVertices(const std::vector<Vec3>& assimpVertices,
+															   const std::vector<Vec3>& assimpNormals,
+															   std::vector<Vec3>& uniqueVertices,
+															   std::vector<Vec3>& uniqueNormals)
+{
+	Chronograph chronograph(__FUNCTION__, true);
+
+	static const auto vertexLess = [](const Vec3& a, const Vec3& b) {
 		if (definitelyLessThan(a.z(), b.z(), FLT_MIN))
 			return true;
 		if (definitelyGreaterThan(a.z(), b.z(), FLT_MIN))
@@ -332,9 +349,9 @@ void TriangleGeometry::updateData()
 		return false;
 	};
 
-	chronograph.start("Creating std::map<Vec3, uint32_t> and corresponding normals");
-	std::vector<Vec3> uniqueNormals;
-	std::map<Vec3, uint32_t, bool(*)(const Vec3& a, const Vec3& b)> indicesToUniqueVertices(vertexLess);
+	uniqueVertices.clear();
+	uniqueNormals.clear();
+	IndicesToVertices indicesToUniqueVertices(vertexLess);
 	uint32_t currIndex = 0;
 	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
 	{
@@ -351,20 +368,40 @@ void TriangleGeometry::updateData()
 				{
 					indicesToUniqueVertices[vertex] = currIndex++;
 					uniqueNormals.push_back(normal);
+					uniqueVertices.push_back(vertex);
 				}
 			}
 		}
 	}
-	chronograph.log("Creating std::map<Vec3, uint32_t> and corresponding normals");
 	const uint32_t numUniqueVertices = uint32_t(indicesToUniqueVertices.size());
 	std::cout << " ### " << "numUniqueVertices" << " :" << numUniqueVertices << "," << "" << std::endl;
+	return indicesToUniqueVertices;
+}
 
+void TriangleGeometry::updateData()
+{
+	Chronograph chronograph(__FUNCTION__, true);
+	reloadSceneIfNecessary();
+
+	if (!_scene)
+		return;
+
+	clearData();
+	const uint32_t stride = calculateAndSetStride();
+
+	// Assimp vertices from STL are not unique, lets remove duplicates and remap indices.
+	std::vector<Vec3> assimpVertices;
+	std::vector<Vec3> assimpNormals;
+	getContiguousAssimpVerticesAndNormals(assimpVertices, assimpNormals);
+	const uint32_t numAssimpVertices = uint32_t(assimpVertices.size());
+
+	std::vector<Vec3> uniqueNormals;
 	std::vector<Vec3> uniqueVertices;
-	uniqueVertices.reserve(numUniqueVertices);
-	for (const auto& indexToVertexvertexPair : indicesToUniqueVertices)
-	{
-		uniqueVertices.emplace_back(indexToVertexvertexPair.first);
-	}
+	const IndicesToVertices indicesToUniqueVertices = mapIndicesToUniqueVertices(assimpVertices,
+																				 assimpNormals,
+																				 uniqueVertices,
+																				 uniqueNormals);
+	const uint32_t numUniqueVertices = uint32_t(uniqueVertices.size());
 
 	chronograph.start("Remapping new indices to all unique vertices by searching map");
 	std::vector<uint32_t> remappedVertexIndices;
@@ -458,7 +495,6 @@ void TriangleGeometry::updateData()
 
     setVertexData(v);
 	setIndexData(qtIndices);
-	setStride(int(stride));
 
     setPrimitiveType(QQuick3DGeometry::PrimitiveType::Triangles);
 
@@ -467,7 +503,7 @@ void TriangleGeometry::updateData()
                  QQuick3DGeometry::Attribute::F32Type);
 
 	addAttribute(QQuick3DGeometry::Attribute::ColorSemantic,
-				 numfloatsPerPositionAttribute * sizeof(float),
+				 kNumfloatsPerPositionAttribute * sizeof(float),
 				 QQuick3DGeometry::Attribute::F32Type);
 
 	addAttribute(QQuick3DGeometry::Attribute::IndexSemantic,

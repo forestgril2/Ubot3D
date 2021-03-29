@@ -18,6 +18,8 @@ using Vec3 = Eigen::Vector3f;
 struct aiScene;
 class QSSGMeshBVH;
 
+using IndicesToVertices = std::map<Vec3, uint32_t, bool(*)(const Vec3& a, const Vec3& b)>;
+
 class TriangleGeometry : public QQuick3DGeometry
 {
 	Q_OBJECT
@@ -122,4 +124,12 @@ private:
 
 	QString _inputFile;
 	//	QString _inputFile = "C:/ProjectsData/stl_files/mandoblasterlow.stl";
+	uint32_t calculateAndSetStride();
+	void clearData();
+	void countAssimpFacesAndVertices(uint32_t& numAssimpMeshFaces, uint32_t& numAssimpVertices);
+	void getContiguousAssimpVerticesAndNormals(std::vector<Vec3>& assimpVertices, std::vector<Vec3>& assimpNormals);
+	IndicesToVertices mapIndicesToUniqueVertices(const std::vector<Vec3>& assimpVertices,
+												 const std::vector<Vec3>& assimpNormals,
+												 std::vector<Vec3>& uniqueVertices,
+												 std::vector<Vec3>& uniqueNormals);
 };
