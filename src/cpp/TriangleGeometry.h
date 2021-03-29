@@ -87,21 +87,25 @@ private:
 	void updateAllMeshBounds(const aiScene* scene, const unsigned meshIndex = 0u);
 	void updateBounds(const float* vertexMatrixXCoord);
 	void updateData();
-	void clearData();
 	void reloadSceneIfNecessary();
 
 	void buildIntersectionData();
 
 	uint32_t calculateAndSetStride();
 	void countAssimpFacesAndVertices(uint32_t& numAssimpMeshFaces, uint32_t& numAssimpVertices);
-	void getContiguousAssimpVerticesAndNormals(std::vector<Vec3>& assimpVertices, std::vector<Vec3>& assimpNormals);
+	void getContiguousAssimpVerticesAndNormals(std::vector<Vec3>& assimpVertices,
+											   std::vector<Vec3>& assimpNormals);
 	IndicesToVertices mapIndicesToUniqueVertices(const std::vector<Vec3>& assimpVertices,
 												 const std::vector<Vec3>& assimpNormals,
 												 std::vector<Vec3>& uniqueVertices,
 												 std::vector<Vec3>& uniqueNormals);
 	std::vector<uint32_t> calculateRemappedIndices(const IndicesToVertices& indicesToUniqueVertices,
 												   const std::vector<Vec3>& assimpVertices);
-	std::vector<float> calculateColorTriangles(const std::vector<Vec3>& uniqueVertices, const std::vector<Vec3>& uniqueNormals);
+	std::vector<float> calculateColorTriangles(const std::vector<Vec3>& uniqueVertices,
+											   const std::vector<Vec3>& uniqueNormals);
+	std::vector<uint32_t> calculateOverhangingTriangleIndices(const std::vector<Vec3>& normals);
+	void collectOverhangingData(const std::vector<uint32_t>& overhangingTriangleIndices,
+								const std::vector<Vec3>& vertices);
 
 	void logBounds();
 
