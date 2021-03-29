@@ -300,7 +300,8 @@ void TriangleGeometry::countAssimpFacesAndVertices(uint32_t& numAssimpMeshFaces,
 	}
 }
 
-void TriangleGeometry::getContiguousAssimpVerticesAndNormals(std::vector<Vec3>& assimpVertices, std::vector<Vec3>& assimpNormals)
+void TriangleGeometry::getContiguousAssimpVerticesAndNormals(std::vector<Vec3>& assimpVertices,
+															 std::vector<Vec3>& assimpNormals)
 {
 	Chronograph chronograph(__FUNCTION__, true);
 
@@ -378,56 +379,30 @@ IndicesToVertices TriangleGeometry::mapIndicesToUniqueVertices(const std::vector
 	return indicesToUniqueVertices;
 }
 
-void TriangleGeometry::updateData()
-{
+std::vector<uint32_t> TriangleGeometry::calculateRemappedIndices(const IndicesToVertices& indicesToUniqueVertices,
+																 const std::vector<Vec3>& assimpVertices)
+{// Remapping new indices to all unique vertices by searching map.
 	Chronograph chronograph(__FUNCTION__, true);
-	reloadSceneIfNecessary();
 
-	if (!_scene)
-		return;
-
-	clearData();
-	const uint32_t stride = calculateAndSetStride();
-
-	// Assimp vertices from STL are not unique, lets remove duplicates and remap indices.
-	std::vector<Vec3> assimpVertices;
-	std::vector<Vec3> assimpNormals;
-	getContiguousAssimpVerticesAndNormals(assimpVertices, assimpNormals);
-	const uint32_t numAssimpVertices = uint32_t(assimpVertices.size());
-
-	std::vector<Vec3> uniqueNormals;
-	std::vector<Vec3> uniqueVertices;
-	const IndicesToVertices indicesToUniqueVertices = mapIndicesToUniqueVertices(assimpVertices,
-																				 assimpNormals,
-																				 uniqueVertices,
-																				 uniqueNormals);
-	const uint32_t numUniqueVertices = uint32_t(uniqueVertices.size());
-
-	chronograph.start("Remapping new indices to all unique vertices by searching map");
 	std::vector<uint32_t> remappedVertexIndices;
-	remappedVertexIndices.reserve(numAssimpVertices);
+	remappedVertexIndices.reserve(assimpVertices.size());
 	for(const Vec3& vertex : assimpVertices)
 	{
 		auto mapIt = indicesToUniqueVertices.find(vertex);
 		assert(mapIt != indicesToUniqueVertices.end());
 		remappedVertexIndices.emplace_back(mapIt->second);
 	}
-	chronograph.log("Remapping new indices to all unique vertices by searching map");
+	return remappedVertexIndices;
+}
 
-	// Copy indices to qt array.
-	QByteArray qtIndices;
-	qtIndices.resize(qsizetype(numAssimpVertices * sizeof(uint32_t)));
-	uint32_t* pi = reinterpret_cast<uint32_t*>(qtIndices.data());
-//	std::memcpy(qtIndices.data(), &remappedVertexIndices, uint32_t(qtIndices.size()));
-	for (uint32_t i=0; i<numAssimpVertices; ++i)
-	{//TODO: memcpy
-		*pi++ = remappedVertexIndices[i];
-	}
+std::vector<float> TriangleGeometry::calculateColorTriangles(const std::vector<Vec3>& uniqueVertices,
+															 const std::vector<Vec3>& uniqueNormals)
+{
+	Chronograph chronograph(__FUNCTION__, true);
 
-	// Prepare array for triangles.
-	QByteArray v;
-	v.resize(qsizetype(numUniqueVertices * stride));
-	float* p = reinterpret_cast<float*>(v.data());
+	const uint32_t numUniqueVertices = uint32_t(uniqueVertices.size());
+	std::vector<float> ret(uint32_t(stride())*numUniqueVertices);
+	float* p = ret.data();
 
 	for (uint32_t vertexIndex=0; vertexIndex<numUniqueVertices; ++vertexIndex)
 	{
@@ -474,6 +449,42 @@ void TriangleGeometry::updateData()
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
 
+	return ret;
+}
+
+void TriangleGeometry::updateData()
+{
+	Chronograph chronograph(__FUNCTION__, true);
+	reloadSceneIfNecessary();
+
+	if (!_scene)
+		return;
+
+	clearData();
+	const uint32_t stride = calculateAndSetStride();
+
+	// Assimp vertices from STL are not unique, lets remove duplicates and remap indices.
+	std::vector<Vec3> assimpVertices;
+	std::vector<Vec3> assimpNormals;
+	getContiguousAssimpVerticesAndNormals(assimpVertices, assimpNormals);
+	const uint32_t numAssimpVertices = uint32_t(assimpVertices.size());
+
+	std::vector<Vec3> uniqueNormals;
+	std::vector<Vec3> uniqueVertices;
+	const IndicesToVertices indicesToUniqueVertices = mapIndicesToUniqueVertices(assimpVertices,
+																				 assimpNormals,
+																				 uniqueVertices,
+																				 uniqueNormals);
+	const uint32_t numUniqueVertices = uint32_t(uniqueVertices.size());
+
+	// Calculate and view remapped indices as Qt array.
+	setIndexData(QByteArray(reinterpret_cast<const char*>(calculateRemappedIndices(indicesToUniqueVertices, assimpVertices).data()),
+							qsizetype(numAssimpVertices * sizeof(uint32_t))));
+
+	// Calculate triangle vertices with colors and view them as Qt array.
+	setVertexData(QByteArray(reinterpret_cast<const char*>(calculateColorTriangles(uniqueVertices, uniqueNormals).data()),
+							 qsizetype(numUniqueVertices * stride * sizeof(float))));
+
 //	std::vector<TriangleIsland> triangleIslands = TriangleConnectivity(_overhangingTriangleIndices).calculateIslands();
 //	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
 //	for (TriangleIsland& island : triangleIslands)
@@ -493,8 +504,6 @@ void TriangleGeometry::updateData()
 //	emit overhangingPointsChanged();
 //	emit triangulationResultChanged();
 
-    setVertexData(v);
-	setIndexData(qtIndices);
 
     setPrimitiveType(QQuick3DGeometry::PrimitiveType::Triangles);
 
