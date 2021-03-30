@@ -452,7 +452,7 @@ std::vector<uint32_t> TriangleGeometry::calculateOverhangingTriangleIndices(cons
 	for (uint32_t triangleIndex=0; triangleIndex<numIndices; triangleIndex += 3)
 	{
 		static const auto isTriangleOverhanging = [](const Vec3& n0, const Vec3& n1, const Vec3& n2, float maxOverhangAngle)
-		{// TODO: This may be a too-simple approximation.
+		{// TODO: This may be a too-simple approximation. It is better to calculate normals, vertex-position based.
 			return ((n0+n1+n2)/3).dot(Vec3{0,0,1}) < std::cosf(float(M_PI) - maxOverhangAngle);
 		};
 
@@ -542,7 +542,8 @@ void TriangleGeometry::updateData()
 
 	collectOverhangingData(overhangingTriangleIndices, uniqueVertices);
 
-	std::vector<TriangleIsland> triangleIslands = TriangleConnectivity(_overhangingTriangleIndices).calculateIslands();
+	TriangleConnectivity triangleConnectivity(_overhangingTriangleIndices);
+	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
 	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
 	for (TriangleIsland& island : triangleIslands)
 	{

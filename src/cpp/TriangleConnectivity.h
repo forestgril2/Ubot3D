@@ -12,11 +12,12 @@ using TriangleWeak = std::weak_ptr<Triangle>;
 using Triangles = std::vector<TriangleShared>;
 using TrianglesWeak = std::vector<TriangleWeak>;
 using TriangleSet = std::set<TriangleShared>;
+using TrianglesWeakSet = std::set<TriangleWeak, bool(*)(const TriangleWeak& t1, const TriangleWeak& t2)>;
 
 class Triangle
 {
 public:
-	explicit Triangle(uint32_t index, const std::vector<uint32_t>& indices);
+	explicit Triangle(uint32_t pos, const std::vector<uint32_t>& indices);
 
 	bool isNeighbour(const Triangle& other);
 
@@ -24,13 +25,14 @@ public:
 	void setAdded();
 
 	uint32_t getNeighbourCount() const;
-	TrianglesWeak& getNeighbours();
+	TrianglesWeakSet& getNeighbours();
 	void addNeighbour(TriangleShared& neighbour);
 	uint32_t getVertexIndex(uint32_t i) const;
 
 private:
-	TrianglesWeak _neighbours; //changed to set
-	uint32_t _firstIndexPos; // position of the first index of this triangle in the global vert array (which is in  3's)
+
+	TrianglesWeakSet _neighbours; // TODO: profile it with a std::vector<TriangleWeak>, as recursiveAdd() discards duplicates anyway.
+	uint32_t _firstIndexPos; // position of the first index of this triangle in the vertex array (which is in  3's)
 	const std::vector<uint32_t>& _vertexIndices;
 	bool _isAdded;
 };
