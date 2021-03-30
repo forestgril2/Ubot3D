@@ -440,12 +440,13 @@ std::vector<float> TriangleGeometry::calculateColorTriangles(const std::vector<V
 	return ret;
 }
 
-std::vector<uint32_t> TriangleGeometry::calculateOverhangingTriangleIndices(const std::vector<Vec3>& normals)
+std::vector<uint32_t> TriangleGeometry::calculateOverhangingTriangleIndices(const std::vector<Vec3>& normals,
+																			const std::vector<uint32_t>& allIndices)
 {
 	Chronograph chronograph(__FUNCTION__, true);
 
-	const uint32_t* pi = reinterpret_cast<const uint32_t*>(&indexData()[0]);
-	const uint32_t numIndices = uint32_t(indexData().size()) / sizeof(uint32_t);
+	const uint32_t* pi = &allIndices[0];
+	const uint32_t numIndices = uint32_t(allIndices.size());
 
 	std::vector<uint32_t> indices;
 	for (uint32_t triangleIndex=0; triangleIndex<numIndices; triangleIndex += 3)
@@ -482,10 +483,25 @@ void TriangleGeometry::collectOverhangingData(const std::vector<uint32_t>& overh
 	_overhangingTriangleVertices.clear();
 	_overhangingPoints.clear();
 
-	for (uint32_t index : overhangingTriangleIndices)
-	{
-		_overhangingTriangleVertices.push_back(*reinterpret_cast<const QVector3D*>(&vertices[index]));
-		_overhangingPoints.push_back(_overhangingTriangleVertices.back());
+	_overhangingTriangleVertices.reserve(qsizetype(overhangingTriangleIndices.size() * 2));
+	_overhangingPoints.reserve(qsizetype(overhangingTriangleIndices.size()));
+
+	for (uint32_t index=0; index<overhangingTriangleIndices.size(); index+=3)
+	{// For each triangle, collect triangle side vertices pair-wise.
+		const QVector3D v0 = *reinterpret_cast<const QVector3D*>(&vertices[overhangingTriangleIndices[index   ]]);
+		const QVector3D v1 = *reinterpret_cast<const QVector3D*>(&vertices[overhangingTriangleIndices[index +1]]);
+		const QVector3D v2 = *reinterpret_cast<const QVector3D*>(&vertices[overhangingTriangleIndices[index +2]]);
+
+		_overhangingTriangleVertices.push_back(v0);
+		_overhangingTriangleVertices.push_back(v1);
+		_overhangingTriangleVertices.push_back(v1);
+		_overhangingTriangleVertices.push_back(v2);
+		_overhangingTriangleVertices.push_back(v2);
+		_overhangingTriangleVertices.push_back(v0);
+
+		_overhangingPoints.push_back(v0);
+		_overhangingPoints.push_back(v1);
+		_overhangingPoints.push_back(v2);
 	}
 }
 
@@ -520,7 +536,10 @@ void TriangleGeometry::updateData()
 	setVertexData(QByteArray(reinterpret_cast<const char*>(calculateColorTriangles(uniqueVertices, uniqueNormals).data()),
 							 qsizetype(uniqueVertices.size() * stride * sizeof(float))));
 
-	const std::vector<uint32_t> overhangingTriangleIndices = calculateOverhangingTriangleIndices(uniqueNormals);
+	const std::vector<uint32_t> overhangingTriangleIndices =
+			calculateOverhangingTriangleIndices(uniqueNormals, remappedIndices);
+	std::cout << " ### " << __FUNCTION__ << " overhangingTriangleIndices.size():" << overhangingTriangleIndices.size() << "," << "" << std::endl;
+
 	collectOverhangingData(overhangingTriangleIndices, uniqueVertices);
 
 	std::vector<TriangleIsland> triangleIslands = TriangleConnectivity(_overhangingTriangleIndices).calculateIslands();
