@@ -30,8 +30,7 @@ public:
 	uint32_t getVertexIndex(uint32_t i) const;
 
 private:
-
-	TrianglesWeakSet _neighbours; // TODO: profile it with a std::vector<TriangleWeak>, as recursiveAdd() discards duplicates anyway.
+	TrianglesWeakSet _neighbours; // TODO: may profile for speed with a std::vector<uint32_t>, as recursiveAdd() discards duplicates anyway.
 	uint32_t _firstIndexPos; // position of the first index of this triangle in the vertex array (which is in  3's)
 	const std::vector<uint32_t>& _vertexIndices;
 	bool _isAdded;

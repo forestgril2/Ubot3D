@@ -7,6 +7,8 @@
 #include <map>
 #include <memory>
 
+// Most well-triangulated meshes should have around 6 triangles shared by one vertex. Let's reserve for 8.
+static const uint32_t kNumTrianglesReservedPerVertex = 8;
 
 static bool compareTriangles(const TriangleWeak& t1, const TriangleWeak& t2)
 {
@@ -16,44 +18,53 @@ static bool compareTriangles(const TriangleWeak& t1, const TriangleWeak& t2)
 TriangleConnectivity::TriangleConnectivity(const std::vector<uint32_t>& indices) :
 	_indices(indices)
 {
+	assert(0 == _indices.size() % 3);
 	createTriangles();
 	setupTriangleNeighbours();
 }
 
 void TriangleConnectivity::createTriangles()
 {
+	_triangles.reserve(_indices.size()/3);
 	for (uint32_t firstTriangleIndexPos=0; firstTriangleIndexPos<_indices.size(); firstTriangleIndexPos += 3)
 	{// Jump through all first triangle vertex indices.
 		_triangles.push_back(std::make_shared<Triangle>(firstTriangleIndexPos, _indices));
+		std::cout << " ### " << __FUNCTION__ << " firstTriangleIndexPos:" << " " << firstTriangleIndexPos << "" << std::endl;
 	}
 }
 
 void TriangleConnectivity::setupTriangleNeighbours()
 {
-	// For every vertex index, assign triangle indices,
-	// for triangles incident to that vertex.
-	std::map<uint32_t, std::set<uint32_t>> trianglesToVertex;
+	// Every triangle has 3 vertices, but many triangles may share the same vertex
+	// and its corresponging index.
+
+	// For every vertex index, assign array indices from triangle array
+	// std::vector<TriangleShared> for triangles incident to that vertex.
+	// TODO: Consider changing it to a pair of vectors for speed - one would
+	// be a vector of unique indices (precalculated before) the other would
+	// be this map, but changed to std::vector<std::vector<uint32_t>>.
+	std::map<uint32_t, std::vector<uint32_t>> trianglesAtVertex;
 	const uint32_t numIndices = uint32_t(_indices.size());
-	assert(0 == numIndices % 3);
-	for (uint32_t trianglePos=0; trianglePos<numIndices; trianglePos+=3)
+	for (uint32_t i=0; i<numIndices; ++i)
 	{
-		auto insertion = trianglesToVertex[_indices[trianglePos   ]].insert(trianglePos/3);
-		assert(insertion.second == true);
-		insertion = trianglesToVertex[_indices[trianglePos +1]].insert(trianglePos/3);
-		assert(insertion.second == true);
-		insertion = trianglesToVertex[_indices[trianglePos +2]].insert(trianglePos/3);
-		assert(insertion.second == true);
+		trianglesAtVertex[i].reserve(kNumTrianglesReservedPerVertex);
+	}
+	const uint32_t numTriangles = uint32_t(_triangles.size());
+	for (uint32_t triangleIndex=0; triangleIndex<numTriangles; ++triangleIndex)
+	{// For every triangle, push this triangle index to collections assigned to all its vertices.
+		// Note: triangle index multiplied by 3, gives position of its first vertex index in _indices.
+		trianglesAtVertex[_indices[triangleIndex*3   ]].push_back(triangleIndex);
+		trianglesAtVertex[_indices[triangleIndex*3 +1]].push_back(triangleIndex);
+		trianglesAtVertex[_indices[triangleIndex*3 +2]].push_back(triangleIndex);
 	}
 
-	const uint32_t numTriangles = uint32_t(_triangles.size());
 	for (uint32_t triangleIndex=0; triangleIndex<numTriangles; ++triangleIndex)
 	{// For every triangle.
 		Triangle& triangle = *_triangles[triangleIndex];
 
-		std::set<uint32_t> foundTriangleNeighbours;
 		for (uint32_t v=0; v<3; ++v)
 		{// For every vertex in triangle.
-			for (uint32_t incidentTriangleIndex : trianglesToVertex[triangle.getVertexIndex(v)])
+			for (uint32_t incidentTriangleIndex : trianglesAtVertex[triangle.getVertexIndex(v)])
 			{// For every triangle incident to this vertex.
 				if (incidentTriangleIndex == triangleIndex)
 					continue; // Skip index for the triangle in question.
@@ -134,12 +145,12 @@ void TriangleIsland::recursiveAdd(TriangleShared& triangle)
 {
 	addAndSetAdded(triangle);
 	for(TriangleWeak neighbourTriangle: triangle->getNeighbours())
-	{
+	{// For each neighbour of this triangle, check if it was already added...
 		TriangleShared neighbour = neighbourTriangle.lock();
 		assert(neighbour);
 		if (neighbour->isAdded())
 			continue;
-
+		// ... and in case not, add it together with its neighbours.
 		recursiveAdd(neighbour);
 	}
 }

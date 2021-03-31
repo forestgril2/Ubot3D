@@ -130,7 +130,7 @@ void Chronograph::log(const std::string& measuredTimeAction)
 
     // Get the clock ticks since restart for given action.
     auto ticks = Chronograph::Cycle(t1 - t0);
-	*outputStream << "     Chronograph::log(), time for:     ";
+	*outputStream << "     Chronograph::log(), time for:    ";
     for (unsigned i = 0; i < _nesting + _runningChronographsCount -1; i++)
     {
 		*outputStream << "    ";

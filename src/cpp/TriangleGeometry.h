@@ -103,7 +103,8 @@ private:
 												   const std::vector<Vec3>& assimpVertices);
 	std::vector<float> calculateColorTriangles(const std::vector<Vec3>& uniqueVertices,
 											   const std::vector<Vec3>& uniqueNormals);
-	std::vector<uint32_t> calculateOverhangingTriangleIndices(const std::vector<Vec3>& normals, const std::vector<uint32_t>& indices);
+	std::vector<uint32_t> calculateOverhangingTriangleIndices(const std::vector<Vec3>& normals,
+															  const std::vector<uint32_t>& indices);
 	void collectOverhangingData(const std::vector<uint32_t>& overhangingTriangleIndices,
 								const std::vector<Vec3>& vertices);
 
