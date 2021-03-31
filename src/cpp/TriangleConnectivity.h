@@ -20,6 +20,7 @@ public:
 	explicit Triangle(uint32_t pos, const std::vector<uint32_t>& indices);
 
 	bool isNeighbour(const Triangle& other);
+	bool operator<(const Triangle& other);
 
 	bool isAdded() const;
 	void setAdded();
@@ -28,6 +29,7 @@ public:
 	TrianglesWeakSet& getNeighbours();
 	void addNeighbour(TriangleShared& neighbour);
 	uint32_t getVertexIndex(uint32_t i) const;
+
 
 private:
 	TrianglesWeakSet _neighbours; // TODO: may profile for speed with a std::vector<uint32_t>, as recursiveAdd() discards duplicates anyway.
@@ -40,12 +42,15 @@ private:
 class TriangleIsland
 {
 public:
+	TriangleIsland();
+
 	void recursiveAdd(TriangleShared& triangle);
 	TriangleSet& getTriangles();
 
 private:
 	void addAndSetAdded(TriangleShared& triangle);
 	TriangleSet _triangles;
+	uint32_t _myNumber;
 };
 
 class TriangleConnectivity

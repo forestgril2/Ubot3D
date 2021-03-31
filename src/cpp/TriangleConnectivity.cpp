@@ -7,17 +7,20 @@
 #include <map>
 #include <memory>
 
+#include <Chronograph.h>
+
 // Most well-triangulated meshes should have around 6 triangles shared by one vertex. Let's reserve for 8.
 static const uint32_t kNumTrianglesReservedPerVertex = 8;
 
 static bool compareTriangles(const TriangleWeak& t1, const TriangleWeak& t2)
 {
-	return t1.lock()->getVertexIndex(0) < t2.lock()->getVertexIndex(0);
+	return *t1.lock() < *t2.lock();
 }
 
 TriangleConnectivity::TriangleConnectivity(const std::vector<uint32_t>& indices) :
 	_indices(indices)
 {
+	Chronograph chronograph(__FUNCTION__, true);
 	assert(0 == _indices.size() % 3);
 	createTriangles();
 	setupTriangleNeighbours();
@@ -25,16 +28,18 @@ TriangleConnectivity::TriangleConnectivity(const std::vector<uint32_t>& indices)
 
 void TriangleConnectivity::createTriangles()
 {
+	Chronograph chronograph(__FUNCTION__, true);
 	_triangles.reserve(_indices.size()/3);
 	for (uint32_t firstTriangleIndexPos=0; firstTriangleIndexPos<_indices.size(); firstTriangleIndexPos += 3)
 	{// Jump through all first triangle vertex indices.
 		_triangles.push_back(std::make_shared<Triangle>(firstTriangleIndexPos, _indices));
-		std::cout << " ### " << __FUNCTION__ << " firstTriangleIndexPos:" << " " << firstTriangleIndexPos << "" << std::endl;
+//		std::cout << " ### " << __FUNCTION__ << " firstTriangleIndexPos:" << " " << firstTriangleIndexPos << "" << std::endl;
 	}
 }
 
 void TriangleConnectivity::setupTriangleNeighbours()
 {
+	Chronograph chronograph(__FUNCTION__, true);
 	// Every triangle has 3 vertices, but many triangles may share the same vertex
 	// and its corresponging index.
 
@@ -76,6 +81,7 @@ void TriangleConnectivity::setupTriangleNeighbours()
 
 std::vector<TriangleIsland> TriangleConnectivity::calculateIslands()
 {
+	Chronograph chronograph(__FUNCTION__, true);
 	std::vector<TriangleIsland> islands;
 	for (TriangleShared& triangle : _triangles)
 	{
@@ -116,6 +122,11 @@ bool Triangle::isNeighbour(const Triangle& other)
 	return false;
 }
 
+bool Triangle::operator<(const Triangle& other)
+{
+	return _firstIndexPos < other._firstIndexPos;
+}
+
 bool Triangle::isAdded() const
 {
 	return _isAdded;
@@ -124,6 +135,7 @@ bool Triangle::isAdded() const
 void Triangle::setAdded()
 {
 	_isAdded = true;
+	std::cout << " ### " << __FUNCTION__ << " _firstIndexPos:" << _firstIndexPos << "," << "" << std::endl;
 }
 
 uint32_t Triangle::getNeighbourCount() const
@@ -138,11 +150,26 @@ TrianglesWeakSet& Triangle::getNeighbours()
 
 void Triangle::addNeighbour(TriangleShared& neighbour)
 {
-	_neighbours.insert(TriangleWeak(neighbour));
+	if (_neighbours.insert(TriangleWeak(neighbour)).second)
+	{
+//		std::cout << " ### " << __FUNCTION__ << " _firstIndexPos:" << _firstIndexPos << ", neighbour._firstIndexPos: " << neighbour->_firstIndexPos << std::endl;
+	}
+	else
+	{
+//		std::cout << " ### " << __FUNCTION__ << " _firstIndexPos:" << _firstIndexPos << ", CANNOT INSERT neighbour._firstIndexPos: " << neighbour->_firstIndexPos << std::endl;
+	}
+}
+
+TriangleIsland::TriangleIsland()
+{
+	static uint32_t counter = 0;
+	_myNumber = counter++;
+	std::cout << " ### " << __FUNCTION__ << " _myNumber:" << _myNumber << "," << "" << std::endl;
 }
 
 void TriangleIsland::recursiveAdd(TriangleShared& triangle)
 {
+	Chronograph chronograph(__FUNCTION__, true);
 	addAndSetAdded(triangle);
 	for(TriangleWeak neighbourTriangle: triangle->getNeighbours())
 	{// For each neighbour of this triangle, check if it was already added...
@@ -161,6 +188,7 @@ TriangleSet& TriangleIsland::getTriangles()
 }
 void TriangleIsland::addAndSetAdded(TriangleShared& triangle)
 {
+	Chronograph chronograph(__FUNCTION__, true);
 	triangle->setAdded();
 	_triangles.insert(triangle);
 }
