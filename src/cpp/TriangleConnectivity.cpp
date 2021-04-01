@@ -9,12 +9,16 @@
 
 #include <Chronograph.h>
 
+#undef NDEBUG
+
 // Most well-triangulated meshes should have around 6 triangles shared by one vertex. Let's reserve for 8.
 static const uint32_t kNumTrianglesReservedPerVertex = 8;
+// Most well-triangulated meshes should have around 12 neighbours triangles around. Let's reserve for 15.
+static const uint32_t kNumNeighbourTriangles= 15;
 
-static bool compareTriangles(const TriangleWeak& t1, const TriangleWeak& t2)
+static bool compareTriangles(const TriangleShared& t1, const TriangleShared& t2)
 {
-	return *t1.lock() < *t2.lock();
+	return *t1 < *t2;
 }
 
 TriangleConnectivity::TriangleConnectivity(const std::vector<uint32_t>& indices) :
@@ -79,16 +83,16 @@ void TriangleConnectivity::setupTriangleNeighbours()
 	}
 }
 
-std::vector<TriangleIsland> TriangleConnectivity::calculateIslands(const uint32_t recursiveAddLimit)
+std::vector<TriangleIsland> TriangleConnectivity::calculateIslands()
 {
 	Chronograph chronograph(__FUNCTION__, true);
 	std::vector<TriangleIsland> islands;
+	uint32_t trianglesLeft = uint32_t(_triangles.size());
 	for (TriangleShared& triangle : _triangles)
 	{
 		if(triangle->isAdded())
 			continue;
-		islands.push_back(TriangleIsland());
-		islands.back().recursiveAdd(triangle, recursiveAddLimit);
+		islands.push_back(TriangleIsland(triangle, trianglesLeft));
 	}
 	return islands;
 }
@@ -143,14 +147,14 @@ uint32_t Triangle::getNeighbourCount() const
 	return uint32_t(_neighbours.size());
 }
 
-TrianglesWeakSet& Triangle::getNeighbours()
+TrianglesSet& Triangle::getNeighbours()
 {
 	return _neighbours;
 }
 
 void Triangle::addNeighbour(TriangleShared& neighbour)
 {
-	if (_neighbours.insert(TriangleWeak(neighbour)).second)
+	if (_neighbours.insert(neighbour).second)
 	{
 //		std::cout << " ### " << __FUNCTION__ << " _firstIndexPos:" << _firstIndexPos << ", neighbour._firstIndexPos: " << neighbour->_firstIndexPos << std::endl;
 	}
@@ -160,43 +164,46 @@ void Triangle::addNeighbour(TriangleShared& neighbour)
 	}
 }
 
-TriangleIsland::TriangleIsland()
+TriangleIsland::TriangleIsland(TriangleShared& initialTriangle, uint32_t& trianglesLeft)
 {
-	static uint32_t counter = 0;
-	_myNumber = counter++;
-//	std::cout << " ### " << __FUNCTION__ << " _myNumber:" << _myNumber << "," << "" << std::endl;
-}
-
-void TriangleIsland::recursiveAdd(TriangleShared& triangle, const uint32_t recursiveAddLimit)
-{
-	assert(!triangle->isAdded());
 //	Chronograph chronograph(__FUNCTION__, true);
-	addAndSetAdded(triangle);
+	static uint32_t counter = 0;
+	_myNumber = counter++;	
 
-	static uint32_t recursionCount = 0;
-	if (recursionCount > recursiveAddLimit)
-		return;
+	TrianglesSet toAdd(compareTriangles);
+	toAdd.insert(initialTriangle);
+	Triangles withNeighboursToAdd;
 
-	for(TriangleWeak neighbourTriangle: triangle->getNeighbours())
-	{// For each neighbour of this triangle, check if it was already added...
-		TriangleShared neighbour = neighbourTriangle.lock();
-		assert(neighbour);
-		if (neighbour->isAdded())
-			continue;
-		// ... and in case not, add it together with its neighbours.
-		++recursionCount;
-		recursiveAdd(neighbour, recursiveAddLimit);
-		--recursionCount;
+	while(!toAdd.empty())
+	{
+		for(TriangleShared triangle: toAdd)
+		{// We only add triangles to island here!
+			assert(trianglesLeft > 0);
+			assert(!triangle->isAdded());
+			triangle->setAdded();
+			--trianglesLeft;
+			_triangles.push_back(triangle);
+			withNeighboursToAdd.push_back(triangle);
+		}
+
+		toAdd.clear();
+
+		for(TriangleShared triangle: withNeighboursToAdd)
+		{// Here we collect neighbours to be added.
+			for(TriangleShared neighbourTriangle: triangle->getNeighbours())
+			{// For each neighbour of this triangle, check if it was already added...
+				if (neighbourTriangle->isAdded())
+					continue;
+				// ... and in case not, collect in in a set of triangles to add.
+				toAdd.insert(neighbourTriangle);
+			}
+		}
+
+		withNeighboursToAdd.clear();
 	}
 }
 
-TriangleSet& TriangleIsland::getTriangles()
+Triangles& TriangleIsland::getTriangles()
 {
 	return _triangles;
-}
-void TriangleIsland::addAndSetAdded(TriangleShared& triangle)
-{
-//	Chronograph chronograph(__FUNCTION__, true);
-	triangle->setAdded();
-	_triangles.insert(triangle);
 }

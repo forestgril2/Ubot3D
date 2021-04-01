@@ -548,14 +548,13 @@ void TriangleGeometry::updateData()
 	collectOverhangingData(overhangingTriangleIndices, uniqueVertices);
 
 	TriangleConnectivity triangleConnectivity(remappedIndices);
-	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands(50);
+	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
 	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
 	for (TriangleIsland& island : triangleIslands)
 	{
 		_triangleIslands.push_back(QVector<QVector3D>());
-		for (TriangleWeak triangleWeak : island.getTriangles())
+		for (TriangleShared triangle : island.getTriangles())
 		{
-			TriangleShared triangle = triangleWeak.lock();
 			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(0)]));
 			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(1)]));
 			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(1)]));
