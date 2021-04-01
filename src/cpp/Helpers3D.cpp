@@ -79,13 +79,17 @@ QVector<QVector3D> Helpers3D::computeAlphaShape(const QVector<QVector3D>& points
 
 	std::vector<Point> points2 = getCgalPoints2<Point>(points);
 	Alpha_shape_2 A(points2.begin(), points2.end(),
-					FT(160),
+					FT(0.1),
+					Alpha_shape_2::GENERAL);
+	const double optimalAlpha = *A.find_optimal_alpha(1);
+	//Recalculate with optimal alpha
+	Alpha_shape_2 B(points2.begin(), points2.end(),
+					FT(optimalAlpha),
 					Alpha_shape_2::GENERAL);
 	std::vector<Segment> segments;
-	alpha_edges(A, std::back_inserter(segments));
+	alpha_edges(B, std::back_inserter(segments));
 	std::cout << "Alpha Shape computed" << std::endl;
 	std::cout << segments.size() << " alpha shape edges" << std::endl;
-	std::cout << "Optimal alpha: " << *A.find_optimal_alpha(1)<<std::endl;
 
 	std::for_each(segments.begin(), segments.end(), [&result](const Segment& s) {
 		result.push_back({static_cast<float>(s[0].x()), static_cast<float>(s[0].y()), 0});

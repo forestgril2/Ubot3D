@@ -547,28 +547,33 @@ void TriangleGeometry::updateData()
 
 	collectOverhangingData(overhangingTriangleIndices, uniqueVertices);
 
-	TriangleConnectivity triangleConnectivity(remappedIndices);
+	TriangleConnectivity triangleConnectivity(overhangingTriangleIndices);
 	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
 	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
+	_triangleIslands.clear();
 	for (TriangleIsland& island : triangleIslands)
 	{
-		_triangleIslands.push_back(QVector<QVector3D>());
+		std::set<uint32_t> islandUniqueIndices;
 		for (TriangleShared triangle : island.getTriangles())
 		{
-			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(0)]));
-			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(1)]));
-			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(1)]));
-			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(2)]));
-			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(2)]));
-			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(0)]));
+			islandUniqueIndices.insert(triangle->getVertexIndex(0));
+			islandUniqueIndices.insert(triangle->getVertexIndex(1));
+			islandUniqueIndices.insert(triangle->getVertexIndex(2));
 		}
-	}
-	emit triangleIslandsChanged();
 
-	_triangulationResult = Helpers3D::computeAlphaShape(_overhangingPoints);
+		QVector<QVector3D> islandPoints;
+		islandPoints.reserve(uint32_t(islandUniqueIndices.size()));
+		for (uint32_t index : islandUniqueIndices)
+		{
+			islandPoints.emplaceBack(*reinterpret_cast<QVector3D*>(&uniqueVertices[index]));
+		}
+
+		_triangleIslands.emplaceBack(Helpers3D::computeAlphaShape(islandPoints));
+	}
 
 //	 Inform, that overhangings data was modified.
-//	emit overhangingTriangleVerticesChanged();
+	emit triangleIslandsChanged();
+	emit overhangingTriangleVerticesChanged();
 //	emit overhangingPointsChanged();
 //	emit triangulationResultChanged();
 
