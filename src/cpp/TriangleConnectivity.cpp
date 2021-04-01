@@ -79,7 +79,7 @@ void TriangleConnectivity::setupTriangleNeighbours()
 	}
 }
 
-std::vector<TriangleIsland> TriangleConnectivity::calculateIslands()
+std::vector<TriangleIsland> TriangleConnectivity::calculateIslands(const uint32_t recursiveAddLimit)
 {
 	Chronograph chronograph(__FUNCTION__, true);
 	std::vector<TriangleIsland> islands;
@@ -88,7 +88,7 @@ std::vector<TriangleIsland> TriangleConnectivity::calculateIslands()
 		if(triangle->isAdded())
 			continue;
 		islands.push_back(TriangleIsland());
-		islands.back().recursiveAdd(triangle);
+		islands.back().recursiveAdd(triangle, recursiveAddLimit);
 	}
 	return islands;
 }
@@ -135,7 +135,7 @@ bool Triangle::isAdded() const
 void Triangle::setAdded()
 {
 	_isAdded = true;
-	std::cout << " ### " << __FUNCTION__ << " _firstIndexPos:" << _firstIndexPos << "," << "" << std::endl;
+//	std::cout << " ### " << __FUNCTION__ << " _firstIndexPos:" << _firstIndexPos << "," << "" << std::endl;
 }
 
 uint32_t Triangle::getNeighbourCount() const
@@ -164,13 +164,19 @@ TriangleIsland::TriangleIsland()
 {
 	static uint32_t counter = 0;
 	_myNumber = counter++;
-	std::cout << " ### " << __FUNCTION__ << " _myNumber:" << _myNumber << "," << "" << std::endl;
+//	std::cout << " ### " << __FUNCTION__ << " _myNumber:" << _myNumber << "," << "" << std::endl;
 }
 
-void TriangleIsland::recursiveAdd(TriangleShared& triangle)
+void TriangleIsland::recursiveAdd(TriangleShared& triangle, const uint32_t recursiveAddLimit)
 {
-	Chronograph chronograph(__FUNCTION__, true);
+	assert(!triangle->isAdded());
+//	Chronograph chronograph(__FUNCTION__, true);
 	addAndSetAdded(triangle);
+
+	static uint32_t recursionCount = 0;
+	if (recursionCount > recursiveAddLimit)
+		return;
+
 	for(TriangleWeak neighbourTriangle: triangle->getNeighbours())
 	{// For each neighbour of this triangle, check if it was already added...
 		TriangleShared neighbour = neighbourTriangle.lock();
@@ -178,7 +184,9 @@ void TriangleIsland::recursiveAdd(TriangleShared& triangle)
 		if (neighbour->isAdded())
 			continue;
 		// ... and in case not, add it together with its neighbours.
-		recursiveAdd(neighbour);
+		++recursionCount;
+		recursiveAdd(neighbour, recursiveAddLimit);
+		--recursionCount;
 	}
 }
 
@@ -188,7 +196,7 @@ TriangleSet& TriangleIsland::getTriangles()
 }
 void TriangleIsland::addAndSetAdded(TriangleShared& triangle)
 {
-	Chronograph chronograph(__FUNCTION__, true);
+//	Chronograph chronograph(__FUNCTION__, true);
 	triangle->setAdded();
 	_triangles.insert(triangle);
 }

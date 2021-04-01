@@ -68,47 +68,74 @@ Window {
             }
         }
 
-        Repeater3D {
-            id: overhangingTriangles
-            model: stlObjects.model
-            delegate: Model {
-                visible: true
-                scale: Qt.vector3d(1, 1, 1)
-                geometry: SimplexGeometry {
-                    simplexType: SimplexGeometry.Lines
-                    points: stlObjects.objectAt(index).geometry.overhangingTriangleVertices
-                }
-                materials: [
-                    DefaultMaterial {
-                        pointSize: 5
-                        lineWidth: 5
-                        lighting: DefaultMaterial.NoLighting
-                        cullMode: DefaultMaterial.NoCulling
-                        diffuseColor: "yellow"
-                    }
-                ]
-            }
-        }
+//        Repeater3D {
+//            id: overhangingTriangles
+//            model: stlObjects.model.length
+//            delegate: Model {
+//                visible: true
+//                scale: Qt.vector3d(1, 1, 1)
+//                geometry: SimplexGeometry {
+//                    simplexType: SimplexGeometry.Lines
+//                    points: stlObjects.objectAt(index).geometry.overhangingTriangleVertices
+//                }
+//                materials: [
+//                    DefaultMaterial {
+//                        pointSize: 5
+//                        lineWidth: 5
+//                        lighting: DefaultMaterial.NoLighting
+//                        cullMode: DefaultMaterial.NoCulling
+//                        diffuseColor: "yellow"
+//                    }
+//                ]
+//            }
+//        }
+
+//        Repeater3D {
+//            id: triangulationResult
+//            model: stlObjects.model.length
+//            delegate: Model {
+//                visible: true
+//                scale: Qt.vector3d(1, 1, 1)
+//                geometry: SimplexGeometry {
+//                    simplexType: SimplexGeometry.Lines
+//                    points: stlObjects.objectAt(index).geometry.triangulationResult
+//                }
+//                materials: [
+//                    DefaultMaterial {
+//                        pointSize: 5
+//                        lineWidth: 5
+//                        lighting: DefaultMaterial.NoLighting
+//                        cullMode: DefaultMaterial.NoCulling
+//                        diffuseColor: "red"
+//                    }
+//                ]
+//            }
+//        }
 
         Repeater3D {
-            id: triangulationResult
-            model: stlObjects.model
-            delegate: Model {
-                visible: true
-                scale: Qt.vector3d(1, 1, 1)
-                geometry: SimplexGeometry {
-                    simplexType: SimplexGeometry.Lines
-                    points: stlObjects.objectAt(index).geometry.triangulationResult
-                }
-                materials: [
-                    DefaultMaterial {
-                        pointSize: 5
-                        lineWidth: 5
-                        lighting: DefaultMaterial.NoLighting
-                        cullMode: DefaultMaterial.NoCulling
-                        diffuseColor: "red"
+            id: allModelsIslands
+            model: stlObjects.model.length
+
+            delegate: Repeater3D {
+                id: triangleIslands
+                model: stlObjects.objectAt(index).geometry.triangleIslands
+                delegate: Model {
+                    visible: true
+                    scale: Qt.vector3d(1, 1, 1)
+                    geometry: SimplexGeometry {
+                        simplexType: SimplexGeometry.Lines
+                        points: triangleIslands.model[index]
                     }
-                ]
+                    materials: [
+                        DefaultMaterial {
+                            pointSize: 5
+                            lineWidth: 5
+                            lighting: DefaultMaterial.NoLighting
+                            cullMode: DefaultMaterial.NoCulling
+                            diffuseColor: "yellow"
+                        }
+                    ]
+                }
             }
         }
 

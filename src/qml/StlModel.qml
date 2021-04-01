@@ -12,7 +12,6 @@ Model {
                                     // rootModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
                                     // Qt.quaternion(0,0,0,0)
 
-
     geometry: TriangleGeometry {
         id: geometry
 
@@ -25,6 +24,10 @@ Model {
             //TODO: Have to think about resnapping, after minBounds.z change.
 //            isSnappedToFloor = false;
             snapToFloor()
+        }
+
+        onTriangleIslandsChanged: {
+            console.log(" ### geometry.triangleIslands.size():" + geometry.triangleIslands.length)
         }
     }
 

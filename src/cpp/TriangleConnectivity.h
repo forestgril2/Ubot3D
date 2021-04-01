@@ -44,7 +44,7 @@ class TriangleIsland
 public:
 	TriangleIsland();
 
-	void recursiveAdd(TriangleShared& triangle);
+	void recursiveAdd(TriangleShared& triangle, const uint32_t recursiveAddLimit);
 	TriangleSet& getTriangles();
 
 private:
@@ -57,7 +57,7 @@ class TriangleConnectivity
 {
 public:
 	TriangleConnectivity(const std::vector<uint32_t>& indices);
-	std::vector<TriangleIsland> calculateIslands();
+	std::vector<TriangleIsland> calculateIslands(const uint32_t recursiveAddLimit);
 
 private:
 	void setupTriangleNeighbours();

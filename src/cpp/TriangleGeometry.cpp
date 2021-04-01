@@ -187,6 +187,11 @@ QVector<QVector3D> TriangleGeometry::getTriangulationResult() const
 	return _triangulationResult;
 }
 
+QVector<QVector<QVector3D> > TriangleGeometry::getTriangleIslands() const
+{
+	return _triangleIslands;
+}
+
 const aiScene* TriangleGeometry::getAssimpScene() const
 {
 	return _scene;
@@ -542,24 +547,31 @@ void TriangleGeometry::updateData()
 
 	collectOverhangingData(overhangingTriangleIndices, uniqueVertices);
 
-	TriangleConnectivity triangleConnectivity(_overhangingTriangleIndices);
-	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
+	TriangleConnectivity triangleConnectivity(remappedIndices);
+	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands(50);
 	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
 	for (TriangleIsland& island : triangleIslands)
 	{
-		std::cout << " ### " << __FUNCTION__ << " island size:" << island.getTriangles().size() << "," << "" << std::endl;
-//		for (auto triangleSetIt : island.getTriangles())
-//		{
-//			std::cout << " ### " << __FUNCTION__ << " :" << (*triangleSetIt).getNeighbourCount() << "," << "" << std::endl;
-//		}
+		_triangleIslands.push_back(QVector<QVector3D>());
+		for (TriangleWeak triangleWeak : island.getTriangles())
+		{
+			TriangleShared triangle = triangleWeak.lock();
+			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(0)]));
+			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(1)]));
+			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(1)]));
+			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(2)]));
+			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(2)]));
+			_triangleIslands.back().push_back(*reinterpret_cast<QVector3D*>(&uniqueVertices[triangle->getVertexIndex(0)]));
+		}
 	}
+	emit triangleIslandsChanged();
 
 	_triangulationResult = Helpers3D::computeAlphaShape(_overhangingPoints);
 
 //	 Inform, that overhangings data was modified.
-	emit overhangingTriangleVerticesChanged();
-	emit overhangingPointsChanged();
-	emit triangulationResultChanged();
+//	emit overhangingTriangleVerticesChanged();
+//	emit overhangingPointsChanged();
+//	emit triangulationResultChanged();
 
     setPrimitiveType(QQuick3DGeometry::PrimitiveType::Triangles);
 

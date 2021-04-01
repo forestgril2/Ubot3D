@@ -32,6 +32,7 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector<QVector3D> overhangingTriangleVertices READ getOverhangingTriangleVertices NOTIFY overhangingTriangleVerticesChanged)
 	Q_PROPERTY(QVector<QVector3D> overhangingPoints READ getOverhangingPoints NOTIFY overhangingPointsChanged)
 	Q_PROPERTY(QVector<QVector3D> triangulationResult READ getTriangulationResult NOTIFY triangulationResultChanged)
+	Q_PROPERTY(QVector<QVector<QVector3D>> triangleIslands READ getTriangleIslands NOTIFY triangleIslandsChanged)
 
 public:
 	TriangleGeometry();
@@ -52,6 +53,7 @@ public:
 	QVector<QVector3D> getOverhangingTriangleVertices() const;
 	QVector<QVector3D> getOverhangingPoints() const;
 	QVector<QVector3D> getTriangulationResult() const;
+	QVector<QVector<QVector3D>> getTriangleIslands() const;
 
 	const aiScene* getAssimpScene() const;
 
@@ -81,6 +83,7 @@ signals:
 	void overhangingTriangleVerticesChanged();
 	void overhangingPointsChanged();
 	void triangulationResultChanged();
+	void triangleIslandsChanged();
 
 private:
 	bool importModelFromFile(const std::string& pFile);
@@ -129,6 +132,7 @@ private:
 
 	float _overhangAngleMax = float(M_PI_4);
 	QVector<QVector3D> _overhangingTriangleVertices;
+	QVector<QVector<QVector3D>> _triangleIslands;
 	std::vector<uint32_t> _overhangingTriangleIndices;
 	QVector<QVector3D> _overhangingPoints;
 	QVector<QVector3D> _triangulationResult;
