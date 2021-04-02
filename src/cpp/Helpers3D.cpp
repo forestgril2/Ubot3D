@@ -88,8 +88,8 @@ QVector<QVector3D> Helpers3D::computeAlphaShape(const QVector<QVector3D>& points
 					Alpha_shape_2::GENERAL);
 	std::vector<Segment> segments;
 	alpha_edges(B, std::back_inserter(segments));
-	std::cout << "Alpha Shape computed" << std::endl;
-	std::cout << segments.size() << " alpha shape edges" << std::endl;
+//	std::cout << "Alpha Shape computed" << std::endl;
+//	std::cout << segments.size() << " alpha shape edges" << std::endl;
 
 	std::for_each(segments.begin(), segments.end(), [&result](const Segment& s) {
 		result.push_back({static_cast<float>(s[0].x()), static_cast<float>(s[0].y()), 0});
@@ -379,10 +379,10 @@ void Helpers3D::getContiguousAssimpVerticesAndNormals(const aiScene* assimpScene
 }
 
 IndicesToVertices Helpers3D::mapIndicesToUniqueVertices(const aiScene* scene,
-															   const std::vector<Vec3>& vertices,
-															   const std::vector<Vec3>& normals,
-															   std::vector<Vec3>& uniqueVertices,
-															   std::vector<Vec3>& uniqueNormals)
+														const std::vector<Vec3>& vertices,
+														const std::vector<Vec3>& normals,
+														std::vector<Vec3>& uniqueVertices,
+														std::vector<Vec3>& uniqueNormals)
 {
 	Chronograph chronograph(__FUNCTION__, true);
 
@@ -432,8 +432,8 @@ IndicesToVertices Helpers3D::mapIndicesToUniqueVertices(const aiScene* scene,
 	return indicesToUniqueVertices;
 }
 
-std::vector<uint32_t> Helpers3D::calculateRemappedIndices(const IndicesToVertices& indicesToUniqueVertices,
-																 const std::vector<Vec3>& assimpVertices)
+std::vector<uint32_t> Helpers3D::getRemappedIndices(const IndicesToVertices& indicesToUniqueVertices,
+													const std::vector<Vec3>& assimpVertices)
 {// Remapping new indices to all unique vertices by searching map.
 	Chronograph chronograph(__FUNCTION__, true);
 
@@ -450,15 +450,17 @@ std::vector<uint32_t> Helpers3D::calculateRemappedIndices(const IndicesToVertice
 
 
 std::vector<uint32_t> Helpers3D::calculateOverhangingTriangleIndices(const std::vector<Vec3>& vertices,
-																	 const std::vector<uint32_t>& allIndices,
+																	 const std::vector<uint32_t>& indices,
 																	 float _overhangAngleMax)
 {
 	Chronograph chronograph(__FUNCTION__, true);
 
-	const uint32_t* pi = &allIndices[0];
-	const uint32_t numIndices = uint32_t(allIndices.size());
+	std::vector<uint32_t> overhangingIndices;
+	const uint32_t numIndices = uint32_t(indices.size());
+	if (numIndices == 0)
+		return overhangingIndices;
 
-	std::vector<uint32_t> indices;
+	const uint32_t* pi = &indices[0];
 	for (uint32_t triangleIndex=0; triangleIndex<numIndices; triangleIndex += 3)
 	{
 		static const auto isTriangleOverhanging = [](const Vec3& v0, const Vec3& v1, const Vec3& v2, float maxOverhangAngle)
@@ -477,10 +479,10 @@ std::vector<uint32_t> Helpers3D::calculateOverhangingTriangleIndices(const std::
 		if (!isTriangleOverhanging(v0, v1, v2, _overhangAngleMax))
 			continue;
 
-		indices.push_back(i0);
-		indices.push_back(i1);
-		indices.push_back(i2);
+		overhangingIndices.push_back(i0);
+		overhangingIndices.push_back(i1);
+		overhangingIndices.push_back(i2);
 	}
 
-	return indices;
+	return overhangingIndices;
 }

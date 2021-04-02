@@ -57,7 +57,7 @@ public:
 														const std::vector<Vec3>& normals,
 														std::vector<Vec3>& uniqueVertices,
 														std::vector<Vec3>& uniqueNormals);
-	static std::vector<uint32_t> calculateRemappedIndices(const IndicesToVertices& indicesToUniqueVertices,
+	static std::vector<uint32_t> getRemappedIndices(const IndicesToVertices& indicesToUniqueVertices,
 														  const std::vector<Vec3>& assimpVertices);
 	static std::vector<uint32_t> calculateOverhangingTriangleIndices(const std::vector<Vec3>& vertices,
 															  const std::vector<uint32_t>& indices, float _overhangAngleMax);

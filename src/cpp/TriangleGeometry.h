@@ -18,6 +18,13 @@ using Vec3 = Eigen::Vector3f;
 struct aiScene;
 class QSSGMeshBVH;
 
+struct TriangleGeometryData
+{
+	std::vector<Vec3> vertices;
+	std::vector<Vec3> normals;
+	std::vector<uint32_t> indices;
+};
+
 class TriangleGeometry : public QQuick3DGeometry
 {
 	Q_OBJECT
@@ -31,14 +38,11 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector<QVector3D> overhangingPoints READ getOverhangingPoints NOTIFY overhangingPointsChanged)
 	Q_PROPERTY(QVector<QVector3D> triangulationResult READ getTriangulationResult NOTIFY triangulationResultChanged)
 	Q_PROPERTY(QVector<QVector<QVector3D>> triangleIslands READ getTriangleIslands NOTIFY triangleIslandsChanged)
+	Q_PROPERTY(QVector<TriangleGeometry*> supportGeometries READ getSupportGeometries NOTIFY supportGeometriesChanged)
 
 public:
 	TriangleGeometry();
-	TriangleGeometry(const std::vector<Vec3>& vertices,
-					 const std::vector<uint32_t>& indices);
-
-	static Q_INVOKABLE void exportModelToSTL(const QString& filePath);
-
+	TriangleGeometry(const TriangleGeometryData& data);
 
 	struct PickResult
 	{
@@ -84,25 +88,27 @@ signals:
 	void overhangingPointsChanged();
 	void triangulationResultChanged();
 	void triangleIslandsChanged();
+	void supportGeometriesChanged();
 
 private:
 	bool importModelFromFile(const std::string& pFile);
+	void reloadAssimpScene();
 	void updateAllMeshBounds(const aiScene* scene, const unsigned meshIndex = 0u);
 	void updateBounds(const float* vertexMatrixXCoord);
-	void updateData();
-	void reloadSceneIfNecessary();
-
 	void buildIntersectionData();
+	void updateData(const TriangleGeometryData& data);
 
 	uint32_t calculateAndSetStride();
-	std::vector<float> prepareColorTrianglesVertexData(const std::vector<Vec3>& uniqueVertices,
-													   const std::vector<Vec3>& uniqueNormals);
+	std::vector<float> prepareColorTrianglesVertexData();
 	void collectOverhangingData(const std::vector<uint32_t>& overhangingTriangleIndices,
 								const std::vector<Vec3>& vertices);
+
+	QVector<TriangleGeometry*> getSupportGeometries();
 
 	void logBounds();
 
 	// Member variables
+	TriangleGeometryData _data;
 	QSSGMeshBVH* _intersectionData = nullptr;
 
 	Assimp::Importer importer;
@@ -120,9 +126,9 @@ private:
 	const uint32_t _indexAttributeIndex = 2;
 
 	float _overhangAngleMax = float(M_PI_4);
+	std::vector<uint32_t> _overhangingTriangleIndices;
 	QVector<QVector3D> _overhangingTriangleVertices;
 	QVector<QVector<QVector3D>> _triangleIslands;
-	std::vector<uint32_t> _overhangingTriangleIndices;
 	QVector<QVector3D> _overhangingPoints;
 	QVector<QVector3D> _triangulationResult;
 
@@ -136,4 +142,6 @@ private:
 
 	QString _inputFile;
 	//	QString _inputFile = "C:/ProjectsData/stl_files/mandoblasterlow.stl";
+	TriangleGeometryData prepareDataFromAssimpScene();
+	void calculateOverhangingData();
 };

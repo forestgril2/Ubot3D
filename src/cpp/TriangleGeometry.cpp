@@ -111,71 +111,12 @@ TriangleGeometry::TriangleGeometry() :
 	_maxBound(aiVector3D(-FLT_MAX, -FLT_MAX, -FLT_MAX)),
 	_minBound(aiVector3D(FLT_MAX, FLT_MAX, FLT_MAX))
 {
-	updateData();
+	updateData(TriangleGeometryData());
 }
 
-TriangleGeometry::TriangleGeometry(const std::vector<Vec3>& vertices,
-								   const std::vector<uint32_t>& indices) : TriangleGeometry()
+TriangleGeometry::TriangleGeometry(const TriangleGeometryData& data) : TriangleGeometry()
 {
-
-}
-
-void TriangleGeometry::exportModelToSTL(const QString& filePath)
-{
-//	Helpers3D::exportModelsToSTL(filePath);
-}
-
-
-
-QVariantMap TriangleGeometry::getPick(const QVector3D& origin,
-									  const QVector3D& direction,
-									  const QMatrix4x4& globalTransform)
-{
-	Chronograph chronograph(__FUNCTION__, false);
-	QVariantMap noHit{{"intersection", QVector3D()}, {"isHit", false}};
-	if (vertexData().size() == 0)
-	{
-		std::cout << " ### " << __FUNCTION__ << " WARNING vertex buffer empty, returning empty pick" << std::endl;
-		return noHit;
-	}
-
-	QSSGRenderRay hitRay(origin, direction);
-
-//	qDebug() << " ### globalTransform: " << globalTransform;
-
-	// From tst_picking.cpp: void picking::test_picking()
-//	QSSGRenderLayer dummyLayer;
-//	const QSSGRenderNode* node === ???;
-//	const QSSGRenderModel &model = static_cast<const QSSGRenderModel &>(node);
-//	const auto &globalTransform = model.globalTransform;
-
-	QSSGRenderRay::RayData rayData = QSSGRenderRay::createRayData(globalTransform, hitRay);
-
-
-
-	QVector<QSSGRenderRay::IntersectionResult> intersections =
-		QSSGRenderRay::intersectWithBVHTriangles(rayData, _intersectionData->triangles, 0, _intersectionData->triangles.size());
-
-	if (intersections.size() > 0)
-	{
-		std::vector<float> distancesToOrigin;
-		distancesToOrigin.reserve(intersections.size());
-		std::transform(intersections.begin(),
-					   intersections.end(),
-					   std::back_inserter(distancesToOrigin),
-					   [&origin](const QSSGRenderRay::IntersectionResult& intersection) {
-									   return (origin - intersection.scenePosition).lengthSquared();
-								 });
-
-		const QVector3D intersection = intersections[static_cast<uint32_t>(
-										   std::distance(distancesToOrigin.begin(),
-														 std::min_element(distancesToOrigin.begin(),
-																		  distancesToOrigin.end())))].scenePosition;
-
-		return QVariantMap{{"intersection", intersection}, {"isHit", true}};
-	}
-
-	return noHit;
+	updateData(data);
 }
 
 QVector<QVector3D> TriangleGeometry::getOverhangingTriangleVertices() const
@@ -215,7 +156,13 @@ void TriangleGeometry::setInputFile(const QString& url)
 
 	_inputFile = url;
 	_isAssimpReadDone = false;
-	updateData();
+
+	reloadAssimpScene();
+
+	if (!_scene)
+		return;
+
+	updateData(prepareDataFromAssimpScene());
 	update();
 }
 
@@ -258,30 +205,26 @@ void TriangleGeometry::setPicked(const bool isPicked)
 {
 	if (_isPicked == isPicked)
 		return;
-
 	_isPicked = isPicked;
 	isPickedChanged();
 }
 
-void TriangleGeometry::reloadSceneIfNecessary()
+void TriangleGeometry::reloadAssimpScene()
 {
-	if (!_isAssimpReadDone)
+	if (_inputFile.isEmpty())
 	{
-		if (_inputFile.isEmpty())
-		{
-			clear();
-			return;
-		}
-
-		if (!importModelFromFile(_inputFile.toStdString().c_str()))
-			return;
-
-		updateAllMeshBounds(_scene);
-
-//		assimpLogScene(scene);
-		setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
-		emit modelLoaded();
+		clear();
+		return;
 	}
+
+	if (!importModelFromFile(_inputFile.toStdString().c_str()))
+		return;
+
+	updateAllMeshBounds(_scene);
+
+	//		assimpLogScene(scene);
+	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
+	emit modelLoaded();
 	clear();
 }
 uint32_t TriangleGeometry::calculateAndSetStride()
@@ -296,25 +239,19 @@ uint32_t TriangleGeometry::calculateAndSetStride()
 	return stride;
 }
 
-std::vector<float> TriangleGeometry::prepareColorTrianglesVertexData(const std::vector<Vec3>& uniqueVertices,
-															 const std::vector<Vec3>& uniqueNormals)
-{
+std::vector<float> TriangleGeometry::prepareColorTrianglesVertexData()
+{// Calculate triangle vertices with colors and view them as Qt array.
 	Chronograph chronograph(__FUNCTION__, true);
 
-	const uint32_t numUniqueVertices = uint32_t(uniqueVertices.size());
-	std::vector<float> ret(uint32_t(stride())*numUniqueVertices);
+	const uint32_t numVertices = uint32_t(_data.vertices.size());
+	std::vector<float> ret(uint32_t(stride())*numVertices);
 	float* p = ret.data();
 
-	for (uint32_t vertexIndex=0; vertexIndex<numUniqueVertices; ++vertexIndex)
+	std::set<uint32_t> overhangingIndices(_overhangingTriangleIndices.begin(), _overhangingTriangleIndices.end());
+
+	for (uint32_t vertexIndex=0; vertexIndex<numVertices; ++vertexIndex)
 	{
-		const Vec3& vertex = uniqueVertices[vertexIndex];
-		const Vec3& normal = uniqueNormals[vertexIndex];
-
-		auto isVertexOverhanging = [](const Vec3& normal, float maxOverhangAngle)
-		{
-			return normal.dot(Vec3{0,0,1}) < std::cosf(float(M_PI) - maxOverhangAngle);
-		};
-
+		const Vec3& vertex = _data.vertices[vertexIndex];
 		auto setTriangleVertex = [this, &p](const Vec3& vertex) {
 			*p++ = vertex.x();
 			*p++ = vertex.y();
@@ -333,12 +270,12 @@ std::vector<float> TriangleGeometry::prepareColorTrianglesVertexData(const std::
 		auto conditionallyPushOverhangingTriangleVertex = [this](const Vec3& vertex, const bool isVertexOverhanging) {
 			if (!isVertexOverhanging)
 				return;
-			_overhangingTriangleVertices.push_back(*reinterpret_cast<const QVector3D*>(&vertex));
-			_overhangingPoints.push_back(_overhangingTriangleVertices.back());
+			_overhangingPoints.push_back(*reinterpret_cast<const QVector3D*>(&vertex));
+//			_overhangingTriangleVertices.push_back();
 		};
 
 		setTriangleVertex(vertex);
-		bool isOverhangingVertex = isVertexOverhanging(normal, _overhangAngleMax);
+		const bool isOverhangingVertex = overhangingIndices.find(vertexIndex) != overhangingIndices.end();
 		setTriangleColor(isOverhangingVertex);
 		conditionallyPushOverhangingTriangleVertex(vertex, isOverhangingVertex);
 	}
@@ -375,52 +312,43 @@ void TriangleGeometry::collectOverhangingData(const std::vector<uint32_t>& overh
 		_overhangingPoints.push_back(v1);
 		_overhangingPoints.push_back(v2);
 	}
+
+	emit overhangingTriangleVerticesChanged();
+	emit overhangingPointsChanged();
 }
 
-void TriangleGeometry::updateData()
+QVector<TriangleGeometry*> TriangleGeometry::getSupportGeometries()
 {
 	Chronograph chronograph(__FUNCTION__, true);
-	reloadSceneIfNecessary();
+//	calculateOverhangingData();
 
-	if (!_scene)
-		return;
+	return QVector<TriangleGeometry*>();
+}
 
-	const uint32_t stride = calculateAndSetStride();
-
-	// Assimp vertices from STL are not unique, lets remove duplicates and remap indices.
+TriangleGeometryData TriangleGeometry::prepareDataFromAssimpScene()
+{// Assimp vertices from STL are not unique, lets remove duplicates and remap indices.
 	std::vector<Vec3> assimpVertices;
 	std::vector<Vec3> assimpNormals;
+
 	Helpers3D::getContiguousAssimpVerticesAndNormals(_scene, assimpVertices, assimpNormals);
-	const uint32_t numAssimpVertices = uint32_t(assimpVertices.size());
 
-	std::vector<Vec3> uniqueNormals;
-	std::vector<Vec3> uniqueVertices;
-	const IndicesToVertices indicesToUniqueVertices = Helpers3D::mapIndicesToUniqueVertices(_scene,
-																							assimpVertices,
-																							assimpNormals,
-																							uniqueVertices,
-																							uniqueNormals);
-	// Calculate and view remapped indices as Qt array.
-	const std::vector<uint32_t> remappedIndices = Helpers3D::calculateRemappedIndices(indicesToUniqueVertices,
-																					  assimpVertices);
+	TriangleGeometryData returnData;
+	const IndicesToVertices indicesToUniqueVertices =
+			Helpers3D::mapIndicesToUniqueVertices(_scene, assimpVertices,      assimpNormals,
+														  returnData.vertices, returnData.normals);
+	returnData.indices = Helpers3D::getRemappedIndices(indicesToUniqueVertices, assimpVertices);
+	return returnData;
+}
 
+void TriangleGeometry::calculateOverhangingData()
+{
+	Chronograph chronograph(__FUNCTION__, true);
 
-	setIndexData(QByteArray(reinterpret_cast<const char*>(remappedIndices.data()),
-							qsizetype(numAssimpVertices * sizeof(uint32_t))));
-
-	// Calculate triangle vertices with colors and view them as Qt array.
-	setVertexData(QByteArray(reinterpret_cast<const char*>(prepareColorTrianglesVertexData(uniqueVertices, uniqueNormals).data()),
-							 qsizetype(uniqueVertices.size() * stride * sizeof(float))));
-
-	const std::vector<uint32_t> overhangingTriangleIndices =
-			Helpers3D::calculateOverhangingTriangleIndices(uniqueVertices, remappedIndices, _overhangAngleMax);
-	std::cout << " ### " << __FUNCTION__ << " overhangingTriangleIndices.size():" << overhangingTriangleIndices.size() << "," << "" << std::endl;
-
-	collectOverhangingData(overhangingTriangleIndices, uniqueVertices);
-
-	TriangleConnectivity triangleConnectivity(overhangingTriangleIndices);
+	collectOverhangingData(_overhangingTriangleIndices, _data.vertices);
+	TriangleConnectivity triangleConnectivity(_overhangingTriangleIndices);
 	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
 	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
+
 	_triangleIslands.clear();
 	for (TriangleIsland& island : triangleIslands)
 	{
@@ -436,17 +364,39 @@ void TriangleGeometry::updateData()
 		islandPoints.reserve(uint32_t(islandUniqueIndices.size()));
 		for (uint32_t index : islandUniqueIndices)
 		{
-			islandPoints.emplaceBack(*reinterpret_cast<QVector3D*>(&uniqueVertices[index]));
+			islandPoints.emplaceBack(*reinterpret_cast<const QVector3D*>(&_data.vertices[index]));
 		}
 
 		_triangleIslands.emplaceBack(Helpers3D::computeAlphaShape(islandPoints));
 	}
 
-//	 Inform, that overhangings data was modified.
 	emit triangleIslandsChanged();
-	emit overhangingTriangleVerticesChanged();
 //	emit overhangingPointsChanged();
 //	emit triangulationResultChanged();
+}
+
+void TriangleGeometry::updateData(const TriangleGeometryData& data)
+{
+	Chronograph chronograph(__FUNCTION__, true);
+
+	if (data.vertices.empty())
+		return;
+
+	_data = data;
+
+
+	const uint32_t stride = calculateAndSetStride();
+
+	_overhangingTriangleIndices =
+			Helpers3D::calculateOverhangingTriangleIndices(_data.vertices, _data.indices, _overhangAngleMax);
+
+	calculateOverhangingData();
+
+	setIndexData(QByteArray(reinterpret_cast<const char*>(_data.indices.data()),
+							qsizetype(_data.indices.size() * sizeof(uint32_t))));
+
+	setVertexData(QByteArray(reinterpret_cast<const char*>(prepareColorTrianglesVertexData().data()),
+							 qsizetype(_data.vertices.size() * stride * sizeof(float))));
 
     setPrimitiveType(QQuick3DGeometry::PrimitiveType::Triangles);
 
@@ -517,6 +467,55 @@ void TriangleGeometry::buildIntersectionData()
 	auto &outputMesh = meshBuilder->getMesh();
 	QSSGMeshBVHBuilder meshBVHBuilder(mesh);
 	_intersectionData = meshBVHBuilder.buildTree();
+}
+
+QVariantMap TriangleGeometry::getPick(const QVector3D& origin,
+									  const QVector3D& direction,
+									  const QMatrix4x4& globalTransform)
+{
+	Chronograph chronograph(__FUNCTION__, false);
+	QVariantMap noHit{{"intersection", QVector3D()}, {"isHit", false}};
+	if (vertexData().size() == 0)
+	{
+		std::cout << " ### " << __FUNCTION__ << " WARNING vertex buffer empty, returning empty pick" << std::endl;
+		return noHit;
+	}
+
+	QSSGRenderRay hitRay(origin, direction);
+
+//	qDebug() << " ### globalTransform: " << globalTransform;
+
+	// From tst_picking.cpp: void picking::test_picking()
+//	QSSGRenderLayer dummyLayer;
+//	const QSSGRenderNode* node === ???;
+//	const QSSGRenderModel &model = static_cast<const QSSGRenderModel &>(node);
+//	const auto &globalTransform = model.globalTransform;
+
+	QSSGRenderRay::RayData rayData = QSSGRenderRay::createRayData(globalTransform, hitRay);
+
+	QVector<QSSGRenderRay::IntersectionResult> intersections =
+		QSSGRenderRay::intersectWithBVHTriangles(rayData, _intersectionData->triangles, 0, _intersectionData->triangles.size());
+
+	if (intersections.size() > 0)
+	{
+		std::vector<float> distancesToOrigin;
+		distancesToOrigin.reserve(intersections.size());
+		std::transform(intersections.begin(),
+					   intersections.end(),
+					   std::back_inserter(distancesToOrigin),
+					   [&origin](const QSSGRenderRay::IntersectionResult& intersection) {
+									   return (origin - intersection.scenePosition).lengthSquared();
+								 });
+
+		const QVector3D intersection = intersections[static_cast<uint32_t>(
+										   std::distance(distancesToOrigin.begin(),
+														 std::min_element(distancesToOrigin.begin(),
+																		  distancesToOrigin.end())))].scenePosition;
+
+		return QVariantMap{{"intersection", intersection}, {"isHit", true}};
+	}
+
+	return noHit;
 }
 
 QT_END_NAMESPACE
