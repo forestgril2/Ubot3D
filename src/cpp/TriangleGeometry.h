@@ -18,8 +18,6 @@ using Vec3 = Eigen::Vector3f;
 struct aiScene;
 class QSSGMeshBVH;
 
-using IndicesToVertices = std::map<Vec3, uint32_t, bool(*)(const Vec3& a, const Vec3& b)>;
-
 class TriangleGeometry : public QQuick3DGeometry
 {
 	Q_OBJECT
@@ -36,6 +34,8 @@ class TriangleGeometry : public QQuick3DGeometry
 
 public:
 	TriangleGeometry();
+	TriangleGeometry(const std::vector<Vec3>& vertices,
+					 const std::vector<uint32_t>& indices);
 
 	static Q_INVOKABLE void exportModelToSTL(const QString& filePath);
 
@@ -95,19 +95,8 @@ private:
 	void buildIntersectionData();
 
 	uint32_t calculateAndSetStride();
-	void countAssimpFacesAndVertices(uint32_t& numAssimpMeshFaces, uint32_t& numAssimpVertices);
-	void getContiguousAssimpVerticesAndNormals(std::vector<Vec3>& assimpVertices,
-											   std::vector<Vec3>& assimpNormals);
-	IndicesToVertices mapIndicesToUniqueVertices(const std::vector<Vec3>& assimpVertices,
-												 const std::vector<Vec3>& assimpNormals,
-												 std::vector<Vec3>& uniqueVertices,
-												 std::vector<Vec3>& uniqueNormals);
-	std::vector<uint32_t> calculateRemappedIndices(const IndicesToVertices& indicesToUniqueVertices,
-												   const std::vector<Vec3>& assimpVertices);
-	std::vector<float> calculateColorTriangles(const std::vector<Vec3>& uniqueVertices,
-											   const std::vector<Vec3>& uniqueNormals);
-	std::vector<uint32_t> calculateOverhangingTriangleIndices(const std::vector<Vec3>& normals,
-															  const std::vector<uint32_t>& indices);
+	std::vector<float> prepareColorTrianglesVertexData(const std::vector<Vec3>& uniqueVertices,
+													   const std::vector<Vec3>& uniqueNormals);
 	void collectOverhangingData(const std::vector<uint32_t>& overhangingTriangleIndices,
 								const std::vector<Vec3>& vertices);
 

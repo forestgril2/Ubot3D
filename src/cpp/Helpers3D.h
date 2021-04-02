@@ -15,6 +15,7 @@
 
 #include <Eigen/Geometry>
 using Vec3 = Eigen::Vector3f;
+using IndicesToVertices = std::map<Vec3, uint32_t, bool(*)(const Vec3& a, const Vec3& b)>;
 
 struct aiScene;
 
@@ -38,7 +39,6 @@ public:
 															const QVector3D& planeNormal,
 															const QVector3D& planeCoord);
 	static Q_INVOKABLE QVector3D getRotatedVector(const QQuaternion& q, const QVector3D v);
-	static Q_INVOKABLE bool exportModelsToSTL(const QVariantList& stlExportData, const QString filePath);
 
 	// TODO: CGAL related - extract to CGAL class or whatever.
 	static QVector<QVector3D> computeConvexHull(const QVector<QVector3D>& points);
@@ -46,7 +46,21 @@ public:
 	static int createCgalMesh();
 	static int drawTriangulation(const QVector<QVector3D>& points);
 
-	static std::map<Vec3, uint32_t> vertexIndexing(const std::vector<Vec3>& vertices);
+	// TODO: Assimp related - extract to AssimpSceneProcessor or whatever.
+	static Q_INVOKABLE bool exportModelsToSTL(const QVariantList& stlExportData, const QString filePath);
+	static void countAssimpFacesAndVertices(const aiScene* _scene, uint32_t& numAssimpMeshFaces, uint32_t& numAssimpVertices);
+	static void getContiguousAssimpVerticesAndNormals(const aiScene* _scene,
+													  std::vector<Vec3>& assimpVertices,
+													  std::vector<Vec3>& assimpNormals);
+	static IndicesToVertices mapIndicesToUniqueVertices(const aiScene* scene,
+														const std::vector<Vec3>& vertices,
+														const std::vector<Vec3>& normals,
+														std::vector<Vec3>& uniqueVertices,
+														std::vector<Vec3>& uniqueNormals);
+	static std::vector<uint32_t> calculateRemappedIndices(const IndicesToVertices& indicesToUniqueVertices,
+														  const std::vector<Vec3>& assimpVertices);
+	static std::vector<uint32_t> calculateOverhangingTriangleIndices(const std::vector<Vec3>& vertices,
+															  const std::vector<uint32_t>& indices, float _overhangAngleMax);
 
 private:
 	template<class P>

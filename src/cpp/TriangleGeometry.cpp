@@ -114,6 +114,12 @@ TriangleGeometry::TriangleGeometry() :
 	updateData();
 }
 
+TriangleGeometry::TriangleGeometry(const std::vector<Vec3>& vertices,
+								   const std::vector<uint32_t>& indices) : TriangleGeometry()
+{
+
+}
+
 void TriangleGeometry::exportModelToSTL(const QString& filePath)
 {
 //	Helpers3D::exportModelsToSTL(filePath);
@@ -290,111 +296,7 @@ uint32_t TriangleGeometry::calculateAndSetStride()
 	return stride;
 }
 
-void TriangleGeometry::countAssimpFacesAndVertices(uint32_t& numAssimpMeshFaces, uint32_t& numAssimpVertices)
-{
-	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
-	{
-		numAssimpMeshFaces += _scene->mMeshes[m]->mNumFaces;
-		numAssimpVertices += _scene->mMeshes[m]->mNumVertices;
-	}
-}
-
-void TriangleGeometry::getContiguousAssimpVerticesAndNormals(std::vector<Vec3>& assimpVertices,
-															 std::vector<Vec3>& assimpNormals)
-{
-	Chronograph chronograph(__FUNCTION__, true);
-
-	uint32_t numAssimpMeshFaces = 0;
-	uint32_t numAssimpVertices = 0;
-	countAssimpFacesAndVertices(numAssimpMeshFaces, numAssimpVertices);
-
-	assimpVertices.resize(numAssimpVertices);
-	assimpNormals.resize(numAssimpVertices);
-
-	Vec3* vertexPtr = &assimpVertices[0];
-	Vec3* normalsPtr = &assimpNormals[0];
-
-	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
-	{
-		for (uint32_t v=0; v<_scene->mMeshes[m]->mNumVertices; ++v, ++vertexPtr, ++normalsPtr)
-		{
-			// TODO: We should probably perform subsequent mesh node transformations here.
-			*vertexPtr = *reinterpret_cast<Vec3*>(&_scene->mMeshes[m]->mVertices[v]);
-			*normalsPtr = *reinterpret_cast<Vec3*>(&_scene->mMeshes[m]->mNormals[v]);
-		}
-	}
-}
-
-IndicesToVertices TriangleGeometry::mapIndicesToUniqueVertices(const std::vector<Vec3>& assimpVertices,
-															   const std::vector<Vec3>& assimpNormals,
-															   std::vector<Vec3>& uniqueVertices,
-															   std::vector<Vec3>& uniqueNormals)
-{
-	Chronograph chronograph(__FUNCTION__, true);
-
-	static const auto vertexLess = [](const Vec3& a, const Vec3& b) {
-		if (definitelyLessThan(a.z(), b.z(), FLT_MIN))
-			return true;
-		if (definitelyGreaterThan(a.z(), b.z(), FLT_MIN))
-			return false;
-
-		if (definitelyLessThan(a.y(), b.y(), FLT_MIN))
-			return true;
-		if (definitelyGreaterThan(a.y(), b.y(), FLT_MIN))
-			return false;
-
-		if (definitelyLessThan(a.x(), b.x(), FLT_MIN))
-			return true;
-
-		return false;
-	};
-
-	uniqueVertices.clear();
-	uniqueNormals.clear();
-	IndicesToVertices indicesToUniqueVertices(vertexLess);
-	uint32_t currIndex = 0;
-	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
-	{
-		const aiMesh* mesh = _scene->mMeshes[m];
-		for (uint32_t f=0; f<mesh->mNumFaces; ++f)
-		{
-			const aiFace& face = mesh->mFaces[f];
-			for (uint32_t vi=0; vi<face.mNumIndices; ++vi)
-			{
-				const Vec3& vertex = assimpVertices[face.mIndices[vi]];
-				const Vec3& normal = assimpNormals[face.mIndices[vi]];
-				auto it = indicesToUniqueVertices.find(vertex);
-				if (it == indicesToUniqueVertices.end())
-				{
-					indicesToUniqueVertices[vertex] = currIndex++;
-					uniqueNormals.push_back(normal);
-					uniqueVertices.push_back(vertex);
-				}
-			}
-		}
-	}
-	const uint32_t numUniqueVertices = uint32_t(indicesToUniqueVertices.size());
-	std::cout << " ### " << "numUniqueVertices" << " :" << numUniqueVertices << "," << "" << std::endl;
-	return indicesToUniqueVertices;
-}
-
-std::vector<uint32_t> TriangleGeometry::calculateRemappedIndices(const IndicesToVertices& indicesToUniqueVertices,
-																 const std::vector<Vec3>& assimpVertices)
-{// Remapping new indices to all unique vertices by searching map.
-	Chronograph chronograph(__FUNCTION__, true);
-
-	std::vector<uint32_t> remappedVertexIndices;
-	remappedVertexIndices.reserve(assimpVertices.size());
-	for(const Vec3& vertex : assimpVertices)
-	{
-		auto mapIt = indicesToUniqueVertices.find(vertex);
-		assert(mapIt != indicesToUniqueVertices.end());
-		remappedVertexIndices.emplace_back(mapIt->second);
-	}
-	return remappedVertexIndices;
-}
-
-std::vector<float> TriangleGeometry::calculateColorTriangles(const std::vector<Vec3>& uniqueVertices,
+std::vector<float> TriangleGeometry::prepareColorTrianglesVertexData(const std::vector<Vec3>& uniqueVertices,
 															 const std::vector<Vec3>& uniqueNormals)
 {
 	Chronograph chronograph(__FUNCTION__, true);
@@ -445,41 +347,6 @@ std::vector<float> TriangleGeometry::calculateColorTriangles(const std::vector<V
 	return ret;
 }
 
-std::vector<uint32_t> TriangleGeometry::calculateOverhangingTriangleIndices(const std::vector<Vec3>& normals,
-																			const std::vector<uint32_t>& allIndices)
-{
-	Chronograph chronograph(__FUNCTION__, true);
-
-	const uint32_t* pi = &allIndices[0];
-	const uint32_t numIndices = uint32_t(allIndices.size());
-
-	std::vector<uint32_t> indices;
-	for (uint32_t triangleIndex=0; triangleIndex<numIndices; triangleIndex += 3)
-	{
-		static const auto isTriangleOverhanging = [](const Vec3& n0, const Vec3& n1, const Vec3& n2, float maxOverhangAngle)
-		{// TODO: This may be a too-simple approximation. It is better to calculate normals, vertex-position based.
-			return ((n0+n1+n2)/3).dot(Vec3{0,0,1}) < std::cosf(float(M_PI) - maxOverhangAngle);
-		};
-
-		const uint32_t i0 = *pi++;
-		const uint32_t i1 = *pi++;
-		const uint32_t i2 = *pi++;
-
-		const Vec3& n0 = normals[i0];
-		const Vec3& n1 = normals[i1];
-		const Vec3& n2 = normals[i2];
-
-		if (!isTriangleOverhanging(n0, n1, n2, _overhangAngleMax))
-			continue;
-
-		indices.push_back(i0);
-		indices.push_back(i1);
-		indices.push_back(i2);
-	}
-
-	return indices;
-}
-
 void TriangleGeometry::collectOverhangingData(const std::vector<uint32_t>& overhangingTriangleIndices,
 											  const std::vector<Vec3>& vertices)
 {
@@ -523,26 +390,30 @@ void TriangleGeometry::updateData()
 	// Assimp vertices from STL are not unique, lets remove duplicates and remap indices.
 	std::vector<Vec3> assimpVertices;
 	std::vector<Vec3> assimpNormals;
-	getContiguousAssimpVerticesAndNormals(assimpVertices, assimpNormals);
+	Helpers3D::getContiguousAssimpVerticesAndNormals(_scene, assimpVertices, assimpNormals);
 	const uint32_t numAssimpVertices = uint32_t(assimpVertices.size());
 
 	std::vector<Vec3> uniqueNormals;
 	std::vector<Vec3> uniqueVertices;
-	const IndicesToVertices indicesToUniqueVertices = mapIndicesToUniqueVertices(assimpVertices,
-																				 assimpNormals,
-																				 uniqueVertices,
-																				 uniqueNormals);
+	const IndicesToVertices indicesToUniqueVertices = Helpers3D::mapIndicesToUniqueVertices(_scene,
+																							assimpVertices,
+																							assimpNormals,
+																							uniqueVertices,
+																							uniqueNormals);
 	// Calculate and view remapped indices as Qt array.
-	const std::vector<uint32_t> remappedIndices = calculateRemappedIndices(indicesToUniqueVertices, assimpVertices);
+	const std::vector<uint32_t> remappedIndices = Helpers3D::calculateRemappedIndices(indicesToUniqueVertices,
+																					  assimpVertices);
+
+
 	setIndexData(QByteArray(reinterpret_cast<const char*>(remappedIndices.data()),
 							qsizetype(numAssimpVertices * sizeof(uint32_t))));
 
 	// Calculate triangle vertices with colors and view them as Qt array.
-	setVertexData(QByteArray(reinterpret_cast<const char*>(calculateColorTriangles(uniqueVertices, uniqueNormals).data()),
+	setVertexData(QByteArray(reinterpret_cast<const char*>(prepareColorTrianglesVertexData(uniqueVertices, uniqueNormals).data()),
 							 qsizetype(uniqueVertices.size() * stride * sizeof(float))));
 
 	const std::vector<uint32_t> overhangingTriangleIndices =
-			calculateOverhangingTriangleIndices(uniqueNormals, remappedIndices);
+			Helpers3D::calculateOverhangingTriangleIndices(uniqueVertices, remappedIndices, _overhangAngleMax);
 	std::cout << " ### " << __FUNCTION__ << " overhangingTriangleIndices.size():" << overhangingTriangleIndices.size() << "," << "" << std::endl;
 
 	collectOverhangingData(overhangingTriangleIndices, uniqueVertices);
