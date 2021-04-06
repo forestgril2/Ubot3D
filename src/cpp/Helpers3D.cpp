@@ -14,6 +14,7 @@
 #include <glm/mat4x4.hpp>
 
 #include <TriangleGeometry.h>
+#include <TriangleConnectivity.h>
 #include <Chronograph.h>
 
 #define USE_CGAL
@@ -69,12 +70,30 @@ void alpha_edges( const Alpha_shape_2& A, OutputIterator out)
 	*out++ = A.segment(*it);
 }
 
-QVector<QVector3D> Helpers3D::computeAlphaShape(const QVector<QVector3D>& points)
+bool Helpers3D::vertexLess(const Vec3& a, const Vec3& b)
 {
-	if (points.size() == 0)
-		return QVector<QVector3D>();
+	if (definitelyLessThan(a.z(), b.z(), FLT_MIN))
+		return true;
+	if (definitelyGreaterThan(a.z(), b.z(), FLT_MIN))
+		return false;
 
-	QVector<QVector3D> result;
+	if (definitelyLessThan(a.y(), b.y(), FLT_MIN))
+		return true;
+	if (definitelyGreaterThan(a.y(), b.y(), FLT_MIN))
+		return false;
+
+	if (definitelyLessThan(a.x(), b.x(), FLT_MIN))
+		return true;
+
+	return false;
+}
+
+std::vector<Vec3> Helpers3D::computeAlphaShapeVertices(const std::vector<Vec3>& points)
+{
+	std::vector<Vec3> result;
+	if (points.size() == 0)
+		return result;
+
 #ifdef USE_CGAL
 
 	std::vector<Point> points2 = getCgalPoints2<Point>(points);
@@ -91,23 +110,26 @@ QVector<QVector3D> Helpers3D::computeAlphaShape(const QVector<QVector3D>& points
 //	std::cout << "Alpha Shape computed" << std::endl;
 //	std::cout << segments.size() << " alpha shape edges" << std::endl;
 
+//	std::for_each(segments.begin(), segments.end(), [&result](const Segment& s) {
+//		result.push_back({static_cast<float>(s[0].x()), static_cast<float>(s[0].y()), 0});
+//		result.push_back({static_cast<float>(s[1].x()), static_cast<float>(s[1].y()), 0});
+//	});
 	std::for_each(segments.begin(), segments.end(), [&result](const Segment& s) {
 		result.push_back({static_cast<float>(s[0].x()), static_cast<float>(s[0].y()), 0});
-		result.push_back({static_cast<float>(s[1].x()), static_cast<float>(s[1].y()), 0});
 	});
 #endif
 	return result;
 }
 
-QVector<QVector3D> Helpers3D::computeConvexHull(const QVector<QVector3D>& points)
+std::vector<Vec3> Helpers3D::computeConvexHull(const std::vector<Vec3>& points)
 {
-QVector<QVector3D> result;
+std::vector<Vec3> result;
 #ifdef USE_CGAL
 //  std::ifstream in("data/triangulation_prog1.cin");
 //  std::istream_iterator<Point> points2.begin(in);
 //  std::istream_iterator<Point> points2.end;
 
-  std::vector<TPoint> points2 = getCgalPoints2<TPoint>(points);
+  std::vector<TPoint> points2 = getCgalPoints2<TPoint, Vec3>(points);
 
   Triangulation t;
   t.insert(points2.begin(), points2.end());
@@ -167,6 +189,67 @@ int Helpers3D::drawTriangulation(const QVector<QVector3D>& points)
 //  CGAL::draw(t);
 #endif
   return EXIT_SUCCESS;
+}
+
+std::shared_ptr<TriangleGeometry> Helpers3D::extrudedTriangleIsland(const TriangleIsland& island,
+																	const std::vector<Vec3>& islandVertices)
+{// Get top, get it casted to floor, connect both.
+	const std::vector<uint32_t> islandTriangleIndices = island.getTriangleIndices();
+	const std::set<uint32_t> islandUniqueIndices(islandTriangleIndices.begin(), islandTriangleIndices.end());
+	const uint32_t numIslandUniqueIndices = uint32_t(islandUniqueIndices.size());
+
+	TriangleGeometryData returnData;
+	std::vector<Vec3>& uniqueSupportPoints = returnData.vertices;
+	std::vector<uint32_t>& supportGeometryIndices = returnData.indices;
+
+	std::vector<Vec3> floorVertices;
+	uniqueSupportPoints.reserve(2*numIslandUniqueIndices);
+	floorVertices.reserve(numIslandUniqueIndices);
+
+	IndicesToVertices indicesToUniqueVertices(Helpers3D::vertexLess);
+	IndicesToVertices topIndicesToFloorVertices(Helpers3D::vertexLess);
+	IndicesToVertices floorIndicesToTopVertices(Helpers3D::vertexLess);
+	uint32_t currIndex = 0;
+	for (uint32_t index : islandUniqueIndices)
+	{// Build a map of indices to top vertices and fill support array with top vertices.
+		const Vec3& topVertex = islandVertices[index];
+
+		auto it = indicesToUniqueVertices.find(topVertex);
+		if (it == indicesToUniqueVertices.end())
+		{// Unique top vertices.
+			indicesToUniqueVertices[topVertex] = currIndex++;
+			uniqueSupportPoints.push_back(topVertex);
+
+			// Match floor vertices to them by means of top index.
+			const Vec3 floorVertex{topVertex.x(), topVertex.y(), 0};
+			floorVertices.push_back(floorVertex);
+			topIndicesToFloorVertices[floorVertex] = currIndex;
+		}
+	}
+	for (const Vec3& floorVertex : floorVertices)
+	{// Extend the map with floor vertices and add floor vertices to support array (keep in mind: sometimes top==floor)
+		auto it = indicesToUniqueVertices.find(floorVertex);
+		if (it == indicesToUniqueVertices.end())
+		{// Unique top vertices.
+			indicesToUniqueVertices[floorVertex] = currIndex++;
+			uniqueSupportPoints.push_back(floorVertex);
+
+			// Match top vertices to them by means of floor index.
+			const Vec3 topVertex = uniqueSupportPoints[topIndicesToFloorVertices[floorVertex]];
+			floorIndicesToTopVertices[topVertex] = currIndex;
+		}
+	}
+	const std::vector<Vec3> islandAlphaShapeRing = Helpers3D::computeAlphaShapeVertices(floorVertices);
+
+	// Reserve for top, bottom and side triangles.
+	supportGeometryIndices.reserve(2*islandTriangleIndices.size() + 6*islandAlphaShapeRing.size());
+	for (uint32_t index : islandTriangleIndices)
+	{
+		// Generate triangle indices for top:
+		supportGeometryIndices.push_back(indicesToUniqueVertices[islandVertices[index]]);
+	}
+
+	return std::make_shared<TriangleGeometry>(returnData);
 }
 
 QQuaternion Helpers3D::getRotationFromDirection(const QVector3D& direction, const QVector3D& up)
@@ -352,8 +435,8 @@ void Helpers3D::countAssimpFacesAndVertices(const aiScene* _scene, uint32_t& num
 }
 
 void Helpers3D::getContiguousAssimpVerticesAndNormals(const aiScene* assimpScene,
-															 std::vector<Vec3>& assimpVertices,
-															 std::vector<Vec3>& assimpNormals)
+													  std::vector<Vec3>& assimpVertices,
+													  std::vector<Vec3>& assimpNormals)
 {
 	Chronograph chronograph(__FUNCTION__, true);
 
@@ -378,53 +461,27 @@ void Helpers3D::getContiguousAssimpVerticesAndNormals(const aiScene* assimpScene
 	}
 }
 
-IndicesToVertices Helpers3D::mapIndicesToUniqueVertices(const aiScene* scene,
-														const std::vector<Vec3>& vertices,
-														const std::vector<Vec3>& normals,
-														std::vector<Vec3>& uniqueVertices,
-														std::vector<Vec3>& uniqueNormals)
+IndicesToVertices Helpers3D::mapIndicesToUniqueVerticesAndNormals(const std::vector<Vec3>& vertices,
+																  const std::vector<Vec3>& normals,
+																  std::vector<Vec3>& uniqueVertices,
+																  std::vector<Vec3>& uniqueNormals)
 {
 	Chronograph chronograph(__FUNCTION__, true);
-
-	static const auto vertexLess = [](const Vec3& a, const Vec3& b) {
-		if (definitelyLessThan(a.z(), b.z(), FLT_MIN))
-			return true;
-		if (definitelyGreaterThan(a.z(), b.z(), FLT_MIN))
-			return false;
-
-		if (definitelyLessThan(a.y(), b.y(), FLT_MIN))
-			return true;
-		if (definitelyGreaterThan(a.y(), b.y(), FLT_MIN))
-			return false;
-
-		if (definitelyLessThan(a.x(), b.x(), FLT_MIN))
-			return true;
-
-		return false;
-	};
 
 	uniqueVertices.clear();
 	uniqueNormals.clear();
 	IndicesToVertices indicesToUniqueVertices(vertexLess);
 	uint32_t currIndex = 0;
-	for (uint32_t m=0; m<scene->mNumMeshes; ++m)
+	for (uint32_t v=0; v<vertices.size(); ++v)
 	{
-		const aiMesh* mesh = scene->mMeshes[m];
-		for (uint32_t f=0; f<mesh->mNumFaces; ++f)
+		const Vec3& vertex = vertices[v];
+		const Vec3& normal = normals[v];
+		auto it = indicesToUniqueVertices.find(vertex);
+		if (it == indicesToUniqueVertices.end())
 		{
-			const aiFace& face = mesh->mFaces[f];
-			for (uint32_t vi=0; vi<face.mNumIndices; ++vi)
-			{
-				const Vec3& vertex = vertices[face.mIndices[vi]];
-				const Vec3& normal = normals[face.mIndices[vi]];
-				auto it = indicesToUniqueVertices.find(vertex);
-				if (it == indicesToUniqueVertices.end())
-				{
-					indicesToUniqueVertices[vertex] = currIndex++;
-					uniqueNormals.push_back(normal);
-					uniqueVertices.push_back(vertex);
-				}
-			}
+			indicesToUniqueVertices[vertex] = currIndex++;
+			uniqueNormals.push_back(normal);
+			uniqueVertices.push_back(vertex);
 		}
 	}
 	const uint32_t numUniqueVertices = uint32_t(indicesToUniqueVertices.size());
@@ -433,13 +490,13 @@ IndicesToVertices Helpers3D::mapIndicesToUniqueVertices(const aiScene* scene,
 }
 
 std::vector<uint32_t> Helpers3D::getRemappedIndices(const IndicesToVertices& indicesToUniqueVertices,
-													const std::vector<Vec3>& assimpVertices)
+													const std::vector<Vec3>& nonUniqueVertices)
 {// Remapping new indices to all unique vertices by searching map.
 	Chronograph chronograph(__FUNCTION__, true);
 
 	std::vector<uint32_t> remappedVertexIndices;
-	remappedVertexIndices.reserve(assimpVertices.size());
-	for(const Vec3& vertex : assimpVertices)
+	remappedVertexIndices.reserve(nonUniqueVertices.size());
+	for(const Vec3& vertex : nonUniqueVertices)
 	{
 		auto mapIt = indicesToUniqueVertices.find(vertex);
 		assert(mapIt != indicesToUniqueVertices.end());

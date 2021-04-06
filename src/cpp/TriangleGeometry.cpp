@@ -35,6 +35,8 @@
 // To have QSG included
 QT_BEGIN_NAMESPACE
 
+#undef NDEBUG
+
 static const uint32_t kNumfloatsPerPositionAttribute = 3u;
 
 void assimpErrorLogging(const std::string&& pError)
@@ -124,19 +126,9 @@ QVector<QVector3D> TriangleGeometry::getOverhangingTriangleVertices() const
 	return _overhangingTriangleVertices;
 }
 
-QVector<QVector3D> TriangleGeometry::getOverhangingPoints() const
-{
-	return _overhangingPoints;
-}
-
 QVector<QVector3D> TriangleGeometry::getTriangulationResult() const
 {
 	return _triangulationResult;
-}
-
-QVector<QVector<QVector3D> > TriangleGeometry::getTriangleIslands() const
-{
-	return _triangleIslands;
 }
 
 const aiScene* TriangleGeometry::getAssimpScene() const
@@ -267,39 +259,28 @@ std::vector<float> TriangleGeometry::prepareColorTrianglesVertexData()
 			*p++ = color.w();
 		};
 
-		auto conditionallyPushOverhangingTriangleVertex = [this](const Vec3& vertex, const bool isVertexOverhanging) {
-			if (!isVertexOverhanging)
-				return;
-			_overhangingPoints.push_back(*reinterpret_cast<const QVector3D*>(&vertex));
-//			_overhangingTriangleVertices.push_back();
-		};
-
 		setTriangleVertex(vertex);
 		const bool isOverhangingVertex = overhangingIndices.find(vertexIndex) != overhangingIndices.end();
 		setTriangleColor(isOverhangingVertex);
-		conditionallyPushOverhangingTriangleVertex(vertex, isOverhangingVertex);
 	}
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
 
 	return ret;
 }
 
-void TriangleGeometry::collectOverhangingData(const std::vector<uint32_t>& overhangingTriangleIndices,
-											  const std::vector<Vec3>& vertices)
+void TriangleGeometry::generateOverhangingVertices()
 {
 	Chronograph chronograph(__FUNCTION__, true);
+	assert(!_overhangingTriangleIndices.empty());
 
 	_overhangingTriangleVertices.clear();
-	_overhangingPoints.clear();
+	_overhangingTriangleVertices.reserve(qsizetype(_overhangingTriangleIndices.size() * 2));
 
-	_overhangingTriangleVertices.reserve(qsizetype(overhangingTriangleIndices.size() * 2));
-	_overhangingPoints.reserve(qsizetype(overhangingTriangleIndices.size()));
-
-	for (uint32_t index=0; index<overhangingTriangleIndices.size(); index+=3)
+	for (uint32_t index=0; index<_overhangingTriangleIndices.size(); index+=3)
 	{// For each triangle, collect triangle side vertices pair-wise.
-		const QVector3D v0 = *reinterpret_cast<const QVector3D*>(&vertices[overhangingTriangleIndices[index   ]]);
-		const QVector3D v1 = *reinterpret_cast<const QVector3D*>(&vertices[overhangingTriangleIndices[index +1]]);
-		const QVector3D v2 = *reinterpret_cast<const QVector3D*>(&vertices[overhangingTriangleIndices[index +2]]);
+		const QVector3D v0 = *reinterpret_cast<const QVector3D*>(&_data.vertices[_overhangingTriangleIndices[index   ]]);
+		const QVector3D v1 = *reinterpret_cast<const QVector3D*>(&_data.vertices[_overhangingTriangleIndices[index +1]]);
+		const QVector3D v2 = *reinterpret_cast<const QVector3D*>(&_data.vertices[_overhangingTriangleIndices[index +2]]);
 
 		_overhangingTriangleVertices.push_back(v0);
 		_overhangingTriangleVertices.push_back(v1);
@@ -307,72 +288,54 @@ void TriangleGeometry::collectOverhangingData(const std::vector<uint32_t>& overh
 		_overhangingTriangleVertices.push_back(v2);
 		_overhangingTriangleVertices.push_back(v2);
 		_overhangingTriangleVertices.push_back(v0);
-
-		_overhangingPoints.push_back(v0);
-		_overhangingPoints.push_back(v1);
-		_overhangingPoints.push_back(v2);
 	}
 
 	emit overhangingTriangleVerticesChanged();
-	emit overhangingPointsChanged();
 }
 
-QVector<TriangleGeometry*> TriangleGeometry::getSupportGeometries()
+void TriangleGeometry::generateSupportGeometries()
 {
 	Chronograph chronograph(__FUNCTION__, true);
-//	calculateOverhangingData();
+	generateOverhangingVertices();
 
-	return QVector<TriangleGeometry*>();
+	TriangleConnectivity triangleConnectivity(_overhangingTriangleIndices);
+	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
+
+	_supportGeometries.clear();
+	for (const TriangleIsland& island : triangleIslands)
+	{// Generate a support geometry for each overhanging triangle island.
+		_supportGeometries.push_back(Helpers3D::extrudedTriangleIsland(island, _data.vertices));
+	}
+
+	emit supportGeometriesChanged();
+}
+
+QVector<TriangleGeometry*> TriangleGeometry::getSupportGeometries() const
+{
+	QVector<TriangleGeometry*> geometries;
+	geometries.reserve(qsizetype(_supportGeometries.size()));
+	std::for_each(_supportGeometries.begin(),
+				  _supportGeometries.end(),
+				  [&geometries](std::shared_ptr<TriangleGeometry> geometry) {
+					  geometries.push_back(&*geometry);
+				  });
+	return geometries;
 }
 
 TriangleGeometryData TriangleGeometry::prepareDataFromAssimpScene()
 {// Assimp vertices from STL are not unique, lets remove duplicates and remap indices.
+	Chronograph chronograph(__FUNCTION__, true);
+
 	std::vector<Vec3> assimpVertices;
 	std::vector<Vec3> assimpNormals;
-
 	Helpers3D::getContiguousAssimpVerticesAndNormals(_scene, assimpVertices, assimpNormals);
 
 	TriangleGeometryData returnData;
 	const IndicesToVertices indicesToUniqueVertices =
-			Helpers3D::mapIndicesToUniqueVertices(_scene, assimpVertices,      assimpNormals,
-														  returnData.vertices, returnData.normals);
+			Helpers3D::mapIndicesToUniqueVerticesAndNormals(assimpVertices,      assimpNormals,
+												  returnData.vertices, returnData.normals);
 	returnData.indices = Helpers3D::getRemappedIndices(indicesToUniqueVertices, assimpVertices);
 	return returnData;
-}
-
-void TriangleGeometry::calculateOverhangingData()
-{
-	Chronograph chronograph(__FUNCTION__, true);
-
-	collectOverhangingData(_overhangingTriangleIndices, _data.vertices);
-	TriangleConnectivity triangleConnectivity(_overhangingTriangleIndices);
-	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
-	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
-
-	_triangleIslands.clear();
-	for (TriangleIsland& island : triangleIslands)
-	{
-		std::set<uint32_t> islandUniqueIndices;
-		for (TriangleShared triangle : island.getTriangles())
-		{
-			islandUniqueIndices.insert(triangle->getVertexIndex(0));
-			islandUniqueIndices.insert(triangle->getVertexIndex(1));
-			islandUniqueIndices.insert(triangle->getVertexIndex(2));
-		}
-
-		QVector<QVector3D> islandPoints;
-		islandPoints.reserve(uint32_t(islandUniqueIndices.size()));
-		for (uint32_t index : islandUniqueIndices)
-		{
-			islandPoints.emplaceBack(*reinterpret_cast<const QVector3D*>(&_data.vertices[index]));
-		}
-
-		_triangleIslands.emplaceBack(Helpers3D::computeAlphaShape(islandPoints));
-	}
-
-	emit triangleIslandsChanged();
-//	emit overhangingPointsChanged();
-//	emit triangulationResultChanged();
 }
 
 void TriangleGeometry::updateData(const TriangleGeometryData& data)
@@ -381,20 +344,17 @@ void TriangleGeometry::updateData(const TriangleGeometryData& data)
 
 	if (data.vertices.empty())
 		return;
-
 	_data = data;
-
 
 	const uint32_t stride = calculateAndSetStride();
 
-	_overhangingTriangleIndices =
+	_overhangingTriangleIndices = // These are needed to add color to triangles and generate support geometries.
 			Helpers3D::calculateOverhangingTriangleIndices(_data.vertices, _data.indices, _overhangAngleMax);
 
-	calculateOverhangingData();
+	generateOverhangingVertices();
 
 	setIndexData(QByteArray(reinterpret_cast<const char*>(_data.indices.data()),
 							qsizetype(_data.indices.size() * sizeof(uint32_t))));
-
 	setVertexData(QByteArray(reinterpret_cast<const char*>(prepareColorTrianglesVertexData().data()),
 							 qsizetype(_data.vertices.size() * stride * sizeof(float))));
 
@@ -424,11 +384,11 @@ void TriangleGeometry::buildIntersectionData()
 
 	QByteArray vertexBufferCopy;
 	meshData.m_vertexBuffer.resize(vertexData().size());
-	memcpy(meshData.m_vertexBuffer.data(), vertexData().data(), vertexData().size());
+	memcpy(meshData.m_vertexBuffer.data(), vertexData().data(), size_t(vertexData().size()));
 
 	QByteArray indexBufferCopy;
 	meshData.m_indexBuffer.resize(indexData().size());
-	memcpy(meshData.m_indexBuffer.data(), indexData().data(), indexData().size());
+	memcpy(meshData.m_indexBuffer.data(), indexData().data(), size_t(indexData().size()));
 
 //	meshData.m_vertexBuffer = vertexBufferCopy;
 //	meshData.m_indexBuffer = indexBuffer();
@@ -464,7 +424,7 @@ void TriangleGeometry::buildIntersectionData()
 //	mesh->m_subsets = m_subsets;
 //	mesh->m_joints = m_joints;
 
-	auto &outputMesh = meshBuilder->getMesh();
+//	auto &outputMesh = meshBuilder->getMesh();
 	QSSGMeshBVHBuilder meshBVHBuilder(mesh);
 	_intersectionData = meshBVHBuilder.buildTree();
 }
@@ -494,12 +454,12 @@ QVariantMap TriangleGeometry::getPick(const QVector3D& origin,
 	QSSGRenderRay::RayData rayData = QSSGRenderRay::createRayData(globalTransform, hitRay);
 
 	QVector<QSSGRenderRay::IntersectionResult> intersections =
-		QSSGRenderRay::intersectWithBVHTriangles(rayData, _intersectionData->triangles, 0, _intersectionData->triangles.size());
+		QSSGRenderRay::intersectWithBVHTriangles(rayData, _intersectionData->triangles, 0, int(_intersectionData->triangles.size()));
 
 	if (intersections.size() > 0)
 	{
 		std::vector<float> distancesToOrigin;
-		distancesToOrigin.reserve(intersections.size());
+		distancesToOrigin.reserve(size_t(intersections.size()));
 		std::transform(intersections.begin(),
 					   intersections.end(),
 					   std::back_inserter(distancesToOrigin),

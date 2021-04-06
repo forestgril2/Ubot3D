@@ -18,6 +18,8 @@ using Vec3 = Eigen::Vector3f;
 using IndicesToVertices = std::map<Vec3, uint32_t, bool(*)(const Vec3& a, const Vec3& b)>;
 
 struct aiScene;
+class TriangleGeometry;
+class TriangleIsland;
 
 class Helpers3D : public QObject
 {
@@ -41,8 +43,10 @@ public:
 	static Q_INVOKABLE QVector3D getRotatedVector(const QQuaternion& q, const QVector3D v);
 
 	// TODO: CGAL related - extract to CGAL class or whatever.
-	static QVector<QVector3D> computeConvexHull(const QVector<QVector3D>& points);
-	static QVector<QVector3D> computeAlphaShape(const QVector<QVector3D>& points);
+	static std::shared_ptr<TriangleGeometry> extrudedTriangleIsland(const TriangleIsland& island,
+																	const std::vector<Vec3>& islandVertices);
+	static std::vector<Vec3> computeConvexHull(const std::vector<Vec3>& points);
+	static std::vector<Vec3> computeAlphaShapeVertices(const std::vector<Vec3>& points);
 	static int createCgalMesh();
 	static int drawTriangulation(const QVector<QVector3D>& points);
 
@@ -52,22 +56,24 @@ public:
 	static void getContiguousAssimpVerticesAndNormals(const aiScene* _scene,
 													  std::vector<Vec3>& assimpVertices,
 													  std::vector<Vec3>& assimpNormals);
-	static IndicesToVertices mapIndicesToUniqueVertices(const aiScene* scene,
-														const std::vector<Vec3>& vertices,
-														const std::vector<Vec3>& normals,
-														std::vector<Vec3>& uniqueVertices,
-														std::vector<Vec3>& uniqueNormals);
+	static IndicesToVertices mapIndicesToUniqueVerticesAndNormals(const std::vector<Vec3>& vertices,
+																  const std::vector<Vec3>& normals,
+																  std::vector<Vec3>& uniqueVertices,
+																  std::vector<Vec3>& uniqueNormals);
 	static std::vector<uint32_t> getRemappedIndices(const IndicesToVertices& indicesToUniqueVertices,
-														  const std::vector<Vec3>& assimpVertices);
+														  const std::vector<Vec3>& nonUniqueVertices);
 	static std::vector<uint32_t> calculateOverhangingTriangleIndices(const std::vector<Vec3>& vertices,
 															  const std::vector<uint32_t>& indices, float _overhangAngleMax);
 
+	static bool vertexLess(const Vec3& a, const Vec3& b);
+
 private:
-	template<class P>
-	static std::vector<P> getCgalPoints2(const QVector<QVector3D>& points)
+	template<class P2, class V3>
+	static std::vector<P2> getCgalPoints2(const std::vector<V3>& points)
 	{
-		std::vector<P> points2;
-		std::for_each(points.begin(), points.end(), [&points2](const QVector3D& point) {
+		std::vector<P2> points2;
+		points2.reserve(points.size());
+		std::for_each(points.begin(), points.end(), [&points2](const V3& point) {
 			points2.push_back({point.x(), point.y()});
 		});
 		return points2;

@@ -112,32 +112,32 @@ Window {
 //            }
 //        }
 
-        Repeater3D {
-            id: allModelsIslands
-            model: stlObjects.model.length
+//        Repeater3D {
+//            id: allModelsIslands
+//            model: stlObjects.model.length
 
-            delegate: Repeater3D {
-                id: triangleIslands
-                model: stlObjects.objectAt(index).geometry.triangleIslands
-                delegate: Model {
-                    visible: true
-                    scale: Qt.vector3d(1, 1, 1)
-                    geometry: SimplexGeometry {
-                        simplexType: SimplexGeometry.Lines
-                        points: triangleIslands.model[index]
-                    }
-                    materials: [
-                        DefaultMaterial {
-                            pointSize: 5
-                            lineWidth: 5
-                            lighting: DefaultMaterial.NoLighting
-                            cullMode: DefaultMaterial.NoCulling
-                            diffuseColor: "red"
-                        }
-                    ]
-                }
-            }
-        }
+//            delegate: Repeater3D {
+//                id: triangleIslands
+//                model: stlObjects.objectAt(index).geometry.triangleIslands
+//                delegate: Model {
+//                    visible: true
+//                    scale: Qt.vector3d(1, 1, 1)
+//                    geometry: SimplexGeometry {
+//                        simplexType: SimplexGeometry.Lines
+//                        points: triangleIslands.model[index]
+//                    }
+//                    materials: [
+//                        DefaultMaterial {
+//                            pointSize: 5
+//                            lineWidth: 5
+//                            lighting: DefaultMaterial.NoLighting
+//                            cullMode: DefaultMaterial.NoCulling
+//                            diffuseColor: "red"
+//                        }
+//                    ]
+//                }
+//            }
+//        }
 
         PickArea {
             id: pickArea

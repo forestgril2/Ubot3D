@@ -16,8 +16,9 @@ using Vec3 = Eigen::Vector3f;
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 
 struct aiScene;
-class QSSGMeshBVH;
+struct QSSGMeshBVH;
 
+class TriangleIsland;
 struct TriangleGeometryData
 {
 	std::vector<Vec3> vertices;
@@ -35,9 +36,7 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
 	Q_PROPERTY(QVector<QVector3D> overhangingTriangleVertices READ getOverhangingTriangleVertices NOTIFY overhangingTriangleVerticesChanged)
-	Q_PROPERTY(QVector<QVector3D> overhangingPoints READ getOverhangingPoints NOTIFY overhangingPointsChanged)
 	Q_PROPERTY(QVector<QVector3D> triangulationResult READ getTriangulationResult NOTIFY triangulationResultChanged)
-	Q_PROPERTY(QVector<QVector<QVector3D>> triangleIslands READ getTriangleIslands NOTIFY triangleIslandsChanged)
 	Q_PROPERTY(QVector<TriangleGeometry*> supportGeometries READ getSupportGeometries NOTIFY supportGeometriesChanged)
 
 public:
@@ -50,14 +49,14 @@ public:
 		QVector3D pickPos;
 	};
 
+	Q_INVOKABLE QVector<TriangleGeometry*> getSupportGeometries() const;
+
 	Q_INVOKABLE QVariantMap getPick(const QVector3D& origin,
 									const QVector3D& direction,
 									const QMatrix4x4& globalTransform);
 
 	QVector<QVector3D> getOverhangingTriangleVertices() const;
-	QVector<QVector3D> getOverhangingPoints() const;
 	QVector<QVector3D> getTriangulationResult() const;
-	QVector<QVector<QVector3D>> getTriangleIslands() const;
 
 	const aiScene* getAssimpScene() const;
 
@@ -87,7 +86,6 @@ signals:
 	void overhangingTriangleVerticesChanged();
 	void overhangingPointsChanged();
 	void triangulationResultChanged();
-	void triangleIslandsChanged();
 	void supportGeometriesChanged();
 
 private:
@@ -100,10 +98,9 @@ private:
 
 	uint32_t calculateAndSetStride();
 	std::vector<float> prepareColorTrianglesVertexData();
-	void collectOverhangingData(const std::vector<uint32_t>& overhangingTriangleIndices,
-								const std::vector<Vec3>& vertices);
+	void generateOverhangingVertices();
+	void generateSupportGeometries();
 
-	QVector<TriangleGeometry*> getSupportGeometries();
 
 	void logBounds();
 
@@ -128,9 +125,8 @@ private:
 	float _overhangAngleMax = float(M_PI_4);
 	std::vector<uint32_t> _overhangingTriangleIndices;
 	QVector<QVector3D> _overhangingTriangleVertices;
-	QVector<QVector<QVector3D>> _triangleIslands;
-	QVector<QVector3D> _overhangingPoints;
 	QVector<QVector3D> _triangulationResult;
+	std::vector<std::shared_ptr<TriangleGeometry>> _supportGeometries;
 
 	bool _hasColors = true;
 
@@ -143,5 +139,5 @@ private:
 	QString _inputFile;
 	//	QString _inputFile = "C:/ProjectsData/stl_files/mandoblasterlow.stl";
 	TriangleGeometryData prepareDataFromAssimpScene();
-	void calculateOverhangingData();
+	std::shared_ptr<TriangleGeometry> extrudedTriangleIsland(const TriangleIsland& island);
 };

@@ -26,9 +26,9 @@ Model {
             snapToFloor()
         }
 
-        onTriangleIslandsChanged: {
-            console.log(" ### geometry.triangleIslands.size():" + geometry.triangleIslands.length)
-        }
+//        onTriangleIslandsChanged: {
+//            console.log(" ### geometry.triangleIslands.size():" + geometry.triangleIslands.length)
+//        }
     }
 
     materials: [

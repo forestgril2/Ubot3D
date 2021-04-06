@@ -207,3 +207,21 @@ Triangles& TriangleIsland::getTriangles()
 {
 	return _triangles;
 }
+
+const Triangles& TriangleIsland::getTriangles() const
+{
+	return _triangles;
+}
+
+std::vector<uint32_t> TriangleIsland::getTriangleIndices() const
+{
+	std::vector<uint32_t> islandTriangleIndices;
+	islandTriangleIndices.reserve(3*getTriangles().size());
+	for (TriangleShared triangle : getTriangles())
+	{
+		islandTriangleIndices.push_back(triangle->getVertexIndex(0));
+		islandTriangleIndices.push_back(triangle->getVertexIndex(1));
+		islandTriangleIndices.push_back(triangle->getVertexIndex(2));
+	}
+	return islandTriangleIndices;
+}

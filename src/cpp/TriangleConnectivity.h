@@ -41,6 +41,8 @@ class TriangleIsland
 public:
 	TriangleIsland(TriangleShared& initialTriangle, uint32_t& trianglesLeft);
 	Triangles& getTriangles();
+	const Triangles& getTriangles() const;
+	std::vector<uint32_t> getTriangleIndices() const;
 
 private:
 	Triangles _triangles;
