@@ -62,6 +62,8 @@ typedef Alpha_shape_2::Alpha_shape_edges_iterator            Alpha_shape_edges_i
 template <class OutputIterator>
 #endif
 
+#undef NDEBUG
+
 void alpha_edges( const Alpha_shape_2& A, OutputIterator out)
 {
   Alpha_shape_edges_iterator it = A.alpha_shape_edges_begin(),
@@ -217,13 +219,13 @@ std::shared_ptr<TriangleGeometry> Helpers3D::extrudedTriangleIsland(const Triang
 		auto it = indicesToUniqueVertices.find(topVertex);
 		if (it == indicesToUniqueVertices.end())
 		{// Unique top vertices.
-			indicesToUniqueVertices[topVertex] = currIndex++;
+			indicesToUniqueVertices[topVertex] = currIndex;
 			uniqueSupportPoints.push_back(topVertex);
 
 			// Match floor vertices to them by means of top index.
 			const Vec3 floorVertex{topVertex.x(), topVertex.y(), 0};
 			floorVertices.push_back(floorVertex);
-			topIndicesToFloorVertices[floorVertex] = currIndex;
+			topIndicesToFloorVertices[floorVertex] = currIndex++;
 		}
 	}
 	for (const Vec3& floorVertex : floorVertices)
@@ -231,22 +233,29 @@ std::shared_ptr<TriangleGeometry> Helpers3D::extrudedTriangleIsland(const Triang
 		auto it = indicesToUniqueVertices.find(floorVertex);
 		if (it == indicesToUniqueVertices.end())
 		{// Unique top vertices.
-			indicesToUniqueVertices[floorVertex] = currIndex++;
+			indicesToUniqueVertices[floorVertex] = currIndex;
 			uniqueSupportPoints.push_back(floorVertex);
 
 			// Match top vertices to them by means of floor index.
 			const Vec3 topVertex = uniqueSupportPoints[topIndicesToFloorVertices[floorVertex]];
-			floorIndicesToTopVertices[topVertex] = currIndex;
+			floorIndicesToTopVertices[topVertex] = currIndex++;
 		}
 	}
 	const std::vector<Vec3> islandAlphaShapeRing = Helpers3D::computeAlphaShapeVertices(floorVertices);
 
 	// Reserve for top, bottom and side triangles.
 	supportGeometryIndices.reserve(2*islandTriangleIndices.size() + 6*islandAlphaShapeRing.size());
+	assert(0 == islandTriangleIndices.size()%3);
+	for (uint32_t triangleVertexIndex : islandTriangleIndices)
+	{// Generate triangle indices for top:
+		supportGeometryIndices.push_back(indicesToUniqueVertices[islandVertices[triangleVertexIndex]]);
+	}
 	for (uint32_t index : islandTriangleIndices)
-	{
-		// Generate triangle indices for top:
-		supportGeometryIndices.push_back(indicesToUniqueVertices[islandVertices[index]]);
+	{// Generate triangle indices for bottom:
+		const Vec3 topVertex = islandVertices[index];
+		const uint32_t floorIndex = floorIndicesToTopVertices[topVertex];
+		const Vec3 floorVertex = uniqueSupportPoints[floorIndex];
+		supportGeometryIndices.push_back(indicesToUniqueVertices[floorVertex]);
 	}
 
 	return std::make_shared<TriangleGeometry>(returnData);

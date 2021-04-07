@@ -339,7 +339,7 @@ TriangleGeometryData TriangleGeometry::prepareDataFromAssimpScene()
 
 void TriangleGeometry::updateData(const TriangleGeometryData& data)
 {
-	Chronograph chronograph(__FUNCTION__, true);
+	Chronograph chronograph(__FUNCTION__, false);
 
 	if (data.vertices.empty())
 		return;
