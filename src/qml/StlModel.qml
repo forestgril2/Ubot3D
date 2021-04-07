@@ -29,6 +29,10 @@ Model {
 //        onTriangleIslandsChanged: {
 //            console.log(" ### geometry.triangleIslands.size():" + geometry.triangleIslands.length)
 //        }
+
+        onModelLoaded: {
+            generateSupportGeometries();
+        }
     }
 
     materials: [

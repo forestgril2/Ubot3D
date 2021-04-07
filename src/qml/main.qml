@@ -90,6 +90,18 @@ Window {
             }
         }
 
+        Repeater3D {
+            id: stlSupportGeometries
+            model: stlObjects.count>0 ? stlObjects.objectAt(0).geometry.supportGeometries : undefined
+            delegate: StlModel {
+                geometry: stlObjects.objectAt(0).geometry.supportGeometries[index]
+            }
+
+            onModelChanged: {
+                console.log(" ### new model with size:" + model.length)
+            }
+        }
+
 //        Repeater3D {
 //            id: triangulationResult
 //            model: stlObjects.model.length

@@ -49,7 +49,7 @@ public:
 		QVector3D pickPos;
 	};
 
-	Q_INVOKABLE QVector<TriangleGeometry*> getSupportGeometries() const;
+	Q_INVOKABLE void generateSupportGeometries();
 
 	Q_INVOKABLE QVariantMap getPick(const QVector3D& origin,
 									const QVector3D& direction,
@@ -89,6 +89,7 @@ signals:
 	void supportGeometriesChanged();
 
 private:
+	QVector<TriangleGeometry*> getSupportGeometries() const;
 	bool importModelFromFile(const std::string& pFile);
 	void reloadAssimpScene();
 	void updateAllMeshBounds(const aiScene* scene, const unsigned meshIndex = 0u);
@@ -99,8 +100,6 @@ private:
 	uint32_t calculateAndSetStride();
 	std::vector<float> prepareColorTrianglesVertexData();
 	void generateOverhangingVertices();
-	void generateSupportGeometries();
-
 
 	void logBounds();
 

@@ -216,7 +216,6 @@ void TriangleGeometry::reloadAssimpScene()
 
 	//		assimpLogScene(scene);
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
-	emit modelLoaded();
 	clear();
 }
 uint32_t TriangleGeometry::calculateAndSetStride()
@@ -373,6 +372,7 @@ void TriangleGeometry::updateData(const TriangleGeometryData& data)
 				 QQuick3DGeometry::Attribute::U32Type);
 
 	buildIntersectionData();
+	emit modelLoaded();
 }
 
 void TriangleGeometry::buildIntersectionData()
