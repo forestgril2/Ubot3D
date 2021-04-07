@@ -22,18 +22,15 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 
 void GCodeProgramProcessor::pushNewLayer()
 {
+	NEW LAYER IS A NEW PATH AS AS WELL, SHOULD ALWAYS PUSH CURRENT PATH BEFORE
+	SEE HOW IT IS DONE IN SET EXTRUSION OFF, WE ARE LACKING THIS STAGE SOMETIMES
 	assert(_extruderPathsCurr->size() != 0);
-	const ExtrPath pathPrev = (*_extruderPathsCurr)[_extruderPathsCurr->size() -2];
+	const ExtrPath& pathPrev = (*_extruderPathsCurr)[
+							   _extruderPathsCurr->size() > 1 ? _extruderPathsCurr->size() -2 : 0
+							   ];
 
-	ExtrPoint previousLayerLastPoint;
-	if (pathPrev.size() > 0)
-	{
-		previousLayerLastPoint = pathPrev[pathPrev.size() -1];
-	}
-	else
-	{
-		previousLayerLastPoint = {0,0,0,0};
-	}
+	const ExtrPoint previousLayerLastPoint =
+			(pathPrev.size() > 0) ? pathPrev[pathPrev.size() -1] : ExtrPoint{0,0,0,0};
 
 	_extruderCurr->layers.push_back({_extruderPathsCurr->size(), previousLayerLastPoint.z()});
 }
@@ -59,13 +56,13 @@ bool GCodeProgramProcessor::isNewLayerComment(const std::string& comment)
 			// Cura format ;FLAVOR:Marlin
 			(comment._Starts_with("LAYER:") && (0 != comment.compare("LAYER:0")))
 			||// Ubot3D format
-			(comment._Starts_with("beforelayer") && (0 != comment.compare("firstlayer")));
+			(comment._Starts_with("layer"));
 }
 
 bool GCodeProgramProcessor::isNewPathPoint() const
 {// Ignore movements without extrusion and identical extruder path coordinates.
 	return _extruderCurr->isExtruding &&
-			(_pathCurr.size() == 0 || extrWorkPoints.lastAbsCoords != _pathCurr.back());
+			(_pathCurr.size() == 0 || _extrWorkPoints.lastAbsCoords != _pathCurr.back());
 }
 
 void GCodeProgramProcessor::initializeCurrentExtruderReferences(std::vector<Extrusion>& extruders)
@@ -93,13 +90,13 @@ void GCodeProgramProcessor::switchExtruderModes(const int value)
 			setExtrusionOff(_extruderCurr);
 			return;
 		case 1:
-			setExtrusionOn(_extruderCurr, extrWorkPoints.lastAbsCoords);
+			setExtrusionOn(_extruderCurr, _extrWorkPoints.lastAbsCoords);
 			return;
 		case 90:
 			setAbsoluteModeOn();
 			return;
 		case 91:
-			setAbsoluteModeOff(&extrWorkPoints.blockCurrRelativeCoords);
+			setAbsoluteModeOff(&_extrWorkPoints.blockCurrRelativeCoords);
 			return;
 		case 92:
 			//setPosition()
@@ -158,20 +155,20 @@ void GCodeProgramProcessor::processExtrCoordSetting(const char coord, const Real
 	{
 		case 'X':
 			_newCoordsCurr->x() = value;
-			extrWorkPoints.whichCoordsSetInBlock.x() = true;
+			_extrWorkPoints.whichCoordsSetInBlock.x() = true;
 			break;
 		case 'Y':
 			_newCoordsCurr->y() = value;
-			extrWorkPoints.whichCoordsSetInBlock.y() = true;
+			_extrWorkPoints.whichCoordsSetInBlock.y() = true;
 			break;
 		case 'Z':
 			_newCoordsCurr->z() = value;
-			extrWorkPoints.whichCoordsSetInBlock.z() = true;
+			_extrWorkPoints.whichCoordsSetInBlock.z() = true;
 			break;
 		case 'E':
 			// Extruded length.
 			_newCoordsCurr->w() = value;
-			extrWorkPoints.whichCoordsSetInBlock.w() = true;
+			_extrWorkPoints.whichCoordsSetInBlock.w() = true;
 			break;
 		default:
 			assert(false);
@@ -204,11 +201,11 @@ void GCodeProgramProcessor::processChunks(const gpr::block& block)
 
 void GCodeProgramProcessor::updateCurrentBlockAbsCoords()
 {
-	for (unsigned short i = 0; i < extrWorkPoints.whichCoordsSetInBlock.size(); ++i)
+	for (unsigned short i = 0; i < _extrWorkPoints.whichCoordsSetInBlock.size(); ++i)
 	{// updateBlockCoords(): If this coord is not set in this block, use the most recent for absolute coordinates.
-		if (extrWorkPoints.whichCoordsSetInBlock[i] != 0 || !_isAbsoluteMode)
+		if (_extrWorkPoints.whichCoordsSetInBlock[i] != 0 || !_isAbsoluteMode)
 			continue;
-		_blockCurrAbsCoordsCurr[i] = extrWorkPoints.lastAbsCoords[i];
+		_blockCurrAbsCoordsCurr[i] = _extrWorkPoints.lastAbsCoords[i];
 	}
 }
 
@@ -216,11 +213,11 @@ void GCodeProgramProcessor::updateLastAbsCoords()
 {
 	if (!_isAbsoluteMode)
 	{
-		extrWorkPoints.lastAbsCoords += extrWorkPoints.blockCurrRelativeCoords;
+		_extrWorkPoints.lastAbsCoords += _extrWorkPoints.blockCurrRelativeCoords;
 	}
 	else
 	{
-		extrWorkPoints.lastAbsCoords = _blockCurrAbsCoordsCurr;
+		_extrWorkPoints.lastAbsCoords = _blockCurrAbsCoordsCurr;
 	}
 }
 
@@ -235,21 +232,21 @@ std::vector<Extrusion> GCodeProgramProcessor::createExtrusionData(const std::str
 	initializeCurrentExtruderReferences(extruders);
 
 	// Reset main parser workpoint.
-	extrWorkPoints.lastAbsCoords = {0,0,0,0};
+	_extrWorkPoints.lastAbsCoords = {0,0,0,0};
 
 	// TODO: Add a progress indicator.
 	for (const gpr::block& block : gcodeProgram)
 	{
 		// Reset parser block workpoints.
-		extrWorkPoints.whichCoordsSetInBlock = {0,0,0,0};
-		extrWorkPoints.blockCurrRelativeCoords = {0,0,0,0};
+		_extrWorkPoints.whichCoordsSetInBlock = {0,0,0,0};
+		_extrWorkPoints.blockCurrRelativeCoords = {0,0,0,0};
 
 		_blockStringCurr = block.to_string();
 
 		// A lot of things may happen inside here!
 		processChunks(block);
 
-		if (!extrWorkPoints.areAnyCoordsSet())
+		if (!_extrWorkPoints.areAnyCoordsSet())
 			continue;
 
 		updateCurrentBlockAbsCoords();
@@ -258,7 +255,7 @@ std::vector<Extrusion> GCodeProgramProcessor::createExtrusionData(const std::str
 		if (!isNewPathPoint())
 			continue;
 
-		_pathCurr.push_back(extrWorkPoints.lastAbsCoords);
+		_pathCurr.push_back(_extrWorkPoints.lastAbsCoords);
 
 		assert(++blockCount < blockCountLimit);
 	}

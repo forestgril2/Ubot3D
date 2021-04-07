@@ -532,7 +532,7 @@ void GCodeGeometry::generate()
 
 void GCodeGeometry::updateData()
 {
-	Chronograph chrono(__FUNCTION__);
+	Chronograph chrono(__FUNCTION__, true);
 	clear();
 	generate();
 

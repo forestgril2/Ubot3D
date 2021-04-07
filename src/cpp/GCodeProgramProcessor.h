@@ -31,7 +31,7 @@ private:
 		ExtrPoint lastAbsCoords = {0,0,0,0};
 		ExtrPoint blockCurrRelativeCoords = {0,0,0,0};
 		Vector4i whichCoordsSetInBlock = {0,0,0,0};
-	} extrWorkPoints;
+	} _extrWorkPoints;
 
 	void setExtruder(const uint32_t extruderNumber);
 	void initializeCurrentExtruderReferences(std::vector<Extrusion>& extruders);
