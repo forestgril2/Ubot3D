@@ -90,7 +90,7 @@ bool Helpers3D::vertexLess(const Vec3& a, const Vec3& b)
 	return false;
 }
 
-std::vector<Vec3> Helpers3D::computeAlphaShapeVertices(const std::vector<Vec3>& points)
+std::vector<Vec3> Helpers3D::computeAlphaShapeSegments(const std::vector<Vec3>& points)
 {
 	std::vector<Vec3> result;
 	if (points.size() == 0)
@@ -112,13 +112,13 @@ std::vector<Vec3> Helpers3D::computeAlphaShapeVertices(const std::vector<Vec3>& 
 //	std::cout << "Alpha Shape computed" << std::endl;
 //	std::cout << segments.size() << " alpha shape edges" << std::endl;
 
-//	std::for_each(segments.begin(), segments.end(), [&result](const Segment& s) {
-//		result.push_back({static_cast<float>(s[0].x()), static_cast<float>(s[0].y()), 0});
-//		result.push_back({static_cast<float>(s[1].x()), static_cast<float>(s[1].y()), 0});
-//	});
 	std::for_each(segments.begin(), segments.end(), [&result](const Segment& s) {
 		result.push_back({static_cast<float>(s[0].x()), static_cast<float>(s[0].y()), 0});
+		result.push_back({static_cast<float>(s[1].x()), static_cast<float>(s[1].y()), 0});
 	});
+//	std::for_each(segments.begin(), segments.end(), [&result](const Segment& s) {
+//		result.push_back({static_cast<float>(s[0].x()), static_cast<float>(s[0].y()), 0});
+//	});
 #endif
 	return result;
 }
@@ -241,21 +241,37 @@ std::shared_ptr<TriangleGeometry> Helpers3D::extrudedTriangleIsland(const Triang
 			floorIndicesToTopVertices[topVertex] = currIndex++;
 		}
 	}
-	const std::vector<Vec3> islandAlphaShapeRing = Helpers3D::computeAlphaShapeVertices(floorVertices);
+	const std::vector<Vec3> islandAlphaShapeRing = Helpers3D::computeAlphaShapeSegments(floorVertices);
 
 	// Reserve for top, bottom and side triangles.
 	supportGeometryIndices.reserve(2*islandTriangleIndices.size() + 6*islandAlphaShapeRing.size());
-	assert(0 == islandTriangleIndices.size()%3);
 	for (uint32_t triangleVertexIndex : islandTriangleIndices)
 	{// Generate triangle indices for top:
 		supportGeometryIndices.push_back(indicesToUniqueVertices[islandVertices[triangleVertexIndex]]);
 	}
 	for (uint32_t index : islandTriangleIndices)
-	{// Generate triangle indices for bottom:
+	{// Generate triangle indices for bottom.
 		const Vec3 topVertex = islandVertices[index];
 		const uint32_t floorIndex = floorIndicesToTopVertices[topVertex];
 		const Vec3 floorVertex = uniqueSupportPoints[floorIndex];
 		supportGeometryIndices.push_back(indicesToUniqueVertices[floorVertex]);
+	}
+
+	for(uint32_t i=0; i<islandAlphaShapeRing.size(); i+=2)
+	{// Generate side triangles.
+		const Vec3& prevAlphaPoint = islandAlphaShapeRing[i];
+		const Vec3& alphaPoint = islandAlphaShapeRing[i+1];
+		const uint32_t floorLeft = indicesToUniqueVertices[prevAlphaPoint];
+		const uint32_t topLeft = topIndicesToFloorVertices[prevAlphaPoint];
+		const uint32_t floorRight = indicesToUniqueVertices[alphaPoint];
+		const uint32_t topRight = topIndicesToFloorVertices[alphaPoint];
+
+		supportGeometryIndices.push_back(floorLeft);
+		supportGeometryIndices.push_back(topLeft);
+		supportGeometryIndices.push_back(floorRight);
+		supportGeometryIndices.push_back(topLeft);
+		supportGeometryIndices.push_back(topRight);
+		supportGeometryIndices.push_back(floorRight);
 	}
 
 	return std::make_shared<TriangleGeometry>(returnData);

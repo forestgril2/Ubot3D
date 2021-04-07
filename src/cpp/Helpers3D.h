@@ -46,7 +46,7 @@ public:
 	static std::shared_ptr<TriangleGeometry> extrudedTriangleIsland(const TriangleIsland& island,
 																	const std::vector<Vec3>& islandVertices);
 	static std::vector<Vec3> computeConvexHull(const std::vector<Vec3>& points);
-	static std::vector<Vec3> computeAlphaShapeVertices(const std::vector<Vec3>& points);
+	static std::vector<Vec3> computeAlphaShapeSegments(const std::vector<Vec3>& points);
 	static int createCgalMesh();
 	static int drawTriangulation(const QVector<QVector3D>& points);
 
