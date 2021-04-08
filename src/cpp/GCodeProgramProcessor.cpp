@@ -22,8 +22,6 @@ static gpr::gcode_program importGCodeFromFile(const std::string& file)
 
 void GCodeProgramProcessor::pushNewLayer()
 {
-	NEW LAYER IS A NEW PATH AS AS WELL, SHOULD ALWAYS PUSH CURRENT PATH BEFORE
-	SEE HOW IT IS DONE IN SET EXTRUSION OFF, WE ARE LACKING THIS STAGE SOMETIMES
 	assert(_extruderPathsCurr->size() != 0);
 	const ExtrPath& pathPrev = (*_extruderPathsCurr)[
 							   _extruderPathsCurr->size() > 1 ? _extruderPathsCurr->size() -2 : 0
@@ -255,6 +253,11 @@ std::vector<Extrusion> GCodeProgramProcessor::createExtrusionData(const std::str
 		if (!isNewPathPoint())
 			continue;
 
+		if (_extrWorkPoints.isFilamentPulledBack())
+		{// In case extruder position is negative, we can finish current path.
+			setExtrusionOff(_extruderCurr);
+		}
+
 		_pathCurr.push_back(_extrWorkPoints.lastAbsCoords);
 
 		assert(++blockCount < blockCountLimit);
@@ -344,4 +347,9 @@ void GCodeProgramProcessor::setAbsoluteModeOff(ExtrPoint* blockCurrRelativeCoord
 bool GCodeProgramProcessor::WorkPoints::areAnyCoordsSet() const
 {
 	return !whichCoordsSetInBlock.isZero();
+}
+
+bool GCodeProgramProcessor::WorkPoints::isFilamentPulledBack() const
+{
+	return lastAbsCoords.w() < 0;
 }

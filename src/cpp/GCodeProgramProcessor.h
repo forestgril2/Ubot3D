@@ -27,6 +27,7 @@ private:
 	struct WorkPoints
 	{
 		bool areAnyCoordsSet() const;
+		bool isFilamentPulledBack() const;
 
 		ExtrPoint lastAbsCoords = {0,0,0,0};
 		ExtrPoint blockCurrRelativeCoords = {0,0,0,0};
