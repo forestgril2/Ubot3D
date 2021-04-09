@@ -37,15 +37,26 @@ Extrusion GCodeProgramProcessor::initializeExtruderData()
 {
 	Extrusion newData;
 	newData.paths.clear();
-	newData.paths.push_back(ExtrPath());
+	newData.paths.push_back(ExtrPath({{0,0,0,0}}));
 	// Layer bottom at start is just the bed level.
 	newData.layers.push_back({0u, 0.0f});
 	return newData;
 }
 
-void GCodeProgramProcessor::setExtruder(const uint32_t extruderNumber)
+void GCodeProgramProcessor::setExtruder(const uint32_t extruderIndex)
 {
+	if (_extruders.end() == _extruders.find(extruderIndex))
+	{
+		_extruders[extruderIndex]=initializeExtruderData();
+	}
 
+	if (_extruderCurr == &_extruders[extruderIndex])
+		return;
+
+	// If we are switching extruders, we may currently assume, that the previous one is set off.
+	// TODO: One day we may have two extruders working at the same time.
+	setExtrusionOff(_extruderCurr);
+	setupCurrentExtruderReferences(extruderIndex);
 }
 
 bool GCodeProgramProcessor::isNewLayerComment(const std::string& comment)
@@ -63,11 +74,15 @@ bool GCodeProgramProcessor::isNewPathPoint() const
 			(_pathCurr.size() == 0 || _extrWorkPoints.lastAbsCoords != _pathCurr.back());
 }
 
-void GCodeProgramProcessor::initializeCurrentExtruderReferences(std::vector<Extrusion>& extruders)
+void GCodeProgramProcessor::setupCurrentExtruderReferences(uint32_t extruderIndex)
 {
-	_extruderCurr = &extruders[0];
+	assert(_extruders.end() != _extruders.find(extruderIndex));
+	_extruderCurr = &_extruders[extruderIndex];
+	assert(!_extruderCurr->paths.empty());
 	_extruderPathsCurr = &(_extruderCurr->paths);
-	_blockCurrAbsCoordsCurr = {0,0,0,0};
+	assert(!_extruderPathsCurr->back().empty());
+	// Set current extruder position to last point in last path.
+	_blockCurrAbsCoordsCurr = _extruderPathsCurr->back().back();
 	_newCoordsCurr = &_blockCurrAbsCoordsCurr;
 }
 
@@ -133,7 +148,7 @@ void GCodeProgramProcessor::processWordAddress(const char word, const gpr::addr&
 			switch (address.tp())
 			{
 				case gpr::ADDRESS_TYPE_INTEGER:
-					//setExtruder(adddres.int_value());
+					setExtruder(uint32_t(address.int_value()));
 					break;
 				case gpr::ADDRESS_TYPE_DOUBLE:
 					assert(false);
@@ -199,8 +214,8 @@ void GCodeProgramProcessor::processChunks(const gpr::block& block)
 
 void GCodeProgramProcessor::updateCurrentBlockAbsCoords()
 {
-	for (unsigned short i = 0; i < _extrWorkPoints.whichCoordsSetInBlock.size(); ++i)
-	{// updateBlockCoords(): If this coord is not set in this block, use the most recent for absolute coordinates.
+	for (uint32_t i=0; i<_extrWorkPoints.whichCoordsSetInBlock.size(); ++i)
+	{// If this coord is not set in this block, use the most recent for absolute coordinates.
 		if (_extrWorkPoints.whichCoordsSetInBlock[i] != 0 || !_isAbsoluteMode)
 			continue;
 		_blockCurrAbsCoordsCurr[i] = _extrWorkPoints.lastAbsCoords[i];
@@ -219,15 +234,16 @@ void GCodeProgramProcessor::updateLastAbsCoords()
 	}
 }
 
-std::vector<Extrusion> GCodeProgramProcessor::createExtrusionData(const std::string& inputFile)
+std::map<uint32_t, Extrusion>& GCodeProgramProcessor::createExtrusionData(const std::string& inputFilePath)
 {
 	Chronograph chronograph(__FUNCTION__, true);
 
-	gpr::gcode_program gcodeProgram = importGCodeFromFile(inputFile);
+	const gpr::gcode_program gcodeProgram = importGCodeFromFile(inputFilePath);
 
-	// Start with one extruder, add new if we encounter T1+ block.
-	std::vector<Extrusion> extruders{initializeExtruderData()};
-	initializeCurrentExtruderReferences(extruders);
+	// Initialize one default extruder, add new if we encounter T1+ block.
+	_extruders.clear();
+	_extruders[0]=initializeExtruderData();
+	setupCurrentExtruderReferences(0);
 
 	// Reset main parser workpoint.
 	_extrWorkPoints.lastAbsCoords = {0,0,0,0};
@@ -254,7 +270,7 @@ std::vector<Extrusion> GCodeProgramProcessor::createExtrusionData(const std::str
 			continue;
 
 		if (_extrWorkPoints.isFilamentPulledBack())
-		{// In case extruder position is negative, we can finish current path.
+		{// In case extruder filament position gets negative, the current path is over.
 			setExtrusionOff(_extruderCurr);
 		}
 
@@ -276,7 +292,7 @@ std::vector<Extrusion> GCodeProgramProcessor::createExtrusionData(const std::str
 	_extruderCurr->numPathPointsMax = _numPathPointsMax;
 	_extruderCurr->numPaths = (*_extruderPathsCurr).size();
 
-	return extruders;
+	return _extruders;
 }
 
 void GCodeProgramProcessor::dumpSubPath(const std::string& blockString, const Extrusion::Path& path)
@@ -298,25 +314,25 @@ void GCodeProgramProcessor::setExtrusionOff(Extrusion* extruder)
 
 	if (_pathCurr.empty())
 		return;
-	_numPathPointsMax = std::max<unsigned>(_numPathPointsMax, _pathCurr.size());
+	_numPathPointsMax = std::max<size_t>(_numPathPointsMax, _pathCurr.size());
 
 //	dumpSubPath(blockStringCurr, subPathCurr);
 
 	if (_pathCurr.size() < 2)
 	{
-		static bool wasSubpathOfSmallSizeAnounced = false;
-		if (!wasSubpathOfSmallSizeAnounced)
+		static bool wasSubpathOfSmallSizeAnnounced = false;
+		if (!wasSubpathOfSmallSizeAnnounced)
 		{
 			std::cout << "### WARNING: subpath of size: " << _pathCurr.size() << std::endl;
-			wasSubpathOfSmallSizeAnounced = true;
+			wasSubpathOfSmallSizeAnnounced = true;
 		}
 
 		_pathCurr.clear();
 		return;
 	}
 
-	std::swap(_extruderPathsCurr->back(), _pathCurr);
-	_extruderPathsCurr->push_back(ExtrPath());
+	_extruderPathsCurr->push_back(_pathCurr);
+	_pathCurr = ExtrPath();
 }
 
 void GCodeProgramProcessor::setExtrusionOn(Extrusion* extruder, const ExtrPoint& lastAbsCoords)

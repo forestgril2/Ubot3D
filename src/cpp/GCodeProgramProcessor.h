@@ -19,7 +19,7 @@ using ExtrLayer = Extrusion::Layer;
 class GCodeProgramProcessor
 {
 public:
-	std::vector<Extrusion> createExtrusionData(const std::string& inputFile);
+	std::map<uint32_t, Extrusion>& createExtrusionData(const std::string& inputFilePath);
 
 private:
 	static Extrusion initializeExtruderData();
@@ -34,8 +34,8 @@ private:
 		Vector4i whichCoordsSetInBlock = {0,0,0,0};
 	} _extrWorkPoints;
 
-	void setExtruder(const uint32_t extruderNumber);
-	void initializeCurrentExtruderReferences(std::vector<Extrusion>& extruders);
+	void setExtruder(const uint32_t extruderIndex);
+	void setupCurrentExtruderReferences(uint32_t extruderIndex);
 
 	void processChunks(const gpr::block& block);
 	void processWordAddress(const char word, const gpr::addr& address);
@@ -56,7 +56,8 @@ private:
 
 	bool isNewPathPoint() const;
 
-	Extrusion* _extruderCurr;
+	std::map<uint32_t, Extrusion> _extruders;
+	Extrusion* _extruderCurr = nullptr;
 	std::vector<ExtrPath>* _extruderPathsCurr;
 	ExtrPath _pathCurr;
 	ExtrPoint _blockCurrAbsCoordsCurr = {0,0,0,0};
