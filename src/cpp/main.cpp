@@ -12,6 +12,7 @@
 
 #include <Chronograph.h>
 #include <Helpers3D.h>
+#include <ProcessLauncher.h>
 
 int main(int argc, char *argv[])
 {
@@ -22,7 +23,9 @@ int main(int argc, char *argv[])
 	QQmlContext* context = engine.rootContext();
 
 	Helpers3D helpers3D;
+	ProcessLauncher launcher;
 	context->setContextProperty("helper3D", &helpers3D);
+	context->setContextProperty("ProcessLauncher", &launcher);
 
 	engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
 
