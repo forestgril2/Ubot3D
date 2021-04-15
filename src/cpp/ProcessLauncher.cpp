@@ -9,6 +9,8 @@
 
 static const std::string kUbotSlicerDir = "UBotSlicer";
 static const std::string kUbotSlicerProgram = "UBotSlicer.exe";
+static const std::string kUbotSlicerSuccessString = "Plik zostal skonwertowany i zapisany: ";
+static const std::string kGCodeExtension = ".gcode";
 
 ProcessLauncher::ProcessLauncher(QObject *parent) : QObject(parent)
 {
@@ -30,8 +32,21 @@ void ProcessLauncher::generateGCode()
 	myProcess->start(program, arguments);
 	myProcess->waitForFinished();
 
-	qDebug() << myProcess->readAllStandardOutput();
+	// Now parse standard output, to see, if we have succeeded.
+	// TODO: QDebug correctly detects format of the standard output, but maybe we should use some more direct metods.
+	const QString slicerOutput = QDebug::toString(myProcess->readAllStandardOutput());
+	static const QString slicerSuccessString = QString::fromStdString(kUbotSlicerSuccessString);
 
+	if (!slicerOutput.contains(slicerSuccessString))
+	{
+		emit slicerError(slicerOutput);
+		std::cout << " ### " << __FUNCTION__ << " ERROR, slicer output: " << slicerOutput.toStdString() << std::endl;
+		return;
+	}
 
-//	std::cout << " ### " << __FUNCTION__ << " slicerCommand:" << program.toStdString() << "," << "" << std::endl;
+	const QString slicerOutputPath = slicerOutput.split(slicerSuccessString).back()
+												 .split(QString::fromStdString(kGCodeExtension)).front() +
+												  QString::fromStdString(kGCodeExtension);
+	gCodeGenerated(slicerOutput);
+	std::cout << " ### " << __FUNCTION__ << " slicerOutputPath: " << slicerOutputPath.toStdString() << std::endl;
 }
