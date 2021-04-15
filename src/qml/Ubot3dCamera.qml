@@ -10,7 +10,7 @@ import customgeometry 1.0
 PerspectiveCamera {
 	id: camera
 	
-    property vector3d initDistToModel: Qt.vector3d(-75, -75, 100)
+    property vector3d initDistToModel: Qt.vector3d(-50, -50, 100)
 
 	function lookAt(point)
 	{

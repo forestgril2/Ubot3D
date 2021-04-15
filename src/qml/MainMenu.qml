@@ -68,7 +68,7 @@ MenuBar {
 			}
 			MenuItem{
                 text: qsTr("Generate GCode for current STL file")
-                onTriggered: ProcessLauncher.generateGCode()
+                onTriggered: slicerProcessLauncher.generateGCode()
 			}
 			MenuItem{
 				text: qsTr("???")

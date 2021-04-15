@@ -47,6 +47,5 @@ void ProcessLauncher::generateGCode()
 	const QString slicerOutputPath = slicerOutput.split(slicerSuccessString).back()
 												 .split(QString::fromStdString(kGCodeExtension)).front() +
 												  QString::fromStdString(kGCodeExtension);
-	gCodeGenerated(slicerOutput);
-	std::cout << " ### " << __FUNCTION__ << " slicerOutputPath: " << slicerOutputPath.toStdString() << std::endl;
+	emit gcodeGenerated(slicerOutputPath);
 }

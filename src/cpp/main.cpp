@@ -25,7 +25,6 @@ int main(int argc, char *argv[])
 	Helpers3D helpers3D;
 	ProcessLauncher launcher;
 	context->setContextProperty("helper3D", &helpers3D);
-	context->setContextProperty("ProcessLauncher", &launcher);
 
 	engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
 

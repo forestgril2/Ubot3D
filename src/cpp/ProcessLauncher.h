@@ -15,8 +15,8 @@ public:
 	Q_INVOKABLE void generateGCode();
 
 signals:
-	void gCodeGenerated(const QString& outputFile);
-	void slicerError(const QString& slicerOutput);
+	void gcodeGenerated(const QString& outputFilePath);
+	void slicerError(const QString& slicerStdOutput);
 
 };
 

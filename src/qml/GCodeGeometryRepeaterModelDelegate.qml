@@ -26,6 +26,10 @@ Node {
         id: gcodeGeometry
         inputFile: parent.model[index]
 
+        onBoundsChanged: {
+            gCodeModel.modelCenter = minBounds.plus(maxBounds).times(0.5)
+        }
+
         //		onModelLoaded: {
         //			modelControls.resetSliders(gcodeGeometry)
         //		}

@@ -52,19 +52,45 @@ Window {
 
         Repeater3D {
             id: stlObjects
+
+            signal delegateLoaded(var modelCenter)
+
             model: []
+
             delegate: StlModel {
                 id: stlModel
                 inputFile: stlObjects.model[index]
+
+                Component.onCompleted: {
+                   stlObjects.delegateLoaded(stlModel.modelCenter)
+                }
+            }
+
+            onDelegateLoaded: {
+                sceneBase.camera.position = modelCenter.plus(sceneBase.camera.initDistToModel)
+                sceneBase.camera.lookAt(modelCenter)
             }
         }
 
         Repeater3D {
             id: gCodeObjects
             property var gcodeGeometry: (objectAt(0) === null ? null : objectAt(0).geometry)
+
+            signal delegateLoaded(var modelCenter)
+
             model: []
             delegate: GCodeGeometryRepeaterModelDelegate {
+                id: gCodeModel
                 inputFile: gCodeObjects.model[index]
+
+                Component.onCompleted: {
+                    gCodeObjects.delegateLoaded(gCodeModel.modelCenter)
+                }
+            }
+
+             onDelegateLoaded: {
+                sceneBase.camera.position = modelCenter.plus(sceneBase.camera.initDistToModel)
+                sceneBase.camera.lookAt(modelCenter)
             }
         }
 
@@ -176,6 +202,19 @@ Window {
                     var ray = QmlHelpers.getRay(sceneBase.camera, mouse.x, mouse.y, view3d.width, view3d.height);
                     modelGroupDrag.dragPositionChanged(sceneBase.camera.position, ray)
                 }
+            }
+        }
+
+        ProcessLauncher {
+            id: slicerProcessLauncher
+
+            onSlicerError: {
+                console.log(" ### onSlicerError, slicerStdOutput: " + slicerStdOutput)
+            }
+
+            onGcodeGenerated: {
+                mainMenu.modelCloseRequested();
+                gCodeObjects.model = [outputFilePath]
             }
         }
     }

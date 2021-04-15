@@ -6,6 +6,8 @@ Model {
     property alias inputFile: geometry.inputFile
     property bool isPicked: false
     property bool isSnappedToFloor: false
+    property vector3d modelCenter
+
     objectName: "STL geometry"
     pickable: true
     rotation: Qt.quaternion(0,0,0,0)//modelControls.commonRotationCheckBox.checked ?
@@ -16,11 +18,7 @@ Model {
         id: geometry
 
         onBoundsChanged: {
-//            var modelCenter = rootModel.geometry.minBounds.plus(rootModel.geometry.maxBounds).times(0.5)
-//            console.log(" model bounds min: " + stlModel.geometry.minBounds)
-//            console.log(" model bounds max: " + stlModel.geometry.maxBounds)
-//            console.log(" modelCenter : " + modelCenter)
-
+            stlModel.modelCenter = minBounds.plus(maxBounds).times(0.5)
             //TODO: Have to think about resnapping, after minBounds.z change.
 //            isSnappedToFloor = false;
             snapToFloor()
