@@ -10,14 +10,17 @@ import customgeometry 1.0
 Node {
     id: sceneBase
     property alias camera: camera
-    property vector3d sceneCenter: Qt.vector3d(0, 0, 0)
+    property vector3d sceneCenter: Qt.vector3d(100, 100, 0)
+    property vector3d gridSize: Qt.vector3d(100, 100, 1)
+    property int gridLinesNum: 20
 
     Ubot3dCamera {
         id: camera
-        position: Qt.vector3d(482.333, 431.943, 7.60926)
+        position: Qt.vector3d(-50, -50, 100)
         clipFar: 500.0
         clipNear: 0.1
         fieldOfView: 45
+        rotation: helper3D.getRotationFromDirection(Qt.vector3d(75, 75, -75), Qt.vector3d(0,0,1))
     }
 
     DirectionalLight {
@@ -43,12 +46,12 @@ Node {
     }
 
     Model {
-        scale: Qt.vector3d(100, 100, 1)
+        scale: gridSize
         position: sceneCenter
         geometry: GridGeometry {
             id: grid
-            horizontalLines: 20
-            verticalLines: 20
+            horizontalLines: gridLinesNum
+            verticalLines: gridLinesNum
         }
         materials: [
             DefaultMaterial {
