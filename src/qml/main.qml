@@ -33,6 +33,27 @@ Window {
         id: slicerParameters
     }
 
+    Popup {
+        id: popup
+        property alias messageText: message.text
+        property alias messageColor: message.color
+        property alias backgroundColor: backgroundRect.color
+
+        modal: true
+        background: Rectangle {
+            id: backgroundRect
+            anchors.fill: parent
+        }
+
+        anchors.centerIn: parent
+
+        contentItem: Text {
+            id: message
+            text: "Error"
+            color: "red"
+        }
+    }
+
     View3D {
         id: view3d
         anchors.fill: parent
@@ -213,10 +234,18 @@ Window {
             id: slicerProcessLauncher
 
             onSlicerError: {
-                console.log(" ### onSlicerError, slicerStdOutput: " + slicerStdOutput)
+                popup.backgroundColor = "white"
+                popup.messageColor = "red"
+                popup.messageText = "ERROR: Slicer process failed. Slicer output:\n" + slicerStdOutput
+                popup.open()
             }
 
             onGcodeGenerated: {
+                popup.backgroundColor = "lime"
+                popup.messageColor = "black"
+                popup.messageText = "Slicer process successful."
+                popup.open()
+
                 mainMenu.modelCloseRequested();
                 gCodeObjects.model = [outputFilePath]
             }
@@ -225,16 +254,20 @@ Window {
                 var models = QmlHelpers.getSelected(stlObjects)
 
                 if (models.length === 0) {
-                    console.log(" ### no models selected")
+                    popup.backgroundColor = "yellow"
+                    popup.messageColor = "black"
+                    popup.messageText = "No models selected. Please select a model to slice."
+                    popup.open()
                     return
                 }
 
                 if (models.length > 1) {
-                    console.log(" ### select only one model")
+                    popup.backgroundColor = "yellow"
+                    popup.messageColor = "text"
+                    popup.messageText = "Multiple models selected. Please select only one model to slice."
+                    popup.open()
                     return
                 }
-
-                console.log(" ### model.path :" + models[0].geometry.inputFile)
 
                 var isTwoHeaderExtrusion = slicerParameters.isUsingTwoExtruders
                 generateGCode(models[0].geometry.inputFile, isTwoHeaderExtrusion)

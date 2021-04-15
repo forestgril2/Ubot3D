@@ -232,7 +232,7 @@ uint32_t TriangleGeometry::calculateAndSetStride()
 
 std::vector<float> TriangleGeometry::prepareColorTrianglesVertexData()
 {// Calculate triangle vertices with colors and view them as Qt array.
-	Chronograph chronograph(__FUNCTION__, true);
+	Chronograph chronograph(__FUNCTION__, false);
 
 	const uint32_t numVertices = uint32_t(_data.vertices.size());
 	std::vector<float> ret(uint32_t(stride())*numVertices);
