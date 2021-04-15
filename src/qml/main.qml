@@ -29,6 +29,10 @@ Window {
         id: fileDialog
     }
 
+    SlicerParametersInput {
+        id: slicerParameters
+    }
+
     View3D {
         id: view3d
         anchors.fill: parent
@@ -217,7 +221,7 @@ Window {
                 gCodeObjects.model = [outputFilePath]
             }
 
-            function generateGCodeForSelectedModel() {
+            function sliceSelectedModel() {
                 var models = QmlHelpers.getSelected(stlObjects)
 
                 if (models.length === 0) {
@@ -232,7 +236,8 @@ Window {
 
                 console.log(" ### model.path :" + models[0].geometry.inputFile)
 
-                generateGCode(models[0].geometry.inputFile)
+                var isTwoHeaderExtrusion = slicerParameters.isUsingTwoExtruders
+                generateGCode(models[0].geometry.inputFile, isTwoHeaderExtrusion)
             }
         }
     }

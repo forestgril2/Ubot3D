@@ -64,11 +64,12 @@ MenuBar {
 			title: qsTr("Slicer")
 			
 			MenuItem {
-				text: qsTr("Edit slicer options")
+                text: qsTr("Parameters")
+                onTriggered: slicerParameters.show()
 			}
 			MenuItem{
-                text: qsTr("Generate GCode for selected STL model")
-                onTriggered: slicerProcessLauncher.generateGCodeForSelectedModel()
+                text: qsTr("Slice selected model")
+                onTriggered: slicerProcessLauncher.sliceSelectedModel()
 			}
 			MenuItem{
 				text: qsTr("???")

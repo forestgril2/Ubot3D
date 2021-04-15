@@ -1,5 +1,5 @@
 #QT += quick3d-private quick3druntimerender-private gui quick3dassetimport-private gui-private quick core quick3d quick3dutils-private qml core-private quick3dassetimport
-QT += quick3d qml widgets xml
+QT += quick3d quickcontrols2 qml widgets xml
 
 CONFIG += c++20
 

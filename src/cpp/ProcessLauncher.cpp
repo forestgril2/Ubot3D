@@ -17,7 +17,7 @@ ProcessLauncher::ProcessLauncher(QObject *parent) : QObject(parent)
 
 }
 
-void ProcessLauncher::generateGCode(const QString& stlFilePath)
+void ProcessLauncher::generateGCode(const QString& stlFilePath, bool isTwoHeaderExtrusion)
 {
 	static const std::string slicerDirFull = QDir::currentPath().toStdString() + "/../" + kUbotSlicerDir;
 	static const std::string slicerCommandFull = slicerDirFull + "/" + kUbotSlicerProgram;
@@ -25,9 +25,10 @@ void ProcessLauncher::generateGCode(const QString& stlFilePath)
 	QStringList arguments;
 
 	const QString filePathArgument = QString("-in--") + stlFilePath;
+	const QString extruderNumArguments = QString("-headers--") + (isTwoHeaderExtrusion ? QString("2") : QString("1"));
 
 	arguments << filePathArgument;
-	arguments << "-headers--1";
+	arguments << extruderNumArguments;
 
 	QProcess *myProcess = new QProcess(this);
 	myProcess->setWorkingDirectory(QString::fromStdString(slicerDirFull));
