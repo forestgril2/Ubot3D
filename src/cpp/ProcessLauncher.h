@@ -12,7 +12,7 @@ class ProcessLauncher : public QObject
 public:
 	explicit ProcessLauncher(QObject *parent = nullptr);
 
-	Q_INVOKABLE void generateGCode();
+	Q_INVOKABLE void generateGCode(const QString& stlFilePath);
 
 signals:
 	void gcodeGenerated(const QString& outputFilePath);

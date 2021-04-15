@@ -67,8 +67,8 @@ MenuBar {
 				text: qsTr("Edit slicer options")
 			}
 			MenuItem{
-                text: qsTr("Generate GCode for current STL file")
-                onTriggered: slicerProcessLauncher.generateGCode()
+                text: qsTr("Generate GCode for selected STL model")
+                onTriggered: slicerProcessLauncher.generateGCodeForSelectedModel()
 			}
 			MenuItem{
 				text: qsTr("???")

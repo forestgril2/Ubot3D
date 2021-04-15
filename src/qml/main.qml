@@ -216,6 +216,24 @@ Window {
                 mainMenu.modelCloseRequested();
                 gCodeObjects.model = [outputFilePath]
             }
+
+            function generateGCodeForSelectedModel() {
+                var models = QmlHelpers.getSelected(stlObjects)
+
+                if (models.length === 0) {
+                    console.log(" ### no models selected")
+                    return
+                }
+
+                if (models.length > 1) {
+                    console.log(" ### select only one model")
+                    return
+                }
+
+                console.log(" ### model.path :" + models[0].geometry.inputFile)
+
+                generateGCode(models[0].geometry.inputFile)
+            }
         }
     }
 }

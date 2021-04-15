@@ -17,14 +17,16 @@ ProcessLauncher::ProcessLauncher(QObject *parent) : QObject(parent)
 
 }
 
-void ProcessLauncher::generateGCode()
+void ProcessLauncher::generateGCode(const QString& stlFilePath)
 {
 	static const std::string slicerDirFull = QDir::currentPath().toStdString() + "/../" + kUbotSlicerDir;
 	static const std::string slicerCommandFull = slicerDirFull + "/" + kUbotSlicerProgram;
 	static const QString program = QString::fromStdString(slicerCommandFull);
 	QStringList arguments;
 
-	arguments << "-in--C:/ProjectsData/stl_files/mandoblasterlow.stl";
+	const QString filePathArgument = QString("-in--") + stlFilePath;
+
+	arguments << filePathArgument;
 	arguments << "-headers--1";
 
 	QProcess *myProcess = new QProcess(this);
