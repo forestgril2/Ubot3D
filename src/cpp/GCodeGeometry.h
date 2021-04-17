@@ -11,7 +11,7 @@
 
 class GCodeGeometry : public QQuick3DGeometry
 {
-    Q_OBJECT
+	Q_OBJECT
 	QML_NAMED_ELEMENT(GCodeGeometry)
 
 	Q_PROPERTY(QVector3D minBounds READ minBounds WRITE setMinBounds NOTIFY boundsChanged)
@@ -21,15 +21,17 @@ class GCodeGeometry : public QQuick3DGeometry
 	Q_PROPERTY(uint32_t numSubPaths READ getNumSubPaths WRITE setNumSubPaths NOTIFY numSubPathsChanged)
 	Q_PROPERTY(uint32_t numPointsInSubPath READ getNumPointsInSubPath WRITE setNumPointsInSubPath NOTIFY numPointsInSubPathChanged)
 	Q_PROPERTY(uint32_t numPathStepsUsed READ getNumPathPointsUsed WRITE setNumPathStepsUsed NOTIFY numPathPointsStepsChanged)
+	Q_PROPERTY(QList<GCodeGeometry*> subGeometries READ getSubGeometries NOTIFY subGeometriesChanged)
 
 public:
 	GCodeGeometry();
+	~GCodeGeometry();
 
 	void setInputFile(const QString& url);
 	QString getInputFile() const;
 
-    void setBounds(const QVector3D &min, const QVector3D &max);
-    QVector3D minBounds() const;
+	void setBounds(const QVector3D &min, const QVector3D &max);
+	QVector3D minBounds() const;
 	QVector3D maxBounds() const;
 
 	void setPicked(const bool isPicked);
@@ -44,8 +46,10 @@ public:
 	void setNumPathStepsUsed(const uint32_t num);
 	uint32_t getNumPathPointsUsed() const;
 
+	QList<GCodeGeometry*> getSubGeometries();
+
 public slots:
-    void setMinBounds(const QVector3D& minBounds);
+	void setMinBounds(const QVector3D& minBounds);
 	void setMaxBounds(const QVector3D& maxBounds);
 
 signals:
@@ -55,8 +59,13 @@ signals:
 	void numPointsInSubPathChanged();
 	void numSubPathsChanged();
 	void numPathPointsStepsChanged();
+	void subGeometriesChanged();
 
 private:
+	// This constructor is private - to create extruder data for subgeometries.
+	GCodeGeometry(const Extrusion& extruderData);
+
+	void initialize();
 	void reset();
 	void updateData();
 	void loadExtruderData();
@@ -84,6 +93,7 @@ private:
 	bool _wasGenerated = false;
 
 	Extrusion _extrData;
+	QList<GCodeGeometry*> _subGeometries;
 
 	uint32_t _numPathStepsUsed;
 

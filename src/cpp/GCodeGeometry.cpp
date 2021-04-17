@@ -204,23 +204,37 @@ void GCodeGeometry::loadExtruderData()
 		return;
 
 	GCodeProgramProcessor gCodeParser;
-	_extrData = gCodeParser.createExtrusionData(_inputFile.toStdString())[0];
+	std::map<uint32_t, Extrusion> extrusions = gCodeParser.createExtrusionData(_inputFile.toStdString());
+
+	assert(extrusions.size() > 0);
+
+	std::set<uint32_t> extruderToolIndices;
+	std::vector<uint32_t> extruderToolIndicesVec;
+	for(const auto& mapping: extrusions)
+	{// Get all extruder indices ordered, to generate table with the lowest one (0 - most probably).
+		extruderToolIndices.insert(mapping.first);
+	}
+
+	// Treat extrusion data with the lowest index as 'this' geometry.
+	auto indicesIterator = extruderToolIndices.begin();
+	_extrData = extrusions[*indicesIterator++];
+	_subGeometries.push_back(this);
+
+	initialize();
+
+	while(indicesIterator != extruderToolIndices.end())
+	{// Initialize all following indices as subgeometries.
+		GCodeGeometry* subGeometry = new GCodeGeometry(extrusions[*indicesIterator++]);
+		_subGeometries.push_back(subGeometry);
+	}
+
+	emit subGeometriesChanged();
 }
 
-GCodeGeometry::GCodeGeometry() :
-	_numPathStepsUsed(0),
-	_modelIndices({}),
-	_modelVertices({}),
-	_inputFile("")
-//	_inputFile("C:/Projects/Ubot3D/CE3_mandoblasterlow.gcode"),
-//	_inputFile("C:/ProjectsData/stl_files/TEST.gcode")
+void GCodeGeometry::initialize()
 {
-	range_test<unsigned>();
-	range_test<float>();
-
 	setStride(static_cast<int32_t>(3 * sizeof(float)));
 
-	loadExtruderData();
 	updateData();
 	update();
 	emit modelLoaded();
@@ -233,6 +247,32 @@ GCodeGeometry::GCodeGeometry() :
 	connect(this, &GCodeGeometry::numSubPathsChanged, this, updateDataAndUpdate);
 	connect(this, &GCodeGeometry::numPointsInSubPathChanged, this, updateDataAndUpdate);
 	connect(this, &GCodeGeometry::numPathPointsStepsChanged, this, updateDataAndUpdate);
+}
+
+GCodeGeometry::GCodeGeometry() :
+	_numPathStepsUsed(0),
+	_modelIndices({}),
+	_modelVertices({}),
+	_inputFile("")
+{
+	range_test<unsigned>();
+	range_test<float>();
+
+	initialize();
+}
+
+GCodeGeometry::GCodeGeometry(const Extrusion& extruderData) : GCodeGeometry()
+{
+	_extrData = extruderData;
+	initialize();
+}
+
+GCodeGeometry::~GCodeGeometry()
+{// Remember to delete all subgeometries, but this one (which is at index 0).
+	for (uint32_t i=1; i<_subGeometries.size(); ++i)
+	{
+		_subGeometries[i]->deleteLater();
+	}
 }
 
 void GCodeGeometry::setInputFile(const QString& url)
@@ -351,6 +391,11 @@ void GCodeGeometry::setNumPathStepsUsed(const uint32_t num)
 uint32_t GCodeGeometry::getNumPathPointsUsed() const
 {
 	return _numPathStepsUsed;
+}
+
+QList<GCodeGeometry*> GCodeGeometry::getSubGeometries()
+{
+	return _subGeometries;
 }
 
 size_t GCodeGeometry::calcVerifyModelNumbers()

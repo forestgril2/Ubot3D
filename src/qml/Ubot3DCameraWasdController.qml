@@ -280,6 +280,8 @@ Item {
             controlledObject.position = Qt.vector3d(position.x + velocity.x,
                                                     position.y + velocity.y,
                                                     position.z + velocity.z);
+
+//            console.log(" ### controlledObject.position:" + controlledObject.position)
         }
 
         function negate(vector) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <set>
 #include <string>
 
 #include <CommonDefs.h>
@@ -56,17 +57,22 @@ private:
 
 	bool isNewPathPoint() const;
 
+	static bool isPathAnnotation(const std::string& s);
+
 	std::map<uint32_t, Extrusion> _extruders;
 	Extrusion* _extruderCurr = nullptr;
 	std::vector<ExtrPath>* _extruderPathsCurr;
 	ExtrPath _pathCurr;
 	ExtrPoint _blockCurrAbsCoordsCurr = {0,0,0,0};
 	ExtrPoint* _newCoordsCurr = &_blockCurrAbsCoordsCurr;
+	const std::string* _annotationCurr = &(*_kPathAnnotations.begin());
 
 	size_t _numPathPointsMax = 0;
 	bool _isAbsoluteMode = true;
 
 	static void dumpSubPath(const std::string& blockString, const ExtrPath& path);
+
+	const static std::set<std::string> _kPathAnnotations;
 
 	// TODO: This is for debug, may remove later:
 	std::string _blockStringCurr = "";

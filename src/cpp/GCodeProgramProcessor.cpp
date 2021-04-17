@@ -4,9 +4,13 @@
 #include <parser.h>
 
 // That would be around 10GB GCode probably.
-static const uint32_t blockCountLimit = 640'000'000;
+static const uint32_t kBlockCountLimit = 640'000'000;
 static uint32_t blockCount = 0;
-
+const std::set<std::string> GCodeProgramProcessor::_kPathAnnotations = {"_default",
+																		"warstwa1",
+																		"warstwa2",
+																		"warstwa3",
+																		"warstwa4"};
 
 static gpr::gcode_program importGCodeFromFile(const std::string& file)
 {
@@ -86,13 +90,25 @@ void GCodeProgramProcessor::setupCurrentExtruderReferences(uint32_t extruderInde
 	_newCoordsCurr = &_blockCurrAbsCoordsCurr;
 }
 
+bool GCodeProgramProcessor::isPathAnnotation(const std::string& s)
+{
+	return _kPathAnnotations.end() != _kPathAnnotations.find(s);
+}
+
 bool GCodeProgramProcessor::processComment(const std::string& comment)
 {
-	if (!isNewLayerComment(comment))
-		return false;
+	if (isNewLayerComment(comment))
+	{
+		pushNewLayer();
+		return true;
+	}
+	else if (isPathAnnotation(comment))
+	{
+		_annotationCurr = &(*_kPathAnnotations.find(comment));
+		return true;
+	}
 
-	pushNewLayer();
-	return true;
+	return false;
 }
 
 void GCodeProgramProcessor::switchExtruderModes(const int value)
@@ -276,7 +292,7 @@ std::map<uint32_t, Extrusion>& GCodeProgramProcessor::createExtrusionData(const 
 
 		_pathCurr.push_back(_extrWorkPoints.lastAbsCoords);
 
-		assert(++blockCount < blockCountLimit);
+		assert(++blockCount < kBlockCountLimit);
 	}
 
 	if (!_pathCurr.empty())

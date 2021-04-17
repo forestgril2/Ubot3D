@@ -178,15 +178,5 @@ Window {
                 }
             }
         }
-
-        Component.onCompleted: {
-            if (gCodeModel) {
-                camera.lookAt(getModelCenter(gCodeModel))
-                modelControls.resetSliders()
-            }
-            else {
-                camera.lookAt(Qt.vector3d(50,50,0))
-            }
-        }
     }
 }

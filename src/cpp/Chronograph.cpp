@@ -31,6 +31,8 @@ unsigned Chronograph::_runningChronographsCount = 0;
 static std::ofstream outputFileStream;
 static std::ostream* outputStream = &std::cout;
 
+static const char kIndentation[] = " ";
+
 Chronograph::~Chronograph()
 {// This will allow not to have remember to call log(), when getting out of a scope.
     //TODO: If getting out of scope without logging for a certain action, send a warning.
@@ -84,7 +86,7 @@ void Chronograph::start(const std::string& measuredTimeAction)
 	*outputStream << " ### Chronograph::start() for action: ";
     for (unsigned i = 0; i < _nesting + _runningChronographsCount -1; i++)
     {
-		*outputStream << "    ";
+		*outputStream << kIndentation;
     }
 	*outputStream << measuredTimeAction << std::endl;
 }
@@ -133,7 +135,7 @@ void Chronograph::log(const std::string& measuredTimeAction)
 	*outputStream << "     Chronograph::log(), time for:    ";
     for (unsigned i = 0; i < _nesting + _runningChronographsCount -1; i++)
     {
-		*outputStream << "    ";
+		*outputStream << kIndentation;
     }
 	*outputStream << measuredTimeActionFetched << " # ms/ms(Chrono)/Mticks: "
                << double((msT1-msT0).count())/1000 << " / "

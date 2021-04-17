@@ -14,7 +14,7 @@ Node {
 
     Ubot3dCamera {
         id: camera
-        position: sceneCenter.plus(initDistToModel)
+        position: Qt.vector3d(482.333, 431.943, 7.60926)
         clipFar: 500.0
         clipNear: 0.1
         fieldOfView: 45
