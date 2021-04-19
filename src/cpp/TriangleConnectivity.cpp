@@ -24,7 +24,7 @@ static bool compareTriangles(const TriangleShared& t1, const TriangleShared& t2)
 TriangleConnectivity::TriangleConnectivity(const std::vector<uint32_t>& indices) :
 	_indices(indices)
 {
-	Chronograph chronograph(__FUNCTION__, true);
+	Chronograph chronograph(__FUNCTION__, false);
 	assert(0 == _indices.size() % 3);
 	createTriangles();
 	setupTriangleNeighbours();
@@ -32,7 +32,7 @@ TriangleConnectivity::TriangleConnectivity(const std::vector<uint32_t>& indices)
 
 void TriangleConnectivity::createTriangles()
 {
-	Chronograph chronograph(__FUNCTION__, true);
+	Chronograph chronograph(__FUNCTION__, false);
 	_triangles.reserve(_indices.size()/3);
 	for (uint32_t firstTriangleIndexPos=0; firstTriangleIndexPos<_indices.size(); firstTriangleIndexPos += 3)
 	{// Jump through all first triangle vertex indices.
@@ -43,7 +43,7 @@ void TriangleConnectivity::createTriangles()
 
 void TriangleConnectivity::setupTriangleNeighbours()
 {
-	Chronograph chronograph(__FUNCTION__, true);
+	Chronograph chronograph(__FUNCTION__, false);
 	// Every triangle has 3 vertices, but many triangles may share the same vertex
 	// and its corresponging index.
 
@@ -85,7 +85,7 @@ void TriangleConnectivity::setupTriangleNeighbours()
 
 std::vector<TriangleIsland> TriangleConnectivity::calculateIslands()
 {
-	Chronograph chronograph(__FUNCTION__, true);
+	Chronograph chronograph(__FUNCTION__, false);
 	std::vector<TriangleIsland> islands;
 	uint32_t trianglesLeft = uint32_t(_triangles.size());
 	for (TriangleShared& triangle : _triangles)

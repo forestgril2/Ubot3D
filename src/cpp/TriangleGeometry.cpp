@@ -269,7 +269,7 @@ std::vector<float> TriangleGeometry::prepareColorTrianglesVertexData()
 
 void TriangleGeometry::generateOverhangingVertices()
 {
-	Chronograph chronograph(__FUNCTION__, true);
+	Chronograph chronograph(__FUNCTION__, false);
 	assert(!_overhangingTriangleIndices.empty());
 
 	_overhangingTriangleVertices.clear();

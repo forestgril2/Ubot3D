@@ -463,7 +463,7 @@ void Helpers3D::getContiguousAssimpVerticesAndNormals(const aiScene* assimpScene
 													  std::vector<Vec3>& assimpVertices,
 													  std::vector<Vec3>& assimpNormals)
 {
-	Chronograph chronograph(__FUNCTION__, true);
+	Chronograph chronograph(__FUNCTION__, false);
 
 	uint32_t numAssimpMeshFaces = 0;
 	uint32_t numAssimpVertices = 0;
@@ -535,7 +535,7 @@ std::vector<uint32_t> Helpers3D::calculateOverhangingTriangleIndices(const std::
 																	 const std::vector<uint32_t>& indices,
 																	 float _overhangAngleMax)
 {
-	Chronograph chronograph(__FUNCTION__, true);
+	Chronograph chronograph(__FUNCTION__, false);
 
 	std::vector<uint32_t> overhangingIndices;
 	const uint32_t numIndices = uint32_t(indices.size());

@@ -15,7 +15,7 @@ Node {
     property bool isPicked: false
     property bool pickable: false
     property var subGeometryColors: ["lightgreen", "yellow"]
-
+    property vector3d modelCenter
 
     position: Qt.vector3d(0, 0, 0)
     objectName: "GCode model"

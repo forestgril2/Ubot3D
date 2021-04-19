@@ -113,7 +113,7 @@ Window {
                 }
             }
 
-             onDelegateLoaded: {
+            onDelegateLoaded: {
                 sceneBase.camera.position = modelCenter.plus(sceneBase.camera.initDistToModel)
                 sceneBase.camera.lookAt(modelCenter)
             }
