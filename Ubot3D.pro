@@ -31,7 +31,8 @@ LIBS+=-DCGAL_USE_BASIC_VIEWER
 CONFIG += ordered
 SUBDIRS += src/cpp src/qml
 
-SOURCES += src/cpp/main.cpp \
+SOURCES += \
+     src/cpp/main.cpp \
     src/cpp/ProcessLauncher.cpp \
     src/cpp/SimplexGeometry.cpp \
     src/cpp/GCodeProgramProcessor.cpp \
@@ -44,8 +45,9 @@ SOURCES += src/cpp/main.cpp \
     $$PWD/../gpr/src/parser.cpp
 
 
-HEADERS +=  src/cpp/TriangleGeometry.h \
-        ../gpr/src/CommonDefs.h \
+HEADERS += \
+        src/cpp/TriangleGeometry.h \
+        src/cpp/CommonDefs.h \
         src/cpp/ProcessLauncher.h \
         src/cpp/SimplexGeometry.h \
         src/cpp/GCodeGeometry.h \

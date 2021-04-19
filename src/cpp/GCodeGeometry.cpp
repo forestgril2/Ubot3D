@@ -250,6 +250,7 @@ void GCodeGeometry::initialize()
 }
 
 GCodeGeometry::GCodeGeometry() :
+	_subGeometries({}),
 	_numPathStepsUsed(0),
 	_modelIndices({}),
 	_modelVertices({}),
