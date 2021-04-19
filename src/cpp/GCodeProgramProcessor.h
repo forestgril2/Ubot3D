@@ -23,8 +23,6 @@ public:
 	std::map<uint32_t, Extrusion>& createExtrusionData(const std::string& inputFilePath);
 
 private:
-	static Extrusion initializeExtruderData();
-
 	struct WorkPoints
 	{
 		bool areAnyCoordsSet() const;

@@ -37,21 +37,11 @@ void GCodeProgramProcessor::pushNewLayer()
 	_extruderCurr->layers.push_back({_extruderPathsCurr->size(), previousLayerLastPoint.z()});
 }
 
-Extrusion GCodeProgramProcessor::initializeExtruderData()
-{
-	Extrusion newData;
-	newData.paths.clear();
-	newData.paths.push_back(ExtrPath({{0,0,0,0}}));
-	// Layer bottom at start is just the bed level.
-	newData.layers.push_back({0u, 0.0f});
-	return newData;
-}
-
 void GCodeProgramProcessor::setExtruder(const uint32_t extruderIndex)
 {
 	if (_extruders.end() == _extruders.find(extruderIndex))
 	{
-		_extruders[extruderIndex]=initializeExtruderData();
+		_extruders[extruderIndex] = Extrusion();
 	}
 
 	if (_extruderCurr == &_extruders[extruderIndex])
@@ -260,7 +250,7 @@ std::map<uint32_t, Extrusion>& GCodeProgramProcessor::createExtrusionData(const 
 
 	// Initialize one default extruder, add new if we encounter T1+ block.
 	_extruders.clear();
-	_extruders[0]=initializeExtruderData();
+	_extruders[0] = Extrusion();
 	setupCurrentExtruderReferences(0);
 
 	// Reset main parser workpoint.
