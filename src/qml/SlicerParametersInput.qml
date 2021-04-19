@@ -16,8 +16,7 @@ Window {
 
     Switch {
         id: twoExtrudersSwitch
-        property bool isUsingTwoExtruders: position == 1.0
+        property bool isUsingTwoExtruders: (position == 1.0)
         text: "Use two extruders"
-    }
-	
+    }	
 }

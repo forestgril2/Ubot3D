@@ -60,6 +60,8 @@ void GCodeProgramProcessor::setExtruder(const uint32_t extruderIndex)
 	// If we are switching extruders, we may currently assume, that the previous one is set off.
 	// TODO: One day we may have two extruders working at the same time.
 	setExtrusionOff(_extruderCurr);
+	// Update last paths.
+	_extruderCurr->numPaths = (*_extruderPathsCurr).size();
 	setupCurrentExtruderReferences(extruderIndex);
 }
 
@@ -297,16 +299,13 @@ std::map<uint32_t, Extrusion>& GCodeProgramProcessor::createExtrusionData(const 
 
 	if (!_pathCurr.empty())
 	{
-		_numPathPointsMax = std::max<size_t>(_numPathPointsMax, _pathCurr.size());
-		std::cout << " #### adding subPath no. " << _extruderPathsCurr->size() -1<< ", maxPointsInSubPath: " << _numPathPointsMax << std::endl;
+		_extruderCurr->numPathPointsMax = std::max<size_t>(_extruderCurr->numPathPointsMax, _pathCurr.size());
+		std::cout << " #### adding subPath no. " << _extruderPathsCurr->size() -1<< ", _extruderCurr->numPathPointsMax: " << _extruderCurr->numPathPointsMax << std::endl;
 
 //		dumpSubPath(blockStringCurr, subPathCurr);
 
 		std::swap(_extruderPathsCurr->back(), _pathCurr);
 	}
-
-	_extruderCurr->numPathPointsMax = _numPathPointsMax;
-	_extruderCurr->numPaths = (*_extruderPathsCurr).size();
 
 	return _extruders;
 }
@@ -330,7 +329,7 @@ void GCodeProgramProcessor::setExtrusionOff(Extrusion* extruder)
 
 	if (_pathCurr.empty())
 		return;
-	_numPathPointsMax = std::max<size_t>(_numPathPointsMax, _pathCurr.size());
+	extruder->numPathPointsMax = std::max<size_t>(extruder->numPathPointsMax, _pathCurr.size());
 
 //	dumpSubPath(blockStringCurr, subPathCurr);
 

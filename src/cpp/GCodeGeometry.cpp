@@ -588,8 +588,6 @@ void GCodeGeometry::updateData()
 		return;
 	}
 
-	chrono.start("Reusing vertices");
-
 	QByteArray usedVertices(_modelVertices);
 	QByteArray usedIndices(_modelIndices);
 

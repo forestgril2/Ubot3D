@@ -67,7 +67,6 @@ private:
 	ExtrPoint* _newCoordsCurr = &_blockCurrAbsCoordsCurr;
 	const std::string* _annotationCurr = &(*_kPathAnnotations.begin());
 
-	size_t _numPathPointsMax = 0;
 	bool _isAbsoluteMode = true;
 
 	static void dumpSubPath(const std::string& blockString, const ExtrPath& path);
