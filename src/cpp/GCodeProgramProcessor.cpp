@@ -297,6 +297,9 @@ std::map<uint32_t, Extrusion>& GCodeProgramProcessor::createExtrusionData(const 
 		std::swap(_extruderPathsCurr->back(), _pathCurr);
 	}
 
+	_extruderCurr->numPathPointsMax = std::max<size_t>(_extruderCurr->numPathPointsMax, _pathCurr.size());
+	_extruderCurr->numPaths = (*_extruderPathsCurr).size();
+
 	return _extruders;
 }
 
@@ -320,6 +323,7 @@ void GCodeProgramProcessor::setExtrusionOff(Extrusion* extruder)
 	if (_pathCurr.empty())
 		return;
 	extruder->numPathPointsMax = std::max<size_t>(extruder->numPathPointsMax, _pathCurr.size());
+	extruder->numPaths = (*_extruderPathsCurr).size();
 
 //	dumpSubPath(blockStringCurr, subPathCurr);
 
