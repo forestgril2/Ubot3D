@@ -51,6 +51,8 @@ Window {
             id: message
             text: "Error"
             color: "red"
+            font.bold: true
+            font.pointSize: 16
         }
     }
 
