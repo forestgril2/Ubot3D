@@ -3,6 +3,8 @@
 #include <gcode_program.h>
 #include <parser.h>
 
+#include <Helpers3D.h>
+
 // That would be around 10GB GCode probably.
 static const uint32_t kBlockCountLimit = 640'000'000;
 static uint32_t blockCount = 0;
@@ -68,6 +70,16 @@ bool GCodeProgramProcessor::isNewPathPoint() const
 {// Ignore movements without extrusion and identical extruder path coordinates.
 	return _extruderCurr->isExtruding &&
 			(_pathCurr.size() == 0 || _extrWorkPoints.lastAbsCoords != _pathCurr.back());
+}
+
+bool GCodeProgramProcessor::isNewZLevel() const
+{
+	return !approximatelyEqual(_extrWorkPoints.lastAbsCoords.z(), _pathCurr.back().z(), FLT_MIN);
+}
+
+bool GCodeProgramProcessor::isExtruderFilamentPushed() const
+{
+	return definitelyGreaterThan(_extrWorkPoints.lastAbsCoords.w(), _pathCurr.back().w(), FLT_MIN);
 }
 
 void GCodeProgramProcessor::setupCurrentExtruderReferences(uint32_t extruderIndex)
@@ -151,7 +163,7 @@ void GCodeProgramProcessor::processWordAddress(const char word, const gpr::addr&
 			processExtrCoordSetting(word, Real(address.double_value()));
 			break;
 
-		// Extruder choice.
+		// Extruder/tool index choice.
 		case 'T':
 			switch (address.tp())
 			{
@@ -212,7 +224,6 @@ void GCodeProgramProcessor::processChunks(const gpr::block& block)
 			{
 				if (!processComment(chunk.get_comment_text()))
 					continue;
-
 			}
 			default:
 				break;
@@ -265,8 +276,10 @@ std::map<uint32_t, Extrusion>& GCodeProgramProcessor::createExtrusionData(const 
 
 		_blockStringCurr = block.to_string();
 
+		//=========================================
 		// A lot of things may happen inside here!
 		processChunks(block);
+		//=========================================
 
 		if (!_extrWorkPoints.areAnyCoordsSet())
 			continue;
@@ -277,8 +290,14 @@ std::map<uint32_t, Extrusion>& GCodeProgramProcessor::createExtrusionData(const 
 		if (!isNewPathPoint())
 			continue;
 
-		if (_extrWorkPoints.isFilamentPulledBack())
-		{// In case extruder filament position gets negative, the current path is over.
+		if (_extrWorkPoints.isFilamentPulledBack() || !isExtruderFilamentPushed())
+		{// In case extruder filament position is not increased, the current path is over.
+
+			if (isNewZLevel())
+			{// In such situation also new Z level is a signature of a new layer.
+				pushNewLayer();
+			}
+
 			setExtrusionOff(_extruderCurr);
 		}
 
@@ -376,5 +395,5 @@ bool GCodeProgramProcessor::WorkPoints::areAnyCoordsSet() const
 
 bool GCodeProgramProcessor::WorkPoints::isFilamentPulledBack() const
 {
-	return lastAbsCoords.w() < 0;
+	return lastAbsCoords.w() <= 0;
 }

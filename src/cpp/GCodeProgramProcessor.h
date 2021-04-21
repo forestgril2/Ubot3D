@@ -54,6 +54,9 @@ private:
 	void pushNewLayer();
 
 	bool isNewPathPoint() const;
+	bool isNewZLevel() const;
+	bool isExtruderFilamentPushed() const;
+
 
 	static bool isPathAnnotation(const std::string& s);
 
