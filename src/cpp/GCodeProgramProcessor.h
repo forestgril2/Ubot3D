@@ -56,8 +56,6 @@ private:
 	bool isNewPathPoint() const;
 	bool isNewZLevel() const;
 	bool isExtruderFilamentPushed() const;
-
-
 	static bool isPathAnnotation(const std::string& s);
 
 	std::map<uint32_t, Extrusion> _extruders;

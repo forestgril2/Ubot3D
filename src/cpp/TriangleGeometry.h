@@ -38,6 +38,7 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector<QVector3D> overhangingTriangleVertices READ getOverhangingTriangleVertices NOTIFY overhangingTriangleVerticesChanged)
 	Q_PROPERTY(QVector<QVector3D> triangulationResult READ getTriangulationResult NOTIFY triangulationResultChanged)
 	Q_PROPERTY(QVector<TriangleGeometry*> supportGeometries READ getSupportGeometries NOTIFY supportGeometriesChanged)
+	Q_PROPERTY(bool isSupportGenerated READ isSupportGenerated WRITE setSupportGenerated NOTIFY isSupportGeneratedChanged)
 
 public:
 	TriangleGeometry();
@@ -49,7 +50,8 @@ public:
 		QVector3D pickPos;
 	};
 
-	Q_INVOKABLE void generateSupportGeometries();
+	void setSupportGenerated(bool isGenerated);
+	bool isSupportGenerated() const;
 
 	Q_INVOKABLE QVariantMap getPick(const QVector3D& origin,
 									const QVector3D& direction,
@@ -73,6 +75,7 @@ public:
 public slots:
 	void setMinBounds(const QVector3D& minBounds);
 	void setMaxBounds(const QVector3D& maxBounds);
+	void onIsSupportGeneratedChanged();
 
 signals:
 	void normalsChanged();
@@ -87,6 +90,7 @@ signals:
 	void overhangingPointsChanged();
 	void triangulationResultChanged();
 	void supportGeometriesChanged();
+	void isSupportGeneratedChanged(bool isGenerated);
 
 private:
 	QVector<TriangleGeometry*> getSupportGeometries() const;
@@ -96,6 +100,8 @@ private:
 	void updateBounds(const float* vertexMatrixXCoord);
 	void buildIntersectionData();
 	void updateData(const TriangleGeometryData& data);
+	void generateSupportGeometries();
+	void clearSupportGeometries();
 
 	uint32_t calculateAndSetStride();
 	std::vector<float> prepareColorTrianglesVertexData();
@@ -128,15 +134,14 @@ private:
 	std::vector<std::shared_ptr<TriangleGeometry>> _supportGeometries;
 
 	bool _hasColors = true;
-
 	bool _isPicked = false;
 	bool _isAssimpReadDone = false;
+	bool _isSupportGenerated = false;
 
 //	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 //	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
 	QString _inputFile;
-	//	QString _inputFile = "C:/ProjectsData/stl_files/mandoblasterlow.stl";
 	TriangleGeometryData prepareDataFromAssimpScene();
 	std::shared_ptr<TriangleGeometry> extrudedTriangleIsland(const TriangleIsland& island);
 };

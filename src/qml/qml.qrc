@@ -17,5 +17,6 @@
         <file>GCodeGeometryRepeaterModelDelegate.qml</file>
         <file>HelperFunctions.js</file>
         <file>SlicerParametersInput.qml</file>
+        <file>SupportOptions.qml</file>
     </qresource>
 </RCC>

@@ -4,6 +4,8 @@ import customgeometry 1.0
 Model {
     id: stlModel
     property alias inputFile: geometry.inputFile
+    property alias isSupportGenerated: geometry.isSupportGenerated
+
     property bool isPicked: false
     property bool isSnappedToFloor: false
     property vector3d modelCenter
@@ -27,10 +29,6 @@ Model {
 //        onTriangleIslandsChanged: {
 //            console.log(" ### geometry.triangleIslands.size():" + geometry.triangleIslands.length)
 //        }
-
-        onModelLoaded: {
-            generateSupportGeometries();
-        }
     }
 
     materials: [

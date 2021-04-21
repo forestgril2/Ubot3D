@@ -491,7 +491,7 @@ IndicesToVertices Helpers3D::mapIndicesToUniqueVerticesAndNormals(const std::vec
 																  std::vector<Vec3>& uniqueVertices,
 																  std::vector<Vec3>& uniqueNormals)
 {
-	Chronograph chronograph(__FUNCTION__, true);
+	Chronograph chronograph(__FUNCTION__, false);
 
 	uniqueVertices.clear();
 	uniqueNormals.clear();
@@ -517,7 +517,7 @@ IndicesToVertices Helpers3D::mapIndicesToUniqueVerticesAndNormals(const std::vec
 std::vector<uint32_t> Helpers3D::getRemappedIndices(const IndicesToVertices& indicesToUniqueVertices,
 													const std::vector<Vec3>& nonUniqueVertices)
 {// Remapping new indices to all unique vertices by searching map.
-	Chronograph chronograph(__FUNCTION__, true);
+	Chronograph chronograph(__FUNCTION__, false);
 
 	std::vector<uint32_t> remappedVertexIndices;
 	remappedVertexIndices.reserve(nonUniqueVertices.size());

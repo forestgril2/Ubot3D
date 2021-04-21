@@ -114,6 +114,7 @@ TriangleGeometry::TriangleGeometry() :
 	_minBound(aiVector3D(FLT_MAX, FLT_MAX, FLT_MAX))
 {
 	updateData(TriangleGeometryData());
+	connect(this, &TriangleGeometry::isSupportGeneratedChanged, this, &TriangleGeometry::onIsSupportGeneratedChanged);
 }
 
 TriangleGeometry::TriangleGeometry(const TriangleGeometryData& data) : TriangleGeometry()
@@ -176,6 +177,22 @@ void TriangleGeometry::setMinBounds(const QVector3D& minBounds)
 void TriangleGeometry::setMaxBounds(const QVector3D& maxBounds)
 {
 	setBounds(minBounds(), maxBounds);
+}
+
+void TriangleGeometry::onIsSupportGeneratedChanged()
+{
+	std::cout << " ### " << __FUNCTION__ << " _isSupportGenerated:" << _isSupportGenerated << "," << "" << std::endl;
+	if (!_isSupportGenerated && _supportGeometries.empty())
+		return;
+
+	if (_isSupportGenerated)
+	{
+		generateSupportGeometries();
+	}
+	else
+	{
+		clearSupportGeometries();
+	}
 }
 
 QVector3D TriangleGeometry::minBounds() const
@@ -307,6 +324,27 @@ void TriangleGeometry::generateSupportGeometries()
 	}
 
 	emit supportGeometriesChanged();
+}
+
+void TriangleGeometry::clearSupportGeometries()
+{
+	_supportGeometries.clear();
+	emit supportGeometriesChanged();
+}
+
+void TriangleGeometry::setSupportGenerated(bool isGenerated)
+{
+	if (isGenerated == _isSupportGenerated)
+		return;
+
+	_isSupportGenerated = isGenerated;
+
+	emit isSupportGeneratedChanged(_isSupportGenerated);
+}
+
+bool TriangleGeometry::isSupportGenerated() const
+{
+	return _isSupportGenerated;
 }
 
 QVector<TriangleGeometry*> TriangleGeometry::getSupportGeometries() const

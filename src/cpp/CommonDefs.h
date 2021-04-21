@@ -18,14 +18,14 @@ using Indices = std::vector<uint32_t>;
 
 struct Extrusion
 {
-	using Point      = Eigen::Vector4f;                  /** Three dimensional coordinates +w == filament extrusion length. */
-	using Path       = std::vector<Point>;               /** Points along the center of the filament path. */
-	using Layer      = std::pair<uint32_t, Real>;        /** First index of path with given layer bottom. */
-//	using Annotation = std::pair<uint32_t, StrRefWrap>; /** First index of path with given annotation. */
+	using Point      = Eigen::Vector4f;                   /** Three dimensional coordinates +w == filament extrusion length. */
+	using Path       = std::vector<Point>;                /** Points along the center of the filament path. */
+	using Layer      = std::pair<uint32_t, Real>;         /** First index of path with given layer bottom. */
+	using Annotation = std::pair<uint32_t, std::string*>; /** First index of path with given annotation. */
 
 	std::vector<Path> paths{Path{{0,0,0,0}}};
 	std::vector<Layer> layers{{0u, 0.0f}};
-//	std::vector<Annotation> annotations; /** Additional annotations for paths*/
+	std::vector<Annotation> annotations; /** Additional annotations for paths*/
 
 	size_t numPaths = 0;
 	size_t numPathPointsMax = 0;

@@ -33,6 +33,10 @@ Window {
         id: slicerParameters
     }
 
+    SupportOptions {
+        id: supportOptions
+    }
+
     Popup {
         id: popup
         property alias messageText: message.text
@@ -86,6 +90,7 @@ Window {
 
             delegate: StlModel {
                 id: stlModel
+                isSupportGenerated: supportOptions.isGeneratingSupport
                 inputFile: stlObjects.model[index]
 
                 Component.onCompleted: {
@@ -145,7 +150,7 @@ Window {
 
         Repeater3D {
             id: stlSupportGeometries
-            model: stlObjects.count>0 ? stlObjects.objectAt(0).geometry.supportGeometries : undefined
+            model: (supportOptions.isGeneratingSupport && stlObjects.count > 0) ? stlObjects.objectAt(0).geometry.supportGeometries : undefined
             delegate: StlModel {
                 geometry: stlObjects.objectAt(0).geometry.supportGeometries[index]
             }

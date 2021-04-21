@@ -80,6 +80,7 @@ MenuBar {
 			
 			MenuItem {
 				text: qsTr("Support options")
+                onTriggered: supportOptions.show()
 			}
 			MenuItem{
 				text: qsTr("Options item 2")
