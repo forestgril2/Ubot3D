@@ -392,6 +392,7 @@ void TriangleGeometry::updateData(const TriangleGeometryData& data)
 
 	const uint32_t stride = calculateAndSetStride();
 
+	// TODO: These should be redetected each time scene tranform changes. Add a signal and recalculate.
 	_overhangingTriangleIndices = // These are needed to add color to triangles and generate support geometries.
 			Helpers3D::calculateOverhangingTriangleIndices(_data.vertices, _data.indices, _overhangAngleMax);
 
