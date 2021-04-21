@@ -14,7 +14,7 @@ Model {
     pickable: true
     rotation: Qt.quaternion(0,0,0,0)//modelControls.commonRotationCheckBox.checked ?
                                     // rootModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
-                                    // Qt.quaternion(0,0,0,0)
+    // Qt.quaternion(0,0,0,0)
 
     geometry: TriangleGeometry {
         id: geometry

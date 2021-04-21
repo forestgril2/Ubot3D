@@ -205,6 +205,13 @@ QVector3D TriangleGeometry::maxBounds() const
 	return QVector3D(_maxBound.x, _maxBound.y, _maxBound.z);
 }
 
+//void TriangleGeometry::setSceneTransform(const QMatrix4x4& transform)
+//{
+//	if (_sceneTransform == transform)
+//		return;
+//	_sceneTransform = transform;
+//}
+
 bool TriangleGeometry::isPicked() const
 {
 	return _isPicked;

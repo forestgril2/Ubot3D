@@ -39,6 +39,7 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector<QVector3D> triangulationResult READ getTriangulationResult NOTIFY triangulationResultChanged)
 	Q_PROPERTY(QVector<TriangleGeometry*> supportGeometries READ getSupportGeometries NOTIFY supportGeometriesChanged)
 	Q_PROPERTY(bool isSupportGenerated READ isSupportGenerated WRITE setSupportGenerated NOTIFY isSupportGeneratedChanged)
+//	Q_PROPERTY(QMatrix4x4 sceneTransform READ _sceneTransform WRITE setSceneTransform)
 
 public:
 	TriangleGeometry();
@@ -68,6 +69,7 @@ public:
 	void setBounds(const QVector3D &min, const QVector3D &max);
 	QVector3D minBounds() const;
 	QVector3D maxBounds() const;
+	void setSceneTransform(const QMatrix4x4& transform);
 
 	bool isPicked() const;
 	void setPicked(const bool isPicked);
@@ -112,6 +114,7 @@ private:
 	// Member variables
 	TriangleGeometryData _data;
 	QSSGMeshBVH* _intersectionData = nullptr;
+//	QMatrix4x4 _sceneTransform;
 
 	Assimp::Importer importer;
 	const aiScene* _scene = nullptr;

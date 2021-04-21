@@ -126,33 +126,35 @@ Window {
             }
         }
 
-        Repeater3D {
-            id: overhangingTriangles
-            model: stlObjects.model.length
-            delegate: Model {
-                visible: true
-                scale: Qt.vector3d(1, 1, 1)
-                geometry: SimplexGeometry {
-                    simplexType: SimplexGeometry.Lines
-                    points: stlObjects.objectAt(index).geometry.overhangingTriangleVertices
-                }
-                materials: [
-                    DefaultMaterial {
-                        pointSize: 5
-                        lineWidth: 5
-                        lighting: DefaultMaterial.NoLighting
-                        cullMode: DefaultMaterial.NoCulling
-                        diffuseColor: "yellow"
-                    }
-                ]
-            }
-        }
+//        Repeater3D {
+//            id: overhangingTriangles
+//            model: stlObjects.model.length
+//            delegate: Model {
+//                visible: true
+//                scale: Qt.vector3d(1, 1, 1)
+//                geometry: SimplexGeometry {
+//                    simplexType: SimplexGeometry.Lines
+//                    points: stlObjects.objectAt(index).geometry.overhangingTriangleVertices
+//                }
+//                materials: [
+//                    DefaultMaterial {
+//                        pointSize: 5
+//                        lineWidth: 5
+//                        lighting: DefaultMaterial.NoLighting
+//                        cullMode: DefaultMaterial.NoCulling
+//                        diffuseColor: "yellow"
+//                    }
+//                ]
+//            }
+//        }
 
         Repeater3D {
             id: stlSupportGeometries
             model: (supportOptions.isGeneratingSupport && stlObjects.count > 0) ? stlObjects.objectAt(0).geometry.supportGeometries : undefined
             delegate: StlModel {
                 geometry: stlObjects.objectAt(0).geometry.supportGeometries[index]
+                position: stlObjects.objectAt(0).position
+                rotation: stlObjects.objectAt(0).rotation
             }
 
             onModelChanged: {
