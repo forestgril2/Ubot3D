@@ -90,7 +90,7 @@ bool Helpers3D::vertexLess(const Vec3& a, const Vec3& b)
 	return false;
 }
 
-std::vector<Vec3> Helpers3D::computeAlphaShapeSegments(const std::vector<Vec3>& points)
+std::vector<Vec3> Helpers3D::computeAlphaShapeSegments(const std::vector<Vec3>& points, float floorLevel)
 {
 	std::vector<Vec3> result;
 	if (points.size() == 0)
@@ -112,9 +112,9 @@ std::vector<Vec3> Helpers3D::computeAlphaShapeSegments(const std::vector<Vec3>& 
 //	std::cout << "Alpha Shape computed" << std::endl;
 //	std::cout << segments.size() << " alpha shape edges" << std::endl;
 
-	std::for_each(segments.begin(), segments.end(), [&result](const Segment& s) {
-		result.push_back({static_cast<float>(s[0].x()), static_cast<float>(s[0].y()), 0});
-		result.push_back({static_cast<float>(s[1].x()), static_cast<float>(s[1].y()), 0});
+	std::for_each(segments.begin(), segments.end(), [&result, &floorLevel](const Segment& s) {
+		result.push_back({static_cast<float>(s[0].x()), static_cast<float>(s[0].y()), floorLevel});
+		result.push_back({static_cast<float>(s[1].x()), static_cast<float>(s[1].y()), floorLevel});
 	});
 //	std::for_each(segments.begin(), segments.end(), [&result](const Segment& s) {
 //		result.push_back({static_cast<float>(s[0].x()), static_cast<float>(s[0].y()), 0});
@@ -193,67 +193,88 @@ int Helpers3D::drawTriangulation(const QVector<QVector3D>& points)
   return EXIT_SUCCESS;
 }
 
-std::shared_ptr<TriangleGeometry> Helpers3D::extrudedTriangleIsland(const TriangleIsland& island,
-																	const std::vector<Vec3>& islandVertices)
-{// Get top, get it casted to floor, connect both.
-	const std::vector<uint32_t> islandTriangleIndices = island.getTriangleIndices();
+std::shared_ptr<TriangleGeometry> Helpers3D::extrudedTriangleIsland(const TriangleIsland& modelIsland,
+																	const std::vector<Vec3>& modelVertices,
+																	float modelFloorLevel)
+{// Get (top) triangle island points, get it casted to floor, connect both.
+	TriangleGeometryData returnData;
+
+	std::vector<Vec3>& uniqueSupportPointsArray = returnData.vertices;
+	std::vector<uint32_t>& supportGeometryIndices = returnData.indices;
+
+	// These point to vertex indices in the model, for which the island was generated.
+	const std::vector<uint32_t> islandTriangleIndices = modelIsland.getTriangleIndices();
+	// Create a set of unique indices.
 	const std::set<uint32_t> islandUniqueIndices(islandTriangleIndices.begin(), islandTriangleIndices.end());
 	const uint32_t numIslandUniqueIndices = uint32_t(islandUniqueIndices.size());
 
-	TriangleGeometryData returnData;
-	std::vector<Vec3>& uniqueSupportPoints = returnData.vertices;
-	std::vector<uint32_t>& supportGeometryIndices = returnData.indices;
-
+	// Collect island vertices casted to floor here.
 	std::vector<Vec3> floorVertices;
-	uniqueSupportPoints.reserve(2*numIslandUniqueIndices);
 	floorVertices.reserve(numIslandUniqueIndices);
 
+	// Reserve space for unique vertices: top and floor - thus factor of 2.
+	uniqueSupportPointsArray.reserve(2*numIslandUniqueIndices);
+
+	//These maps will help to match indices to vertices and vice-versa.
 	IndicesToVertices indicesToUniqueVertices(Helpers3D::vertexLess);
 	IndicesToVertices topIndicesToFloorVertices(Helpers3D::vertexLess);
 	IndicesToVertices floorIndicesToTopVertices(Helpers3D::vertexLess);
-	uint32_t currIndex = 0;
+
+	uint32_t currSupportIndex = 0;
 	for (uint32_t index : islandUniqueIndices)
 	{// Build a map of indices to top vertices and fill support array with top vertices.
-		const Vec3& topVertex = islandVertices[index];
+		const Vec3& topVertex = modelVertices[index];
 
 		auto it = indicesToUniqueVertices.find(topVertex);
 		if (it == indicesToUniqueVertices.end())
-		{// Unique top vertices.
-			indicesToUniqueVertices[topVertex] = currIndex;
-			uniqueSupportPoints.push_back(topVertex);
+		{// If not yet added, add an unique top vertex and a matching index from support array.
+			indicesToUniqueVertices[topVertex] = currSupportIndex;
+			uniqueSupportPointsArray.push_back(topVertex);
 
 			// Match floor vertices to them by means of top index.
-			const Vec3 floorVertex{topVertex.x(), topVertex.y(), 0};
+			const Vec3 floorVertex{topVertex.x(), topVertex.y(), modelFloorLevel};
 			floorVertices.push_back(floorVertex);
-			topIndicesToFloorVertices[floorVertex] = currIndex++;
+			// Remember to increment the support index afterwards!
+			topIndicesToFloorVertices[floorVertex] = currSupportIndex++;
 		}
 	}
 	for (const Vec3& floorVertex : floorVertices)
 	{// Extend the map with floor vertices and add floor vertices to support array (keep in mind: sometimes top==floor)
 		auto it = indicesToUniqueVertices.find(floorVertex);
 		if (it == indicesToUniqueVertices.end())
-		{// Unique top vertices.
-			indicesToUniqueVertices[floorVertex] = currIndex;
-			uniqueSupportPoints.push_back(floorVertex);
+		{// If floor vertex was not yet added, add an unique floor vertex and a matching index from support array.
+			indicesToUniqueVertices[floorVertex] = currSupportIndex;
+
+			//========================================================================
+			// TODO!: Watch out - maybe this should be somehow extracted and exposed
+			Vec3 adjustedFloorVertex = floorVertex;
+			adjustedFloorVertex.z() = modelFloorLevel;
+//			uniqueSupportPoints.push_back(adjustedFloorVertex);
+			uniqueSupportPointsArray.push_back(floorVertex);
+			//========================================================================
 
 			// Match top vertices to them by means of floor index.
-			const Vec3 topVertex = uniqueSupportPoints[topIndicesToFloorVertices[floorVertex]];
-			floorIndicesToTopVertices[topVertex] = currIndex++;
+			const Vec3 topVertex = uniqueSupportPointsArray[topIndicesToFloorVertices[floorVertex]];
+			// Remember to increment the support index afterwards!
+			floorIndicesToTopVertices[topVertex] = currSupportIndex++;
 		}
 	}
-	const std::vector<Vec3> islandAlphaShapeRing = Helpers3D::computeAlphaShapeSegments(floorVertices);
+
+	// IslandAlpahShapeRing should have Z changed to floorLevel to be found in the maps.
+	const std::vector<Vec3> islandAlphaShapeRing = Helpers3D::computeAlphaShapeSegments(floorVertices, modelFloorLevel);
+
 
 	// Reserve for top, bottom and side triangles.
 	supportGeometryIndices.reserve(2*islandTriangleIndices.size() + 6*islandAlphaShapeRing.size());
 	for (uint32_t triangleVertexIndex : islandTriangleIndices)
 	{// Generate triangle indices for top:
-		supportGeometryIndices.push_back(indicesToUniqueVertices[islandVertices[triangleVertexIndex]]);
+		supportGeometryIndices.push_back(indicesToUniqueVertices[modelVertices[triangleVertexIndex]]);
 	}
 	for (uint32_t index : islandTriangleIndices)
 	{// Generate triangle indices for bottom.
-		const Vec3 topVertex = islandVertices[index];
+		const Vec3 topVertex = modelVertices[index];
 		const uint32_t floorIndex = floorIndicesToTopVertices[topVertex];
-		const Vec3 floorVertex = uniqueSupportPoints[floorIndex];
+		const Vec3 floorVertex = uniqueSupportPointsArray[floorIndex];
 		supportGeometryIndices.push_back(indicesToUniqueVertices[floorVertex]);
 	}
 

@@ -37,7 +37,7 @@ QT_BEGIN_NAMESPACE
 
 #undef NDEBUG
 
-static const uint32_t kNumfloatsPerPositionAttribute = 3u;
+static const uint32_t kNumFloatsPerPositionAttribute = 3u;
 
 void assimpErrorLogging(const std::string&& pError)
 {
@@ -245,7 +245,7 @@ void TriangleGeometry::reloadAssimpScene()
 uint32_t TriangleGeometry::calculateAndSetStride()
 {
 	static const uint32_t numfloatsPerColorAttribute = 4u;
-	uint32_t stride = kNumfloatsPerPositionAttribute * sizeof(float);
+	uint32_t stride = kNumFloatsPerPositionAttribute * sizeof(float);
 	if (_hasColors)
 	{
 		stride += numfloatsPerColorAttribute * sizeof(float);
@@ -305,12 +305,11 @@ void TriangleGeometry::generateOverhangingVertices()
 		const QVector3D v1 = *reinterpret_cast<const QVector3D*>(&_data.vertices[_overhangingTriangleIndices[index +1]]);
 		const QVector3D v2 = *reinterpret_cast<const QVector3D*>(&_data.vertices[_overhangingTriangleIndices[index +2]]);
 
-		_overhangingTriangleVertices.push_back(v0);
-		_overhangingTriangleVertices.push_back(v1);
-		_overhangingTriangleVertices.push_back(v1);
-		_overhangingTriangleVertices.push_back(v2);
-		_overhangingTriangleVertices.push_back(v2);
-		_overhangingTriangleVertices.push_back(v0);
+		std::vector<std::reference_wrapper<const QVector3D>> verticesToPush{v0, v1, v1, v2, v2, v0};
+		for(const QVector3D& v: verticesToPush)
+		{
+			_overhangingTriangleVertices.push_back(v);
+		}
 	}
 
 	emit overhangingTriangleVerticesChanged();
@@ -327,7 +326,8 @@ void TriangleGeometry::generateSupportGeometries()
 	_supportGeometries.clear();
 	for (const TriangleIsland& island : triangleIslands)
 	{// Generate a support geometry for each overhanging triangle island.
-		_supportGeometries.push_back(Helpers3D::extrudedTriangleIsland(island, _data.vertices));
+		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
+		_supportGeometries.push_back(Helpers3D::extrudedTriangleIsland(island, _data.vertices, _minBound.z));
 	}
 
 	emit supportGeometriesChanged();
@@ -410,7 +410,7 @@ void TriangleGeometry::updateData(const TriangleGeometryData& data)
                  QQuick3DGeometry::Attribute::F32Type);
 
 	addAttribute(QQuick3DGeometry::Attribute::ColorSemantic,
-				 kNumfloatsPerPositionAttribute * sizeof(float),
+				 kNumFloatsPerPositionAttribute * sizeof(float),
 				 QQuick3DGeometry::Attribute::F32Type);
 
 	addAttribute(QQuick3DGeometry::Attribute::IndexSemantic,

@@ -43,10 +43,11 @@ public:
 	static Q_INVOKABLE QVector3D getRotatedVector(const QQuaternion& q, const QVector3D v);
 
 	// TODO: CGAL related - extract to CGAL class or whatever.
-	static std::shared_ptr<TriangleGeometry> extrudedTriangleIsland(const TriangleIsland& island,
-																	const std::vector<Vec3>& islandVertices);
+	static std::shared_ptr<TriangleGeometry> extrudedTriangleIsland(const TriangleIsland& modelIsland,
+																	const std::vector<Vec3>& modelVertices,
+																	float modelFloorLevel = 0);
 	static std::vector<Vec3> computeConvexHull(const std::vector<Vec3>& points);
-	static std::vector<Vec3> computeAlphaShapeSegments(const std::vector<Vec3>& points);
+	static std::vector<Vec3> computeAlphaShapeSegments(const std::vector<Vec3>& points, float floorLevel);
 	static int createCgalMesh();
 	static int drawTriangulation(const QVector<QVector3D>& points);
 
