@@ -76,8 +76,9 @@ FileDialog {
         var exportDataList = []
         for (var i=0; i<stlModelList.length; i++) {
             exportDataList.push({
-                                 geometry:  stlModelList[i].geometry,
-                                 transform: stlModelList[i].sceneTransform
+                                 geometry:          stlModelList[i].geometry,
+                                 transform:         stlModelList[i].sceneTransform,
+                                 isSupportExported: supportOptions.isSupportExported
                                })
         }
         return exportDataList;

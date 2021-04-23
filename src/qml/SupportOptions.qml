@@ -11,12 +11,21 @@ import "HelperFunctions.js" as QmlHelpers
 Window {
 	id: supportOptions
 	property alias isGeneratingSupport: supportSwitch.isGeneratingSupport
+    property alias isSupportExported: supportExportSwitch.isExportingSupport
 	minimumWidth: 300
 	title: "Support options"
 	
-	Switch {
-		id: supportSwitch
-		property bool isGeneratingSupport: (position == 1.0)
-		text: "Generate support"
-	}
+    Column
+    {
+        Switch {
+            id: supportSwitch
+            property bool isGeneratingSupport: (position == 1.0)
+            text: "Generate support"
+        }
+        Switch {
+            id: supportExportSwitch
+            property bool isExportingSupport: (position == 1.0)
+            text: "Export support, when saving STL file"
+        }
+    }
 }
