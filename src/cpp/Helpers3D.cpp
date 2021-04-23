@@ -97,11 +97,10 @@ static aiScene* generateTransformedGeometryScene(const TriangleGeometry* geometr
 	return geometryScene;
 }
 
-static std::vector<Assimp::AttachmentInfo> generateAssimpSceneAttachements(const QVariantList& stlExportData)
+static std::vector<aiScene*> generateScenes(const QVariantList& stlExportData)
 {
-	std::vector<Assimp::AttachmentInfo> sceneAttachments;
+	std::vector<aiScene*> scenes;
 
-	aiNode* masterNode = nullptr;
 	for (const QVariant& exportData : stlExportData)
 	{
 		QVariantMap map = exportData.toMap();
@@ -117,23 +116,35 @@ static std::vector<Assimp::AttachmentInfo> generateAssimpSceneAttachements(const
 		aiMatrix4x4 aiTransform = *reinterpret_cast<const aiMatrix4x4*>(&transform);
 		aiTransform.Transpose();
 
-		aiScene* geometryScene = generateTransformedGeometryScene(stlGeometry, aiTransform);
-		if (!masterNode)
-		{
-			masterNode = geometryScene->mRootNode;
-		}
-		sceneAttachments.push_back({geometryScene, masterNode});
+		scenes.push_back(generateTransformedGeometryScene(stlGeometry, aiTransform));
 	}
-	return sceneAttachments;
+	return scenes;
 }
 
-static aiScene* combineAttachmentsIntoScene(std::vector<Assimp::AttachmentInfo>& sceneAttachments)
+
+static aiScene* combineScenes(const std::vector<aiScene*>& scenes, aiScene* masterScene = nullptr)
 {
+	if (masterScene && (scenes.end() == std::find(scenes.begin(), scenes.end(), masterScene)))
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR master scene not found in scenes." << std::endl;
+		return nullptr;
+	}
+	else
+	{
+		masterScene = scenes[0];
+	}
+
+	aiNode* const masterNode = masterScene->mRootNode;
+
+	std::vector<Assimp::AttachmentInfo> sceneAttachments;
+	sceneAttachments.reserve(scenes.size());
+	for (aiScene* scene: scenes)
+	{
+		sceneAttachments.emplace_back(Assimp::AttachmentInfo{scene, masterNode});
+	}
+
 	aiScene* destReturnScene = new aiScene();
-
-	aiScene* masterScene = sceneAttachments[0].scene;
 	Assimp::SceneCombiner::MergeScenes(&destReturnScene, masterScene, sceneAttachments);
-
 	return destReturnScene;
 }
 
@@ -147,14 +158,14 @@ bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QStri
 		return false;
 	}
 
-	std::vector<Assimp::AttachmentInfo> sceneAttachments = generateAssimpSceneAttachements(stlExportData);
-	if (sceneAttachments.empty())
+	std::vector<aiScene*> scenes = generateScenes(stlExportData);
+	if (scenes.empty())
 	{
 		std::cout << " ### " << __FUNCTION__ << " ERROR no geometry data provided for file: " << filePath.toStdString() << std::endl;
 		return false;
 	}
+	const aiScene* destScene = combineScenes(scenes);
 
-	const aiScene* destScene = combineAttachmentsIntoScene(sceneAttachments);
 
 	Assimp::Exporter exporter;
 	if (AI_SUCCESS == exporter.Export(destScene, "stlb", filePath.toStdString()))
