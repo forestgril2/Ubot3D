@@ -10,8 +10,6 @@
 #include <QQuaternion>
 
 #include <glm/mat4x4.hpp>
-#include <glm/mat4x4.hpp>
-
 
 #include <Eigen/Geometry>
 using Vec3 = Eigen::Vector3f;
@@ -79,7 +77,6 @@ private:
 		});
 		return points2;
 	}
-
 };
 
 bool approximatelyEqual(float a, float b, float epsilon);

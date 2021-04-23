@@ -64,12 +64,110 @@ template <class OutputIterator>
 
 #undef NDEBUG
 
-void alpha_edges( const Alpha_shape_2& A, OutputIterator out)
+static void alpha_edges(const Alpha_shape_2& A, OutputIterator out)
 {
   Alpha_shape_edges_iterator it = A.alpha_shape_edges_begin(),
 							 end = A.alpha_shape_edges_end();
   for( ; it!=end; ++it)
 	*out++ = A.segment(*it);
+}
+
+static aiScene* generateTransformedGeometryScene(const TriangleGeometry* geometry, const aiMatrix4x4& aiTransform)
+{
+	aiScene* geometryScene;// = nullptr;
+	Assimp::SceneCombiner::CopyScene(&geometryScene, geometry->getAssimpScene());
+
+	// TODO: Remove and regenerate normals.
+	//		geometryScene->mRootNode->mTransformation = aiTransform;
+
+	for (uint32_t m=0; m<geometryScene->mNumMeshes; ++m)
+	{// Transform all vertices according to their root node.
+		const uint32_t numFacesInThisMesh = geometryScene->mMeshes[m]->mNumFaces;
+		for (uint32_t f=0; f<numFacesInThisMesh; ++f)
+		{
+			aiFace& face = geometryScene->mMeshes[m]->mFaces[f];
+			const uint32_t numFaceIndexes = face.mNumIndices;
+			for (uint32_t fi=0; fi<numFaceIndexes; ++fi)
+			{
+				aiVector3D& vertex = geometryScene->mMeshes[m]->mVertices[face.mIndices[fi]];
+				vertex *= aiTransform;
+			}
+		}
+	}
+	return geometryScene;
+}
+
+static std::vector<Assimp::AttachmentInfo> generateAssimpSceneAttachements(const QVariantList& stlExportData)
+{
+	std::vector<Assimp::AttachmentInfo> sceneAttachments;
+
+	aiNode* masterNode = nullptr;
+	for (const QVariant& exportData : stlExportData)
+	{
+		QVariantMap map = exportData.toMap();
+		const TriangleGeometry* stlGeometry = qvariant_cast<TriangleGeometry*>(map.value("geometry"));
+		const QMatrix4x4 transform          = qvariant_cast<QMatrix4x4>       (map.value("transform"));
+		const bool isSupportExported        = qvariant_cast<bool>             (map.value("isSupportExported"));
+
+		if (!stlGeometry) {
+			std::cout << " ### " << __FUNCTION__ << " ERROR: cannot cast export data to TriangleGeometry." << std::endl;
+			return {};
+		}
+
+		aiMatrix4x4 aiTransform = *reinterpret_cast<const aiMatrix4x4*>(&transform);
+		aiTransform.Transpose();
+
+		aiScene* geometryScene = generateTransformedGeometryScene(stlGeometry, aiTransform);
+		if (!masterNode)
+		{
+			masterNode = geometryScene->mRootNode;
+		}
+		sceneAttachments.push_back({geometryScene, masterNode});
+	}
+	return sceneAttachments;
+}
+
+static aiScene* combineAttachmentsIntoScene(std::vector<Assimp::AttachmentInfo>& sceneAttachments)
+{
+	aiScene* destReturnScene = new aiScene();
+
+	aiScene* masterScene = sceneAttachments[0].scene;
+	Assimp::SceneCombiner::MergeScenes(&destReturnScene, masterScene, sceneAttachments);
+
+	return destReturnScene;
+}
+
+bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QString filePath)
+{
+	assert(stlExportData.size() > 0);
+
+	if (0 == stlExportData.size())
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR no export data provided for file: " << filePath.toStdString() << std::endl;
+		return false;
+	}
+
+	std::vector<Assimp::AttachmentInfo> sceneAttachments = generateAssimpSceneAttachements(stlExportData);
+	if (sceneAttachments.empty())
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR no geometry data provided for file: " << filePath.toStdString() << std::endl;
+		return false;
+	}
+
+	const aiScene* destScene = combineAttachmentsIntoScene(sceneAttachments);
+
+	Assimp::Exporter exporter;
+	if (AI_SUCCESS == exporter.Export(destScene, "stlb", filePath.toStdString()))
+	{
+		std::cout << " ### " << __FUNCTION__ << " filePATH:" << filePath.toStdString() << " export OK" << std::endl;
+	}
+	else
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR for file:" << filePath.toStdString() << std::endl;
+		return false;
+	}
+
+	return true;
 }
 
 bool Helpers3D::vertexLess(const Vec3& a, const Vec3& b)
@@ -369,85 +467,6 @@ QVector3D Helpers3D::getRotatedVector(const QQuaternion& q, const QVector3D v)
 {
 	return q*v;
 }
-
-bool Helpers3D::exportModelsToSTL(const QVariantList& stlExportData, const QString filePath)
-{
-	assert(stlExportData.size() > 0);
-
-//	QList<QVariantMap>::const_iterator it = stlExportData.begin();
-
-	std::vector<Assimp::AttachmentInfo> sceneAttachments;
-
-	aiNode* masterNode = nullptr;
-	aiScene* masterScene = nullptr;
-	for (const QVariant& exportData : stlExportData)
-	{
-		QVariantMap map = exportData.toMap();
-		const TriangleGeometry* stlGeometry = qvariant_cast<TriangleGeometry*>(map.value("geometry"));
-		if (!stlGeometry) {
-			std::cout << " ### " << __FUNCTION__ << " cannot cast to TriangleGeometry:" << "" << "," << "" << std::endl;
-			return false;
-		}
-
-		aiScene* geometryScene;// = nullptr;
-		Assimp::SceneCombiner::CopyScene(&geometryScene, stlGeometry->getAssimpScene());
-
-		const QMatrix4x4 transform = qvariant_cast<QMatrix4x4>(map.value("transform"));
-		aiMatrix4x4 aiTransform = *reinterpret_cast<const aiMatrix4x4*>(&transform);
-		aiTransform.Transpose();
-
-		// TODO: Remove and regenerate normals.
-//		geometryScene->mRootNode->mTransformation = aiTransform;
-
-		for (uint32_t m=0; m<geometryScene->mNumMeshes; ++m)
-		{// Transform all vertices according to their root node.
-			const uint32_t numFacesInThisMesh = geometryScene->mMeshes[m]->mNumFaces;
-			for (uint32_t f=0; f<numFacesInThisMesh; ++f)
-			{
-				aiFace& face = geometryScene->mMeshes[m]->mFaces[f];
-				const uint32_t numFaceIndexes = face.mNumIndices;
-				for (uint32_t fi=0; fi<numFaceIndexes; ++fi)
-				{
-					aiVector3D& vertex = geometryScene->mMeshes[m]->mVertices[face.mIndices[fi]];
-					vertex *= aiTransform;
-//					std::cout << " ### " << __FUNCTION__ << " :" << "" << "," << "" << std::endl;
-				}
-			}
-		}
-
-		if (!masterNode)
-		{
-			masterNode = geometryScene->mRootNode;
-			masterScene = geometryScene;
-		}
-
-		sceneAttachments.push_back({geometryScene, masterNode});
-	}
-
-	aiScene* destScene = new aiScene();
-	Assimp::SceneCombiner::MergeScenes(&destScene, masterScene, sceneAttachments);
-
-	Assimp::Exporter exporter;
-
-//	for (uint32_t i=0; i<exporter.GetExportFormatCount(); ++i)
-//	{
-//		std::string desc(exporter.GetExportFormatDescription(i)->description);
-//		std::string formatIdentifier(exporter.GetExportFormatDescription(i)->id);
-//		std::cout << " ### " << __FUNCTION__ << ": " << desc << "," << formatIdentifier << ", " << i << std::endl << std::endl;
-//	}
-
-	if (AI_SUCCESS == exporter.Export(destScene, "stlb", filePath.toStdString()))
-	{
-		std::cout << " ### " << __FUNCTION__ << " filePATH:" << filePath.toStdString() << " export OK" << std::endl;
-	}
-	else
-	{
-		std::cout << " ### " << __FUNCTION__ << " ERROR for file:" << filePath.toStdString() << std::endl;
-	}
-
-	return true;
-}
-
 
 bool approximatelyEqual(float a, float b, float epsilon)
 {
