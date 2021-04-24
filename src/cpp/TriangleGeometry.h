@@ -26,6 +26,20 @@ struct TriangleGeometryData
 	std::vector<uint32_t> indices;
 };
 
+
+struct GeometryVertexStrideData
+{
+	static uint32_t getStride(const bool hasColors)
+	{
+		return sizeof(float)*(numFloatsPerPositionAttribute +
+							  hasColors * numFloatsPerColorAttribute); }
+private:
+	static const uint32_t numFloatsPerPositionAttribute = 3u;
+	static const uint32_t numFloatsPerColorAttribute = 4u;
+
+};
+
+
 class TriangleGeometry : public QQuick3DGeometry
 {
 	Q_OBJECT
@@ -45,6 +59,8 @@ public:
 	TriangleGeometry();
 	TriangleGeometry(const TriangleGeometryData& data);
 
+	const TriangleGeometryData& getData() const { return _data; }
+
 	struct PickResult
 	{
 		bool isPick = false;
@@ -60,6 +76,7 @@ public:
 
 	QVector<QVector3D> getOverhangingTriangleVertices() const;
 	QVector<QVector3D> getTriangulationResult() const;
+	QVector<TriangleGeometry*> getSupportGeometries() const;
 
 	const aiScene* getAssimpScene() const;
 
@@ -95,7 +112,6 @@ signals:
 	void isSupportGeneratedChanged(bool isGenerated);
 
 private:
-	QVector<TriangleGeometry*> getSupportGeometries() const;
 	bool importModelFromFile(const std::string& pFile);
 	void reloadAssimpScene();
 	void updateAllMeshBounds(const aiScene* scene, const unsigned meshIndex = 0u);

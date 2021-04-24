@@ -242,17 +242,6 @@ void TriangleGeometry::reloadAssimpScene()
 	setBounds({_minBound.x, _minBound.y, _minBound.z}, {_maxBound.x, _maxBound.y,_maxBound.z});
 	clear();
 }
-uint32_t TriangleGeometry::calculateAndSetStride()
-{
-	static const uint32_t numfloatsPerColorAttribute = 4u;
-	uint32_t stride = kNumFloatsPerPositionAttribute * sizeof(float);
-	if (_hasColors)
-	{
-		stride += numfloatsPerColorAttribute * sizeof(float);
-	}
-	setStride(int(stride));
-	return stride;
-}
 
 std::vector<float> TriangleGeometry::prepareColorTrianglesVertexData()
 {// Calculate triangle vertices with colors and view them as Qt array.
@@ -283,6 +272,10 @@ std::vector<float> TriangleGeometry::prepareColorTrianglesVertexData()
 		};
 
 		setTriangleVertex(vertex);
+
+		if (!_hasColors)
+			continue;
+
 		const bool isOverhangingVertex = overhangingIndices.find(vertexIndex) != overhangingIndices.end();
 		setTriangleColor(isOverhangingVertex);
 	}
@@ -294,7 +287,6 @@ std::vector<float> TriangleGeometry::prepareColorTrianglesVertexData()
 void TriangleGeometry::generateOverhangingVertices()
 {
 	Chronograph chronograph(__FUNCTION__, false);
-	assert(!_overhangingTriangleIndices.empty());
 
 	_overhangingTriangleVertices.clear();
 	_overhangingTriangleVertices.reserve(qsizetype(_overhangingTriangleIndices.size() * 2));
@@ -377,7 +369,7 @@ TriangleGeometryData TriangleGeometry::prepareDataFromAssimpScene()
 	TriangleGeometryData returnData;
 	const IndicesToVertices indicesToUniqueVertices =
 			Helpers3D::mapIndicesToUniqueVerticesAndNormals(assimpVertices,      assimpNormals,
-												  returnData.vertices, returnData.normals);
+															returnData.vertices, returnData.normals);
 	returnData.indices = Helpers3D::getRemappedIndices(indicesToUniqueVertices, assimpVertices);
 	return returnData;
 }
@@ -390,18 +382,20 @@ void TriangleGeometry::updateData(const TriangleGeometryData& data)
 		return;
 	_data = data;
 
-	const uint32_t stride = calculateAndSetStride();
+	const uint32_t stride = GeometryVertexStrideData::getStride(_hasColors);
+	setStride(static_cast<int>(stride));
 
 	// TODO: These should be redetected each time scene tranform changes. Add a signal and recalculate.
 	_overhangingTriangleIndices = // These are needed to add color to triangles and generate support geometries.
 			Helpers3D::calculateOverhangingTriangleIndices(_data.vertices, _data.indices, _overhangAngleMax);
 
 	generateOverhangingVertices();
-
+	// Watch out! TriangleGeometryData _data.vertices has different byte size than its size multiplied by stride:
+	// prepareColorTrianglesVertexData() does the job of converting simple Vec3 arrays to vertices+colors.
 	setIndexData(QByteArray(reinterpret_cast<const char*>(_data.indices.data()),
 							qsizetype(_data.indices.size() * sizeof(uint32_t))));
 	setVertexData(QByteArray(reinterpret_cast<const char*>(prepareColorTrianglesVertexData().data()),
-							 qsizetype(_data.vertices.size() * stride * sizeof(float))));
+							 qsizetype(_data.vertices.size() * stride)));
 
     setPrimitiveType(QQuick3DGeometry::PrimitiveType::Triangles);
 
