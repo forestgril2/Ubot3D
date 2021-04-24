@@ -25,7 +25,7 @@ Window {
         Switch {
             id: supportExportSwitch
             property bool isExportingSupport: (position == 1.0)
-            text: "Export support, when saving STL file"
+            text: "STL Export support with model"
         }
     }
 }

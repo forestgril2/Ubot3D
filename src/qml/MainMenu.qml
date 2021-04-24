@@ -14,7 +14,7 @@ MenuBar {
 	
 	id: mainMenu
 
-    signal modelCloseRequested()
+    signal clearSceneRequested()
 
 	menus: [
 		Menu {
@@ -37,9 +37,9 @@ MenuBar {
 				text: qsTr("Recently Opened...")
 			}
 			MenuItem{
-				text: qsTr("Close file")
+                text: qsTr("Clear scene")
                 onTriggered: {
-                    mainMenu.modelCloseRequested()
+                    mainMenu.clearSceneRequested()
                 }
 			}
 			MenuSeparator {}

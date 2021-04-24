@@ -58,6 +58,14 @@ FileDialog {
 
     function openExportStlFileDialog()
     {
+        if (QmlHelpers.getSelected(stlObjects).length === 0) {
+            popup.backgroundColor = "yellow"
+            popup.messageColor = "black"
+            popup.messageText = "No models selected. Please select model(s) to export to STL."
+            popup.open()
+            return
+        }
+
         nameFilters = ["STL files (*.stl *.STL)"]
         fileMode = FileDialog.SaveFile
         fileType = TypedFileDialog.StlExport

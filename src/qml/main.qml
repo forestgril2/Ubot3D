@@ -19,9 +19,27 @@ Window {
     MainMenu {
         id: mainMenu
 
-        onModelCloseRequested: {
+        onClearSceneRequested: {
             stlObjects.model = []
             gCodeObjects.model = []
+        }
+    }
+
+    Keys.onPressed: {
+        if (event.key === Qt.Key_Delete) {
+            console.log(" ### IMPLEMENT THIS! This  may be tricky as STL objects repeater model" +
+                        " is a file path list, change it, so a file may be opened multiple times" +
+                        " and there is no mistake, when deleting models")
+
+//            var selectedStlObjects = QmlHelpers.getSelected(stlObjects)
+//            for (var i=0; i<selectedObjects.length; i++) {
+//                const index = array.indexOf(5);
+//                if (index > -1) {
+//                    array.splice(index, 1);
+//                }
+//            }
+
+            event.accepted = true;
         }
     }
 
@@ -255,14 +273,14 @@ Window {
                 popup.messageText = "Slicer process successful."
                 popup.open()
 
-                mainMenu.modelCloseRequested();
+                mainMenu.clearSceneRequested();
                 gCodeObjects.model = [outputFilePath]
             }
 
             function sliceSelectedModel() {
-                var models = QmlHelpers.getSelected(stlObjects)
+                var selectedModels = QmlHelpers.getSelected(stlObjects)
 
-                if (models.length === 0) {
+                if (selectedModels.length === 0) {
                     popup.backgroundColor = "yellow"
                     popup.messageColor = "black"
                     popup.messageText = "No models selected. Please select a model to slice."
@@ -270,7 +288,7 @@ Window {
                     return
                 }
 
-                if (models.length > 1) {
+                if (selectedModels.length > 1) {
                     popup.backgroundColor = "yellow"
                     popup.messageColor = "text"
                     popup.messageText = "Multiple models selected. Please select only one model to slice."
@@ -279,7 +297,7 @@ Window {
                 }
 
                 var isTwoHeaderExtrusion = slicerParameters.isUsingTwoExtruders
-                generateGCode(models[0].geometry.inputFile, isTwoHeaderExtrusion)
+                generateGCode(selectedModels[0].geometry.inputFile, isTwoHeaderExtrusion)
             }
         }
     }
