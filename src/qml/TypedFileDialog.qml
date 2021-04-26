@@ -33,16 +33,20 @@ FileDialog {
         switch(fileType) {
             case TypedFileDialog.StlImport:
                 console.log(" ### TypedFileDialog.StlImport: " + fileDialog.currentFiles)
-                stlObjects.model = generateSystemFilepathList(fileDialog.currentFiles)
+                stlObjectsRepeater.model = generateSystemFilepathList(fileDialog.currentFiles)
                 break
             case TypedFileDialog.StlExport:
-                helper3D.exportModelsToSTL(prepareStlExportData(QmlHelpers.getSelected(stlObjects)),
+                var exportedModels = [stlObjectsRepeater.objectAt(0)]
+                if (stlObjectsRepeater.count > 1) {
+                    exportedModels = QmlHelpers.getSelected(stlObjectsRepeater)
+                }
+                helper3D.exportModelsToSTL(prepareStlExportData(exportedModels),
                                            generateSystemFilePath(fileDialog.currentFile))
                 console.log(" ### TypedFileDialog.StlExport: " + fileDialog.currentFiles)
                 break
             case TypedFileDialog.GcodeImport:
-                gCodeObjects.model = [generateSystemFilePath(fileDialog.currentFile)]
-                console.log(" ### TypedFileDialog.GcodeImport: " + gCodeObjects.model[0])
+                gCodeObjectsRepeater.model = [generateSystemFilePath(fileDialog.currentFile)]
+                console.log(" ### TypedFileDialog.GcodeImport: " + gCodeObjectsRepeater.model[0])
                 break
 
         }
@@ -58,10 +62,20 @@ FileDialog {
 
     function openExportStlFileDialog()
     {
-        if (QmlHelpers.getSelected(stlObjects).length === 0) {
+        console.log(" ### stlObjectsRepeater.count:" + stlObjectsRepeater.count )
+        if (0 === stlObjectsRepeater.count)
+        {
             popup.backgroundColor = "yellow"
             popup.messageColor = "black"
-            popup.messageText = "No models selected. Please select model(s) to export to STL."
+            popup.messageText = "No models on scene. Please load model(s) to export to STL."
+            popup.open()
+            return
+        }
+
+        if (stlObjectsRepeater.count > 1 && QmlHelpers.getSelected(stlObjectsRepeater).length === 0) {
+            popup.backgroundColor = "yellow"
+            popup.messageColor = "black"
+            popup.messageText = "There are multiple models on scene, but no models selected. Please select model(s) to export to STL."
             popup.open()
             return
         }

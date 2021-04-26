@@ -61,7 +61,7 @@ MouseArea {
             var pick = getPick(mouse)
             if (!pick.object && !doubleClickTimer.running)
             {
-                QmlHelpers.deselectAll(stlObjects)
+                QmlHelpers.deselectAll(stlObjectsRepeater)
                 return
             }
 
@@ -70,7 +70,7 @@ MouseArea {
     }
 
     function onDoubleClickedAction() {
-        var model = QmlHelpers.getPickedModel(stlObjects)
+        var model = QmlHelpers.getPickedModel(stlObjectsRepeater)
         if (model) {
             camera.lookAt(QmlHelpers.getModelCenter(model))
         }
@@ -98,9 +98,9 @@ MouseArea {
         var dist = Infinity
         var object = undefined
 
-        for (var i = 0; i < stlObjects.count; i++)
+        for (var i = 0; i < stlObjectsRepeater.count; i++)
         {// Find out, if we are pressing an object.
-            var stlModel = stlObjects.objectAt(i)
+            var stlModel = stlObjectsRepeater.objectAt(i)
 
             var modelIntersection = stlModel.geometry.getPick(origin, ray, stlModel.sceneTransform)
             if (!modelIntersection.isHit)

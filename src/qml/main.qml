@@ -20,8 +20,8 @@ Window {
         id: mainMenu
 
         onClearSceneRequested: {
-            stlObjects.model = []
-            gCodeObjects.model = []
+            stlObjectsRepeater.model = []
+            gCodeObjectsRepeater.model = []
         }
     }
 
@@ -100,7 +100,7 @@ Window {
         }
 
         Repeater3D {
-            id: stlObjects
+            id: stlObjectsRepeater
 
             signal delegateLoaded(var modelCenter)
 
@@ -109,10 +109,10 @@ Window {
             delegate: StlModel {
                 id: stlModel
                 isSupportGenerated: supportOptions.isGeneratingSupport
-                inputFile: stlObjects.model[index]
+                inputFile: stlObjectsRepeater.model[index]
 
                 Component.onCompleted: {
-                   stlObjects.delegateLoaded(stlModel.modelCenter)
+                   stlObjectsRepeater.delegateLoaded(stlModel.modelCenter)
                 }
             }
 
@@ -123,7 +123,7 @@ Window {
         }
 
         Repeater3D {
-            id: gCodeObjects
+            id: gCodeObjectsRepeater
             property var gcodeGeometry: (objectAt(0) === null ? null : objectAt(0).geometry)
 
             signal delegateLoaded(var modelCenter)
@@ -131,10 +131,10 @@ Window {
             model: []
             delegate: GCodeGeometryRepeaterModelDelegate {
                 id: gCodeModel
-                inputFile: gCodeObjects.model[index]
+                inputFile: gCodeObjectsRepeater.model[index]
 
                 Component.onCompleted: {
-                    gCodeObjects.delegateLoaded(gCodeModel.modelCenter)
+                    gCodeObjectsRepeater.delegateLoaded(gCodeModel.modelCenter)
                 }
             }
 
@@ -168,15 +168,16 @@ Window {
 
         Repeater3D {
             id: stlSupportGeometries
-            model: (supportOptions.isGeneratingSupport && stlObjects.count > 0) ? stlObjects.objectAt(0).geometry.supportGeometries : undefined
+            model: (supportOptions.isGeneratingSupport && stlObjectsRepeater.count > 0) ? stlObjectsRepeater.objectAt(0).geometry.supportGeometries : []
             delegate: StlModel {
-                geometry: stlObjects.objectAt(0).geometry.supportGeometries[index]
-                position: stlObjects.objectAt(0).position
-                rotation: stlObjects.objectAt(0).rotation
+                geometry: stlObjectsRepeater.objectAt(0).geometry.supportGeometries[index]
+                position: stlObjectsRepeater.objectAt(0).position
+                rotation: stlObjectsRepeater.objectAt(0).rotation
             }
 
             onModelChanged: {
                 console.log(" ### new model with size:" + model.length)
+                console.log(" ### supportOptions.isGeneratingSupport:" + supportOptions.isGeneratingSupport)
             }
         }
 
@@ -274,11 +275,11 @@ Window {
                 popup.open()
 
                 mainMenu.clearSceneRequested();
-                gCodeObjects.model = [outputFilePath]
+                gCodeObjectsRepeater.model = [outputFilePath]
             }
 
             function sliceSelectedModel() {
-                var selectedModels = QmlHelpers.getSelected(stlObjects)
+                var selectedModels = QmlHelpers.getSelected(stlObjectsRepeater)
 
                 if (selectedModels.length === 0) {
                     popup.backgroundColor = "yellow"

@@ -10,8 +10,8 @@ import "HelperFunctions.js" as QmlHelpers
 
 Window {
 	id: supportOptions
-	property alias isGeneratingSupport: supportSwitch.isGeneratingSupport
-    property alias isSupportExported: supportExportSwitch.isExportingSupport
+    property bool isGeneratingSupport: supportSwitch.position === 1
+    property bool isSupportExported: supportExportSwitch.position === 1
 	minimumWidth: 300
 	title: "Support options"
 	
@@ -19,13 +19,18 @@ Window {
     {
         Switch {
             id: supportSwitch
-            property bool isGeneratingSupport: (position == 1.0)
+            position: 1.0
             text: "Generate support"
         }
         Switch {
             id: supportExportSwitch
-            property bool isExportingSupport: (position == 1.0)
+            position: 1.0
             text: "STL Export support with model"
         }
+    }
+
+    Component.onCompleted: {
+        console.log(" ### isGeneratingSupport:" + isGeneratingSupport)
+        console.log(" ### isSupportExported:" + isSupportExported)
     }
 }

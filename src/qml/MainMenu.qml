@@ -25,7 +25,7 @@ MenuBar {
                 onTriggered: fileDialog.openImportStlFileDialog()
 			}
             MenuItem {
-                text: qsTr("Export selecion to STL")
+                text: qsTr("Export model(s) to STL")
 
                 onTriggered: fileDialog.openExportStlFileDialog()
             }
@@ -45,6 +45,9 @@ MenuBar {
 			MenuSeparator {}
 			MenuItem{
 				text: qsTr("Exit")
+                onTriggered: {
+                    window.close()
+                }
 			}
 		},
 		Menu {
