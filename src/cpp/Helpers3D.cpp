@@ -82,18 +82,16 @@ static aiScene* generateTransformedGeometryScene(const TriangleGeometry* geometr
 
 	const uint32_t destVerticesSize = static_cast<unsigned int>(geometryVertices.size());
 	aiVector3D* const vertices = new aiVector3D[destVerticesSize];
-	aiVector3D* vertexPtr = vertices;
 	for(uint32_t i=0; i<destVerticesSize; ++i)
 	{
 		const Vec3& geometryVertex = geometryVertices[i];
+		aiVector3D& vertex = vertices[i];
 
-		vertexPtr->x = geometryVertex.x();
-		vertexPtr->y = geometryVertex.y();
-		vertexPtr->z = geometryVertex.z();
+		vertex.x = geometryVertex.x();
+		vertex.y = geometryVertex.y();
+		vertex.z = geometryVertex.z();
 
-		*vertices *= aiTransform;
-
-		++vertexPtr;
+		vertex *= aiTransform;
 	}
 
 	assert(0 == geometryIndices.size()%3);
@@ -135,73 +133,6 @@ static aiScene* generateTransformedGeometryScene(const TriangleGeometry* geometr
 	scene->mRootNode = root;
 
 	return scene;
-}
-
-static aiScene* generateTestScene(const TriangleGeometry* geometry)
-{//https://github.com/assimp/assimp/issues/203
-  // create vertices and faces, then pack into an aiMesh
-
-	const std::vector<Vec3>& geometryVertices = geometry->getData().vertices;
-	const std::vector<uint32_t>& geometryIndices = geometry->getData().indices;
-
-	const uint32_t destVerticesSize = static_cast<unsigned int>(geometryVertices.size());
-	aiVector3D* const vertices = new aiVector3D[destVerticesSize];
-	aiVector3D* vertexPtr = vertices;
-	for(uint32_t i=0; i<destVerticesSize; ++i)
-	{
-		const Vec3& geometryVertex = geometryVertices[i];
-
-		vertexPtr->x = geometryVertex.x();
-		vertexPtr->y = geometryVertex.y();
-		vertexPtr->z = geometryVertex.z();
-
-//		*vertices *= aiTransform;
-
-		++vertexPtr;
-	}
-
-	assert(0 == geometryIndices.size()%3);
-	const uint32_t numFaces = static_cast<unsigned int>(geometryIndices.size()/3);
-	aiFace *faces = new aiFace[numFaces];
-	for(uint32_t f=0; f<numFaces; ++f)
-	{
-		faces[f].mNumIndices = 3;
-		faces[f].mIndices = new unsigned int [3] {
-			geometryIndices[3*f   ],
-			geometryIndices[3*f +1],
-			geometryIndices[3*f +2]
-		};
-	}
-
-	aiMesh *mesh = new aiMesh();                        // deleted: Version.cpp:150
-	mesh->mNumVertices = destVerticesSize;
-	mesh->mNormals = nullptr;
-	mesh->mVertices = vertices;
-	mesh->mNumFaces = numFaces;
-	mesh->mFaces = faces;
-
-	// a valid material is needed, even if its empty
-
-	aiMaterial *material = new aiMaterial();            // deleted: Version.cpp:155
-
-	// a root node with the mesh list is needed; if you have multiple meshes, this must match.
-
-	aiNode *root = new aiNode();                        // deleted: Version.cpp:143
-	root->mNumMeshes = 1;
-	root->mMeshes = new unsigned [] { 0 };              // deleted: scene.cpp:77
-
-	// pack mesh(es), material, and root node into a new minimal aiScene
-
-	aiScene *out = new aiScene();                       // deleted: by us after use
-	out->mNumMeshes = 1;
-	out->mMeshes = new aiMesh * [] { mesh };            // deleted: Version.cpp:151
-	out->mNumMaterials = 1;
-	out->mMaterials = new aiMaterial * [] { material }; // deleted: Version.cpp:158
-	out->mRootNode = root;
-
-	// and we're good to go. do whatever:
-
-	return out;
 }
 
 static aiScene* copyTransformedGeometryScene(const TriangleGeometry* geometry, const aiMatrix4x4& aiTransform)
@@ -258,35 +189,12 @@ static std::vector<aiScene*> generateScenes(const QVariantList& stlExportData)
 		if (!isSupportExported)
 			continue;
 
-//		static bool wasTestSceneGenerated = false;
-//		if (!wasTestSceneGenerated)
-//		{
-//			const aiScene* testScene = generateTestScene(stlGeometry);
-//			Assimp::Exporter testExporter;
-//			if (testExporter.Export(testScene, "stlb", std::string("C:/ProjectsData/stl_files/test_scene.stl")) != AI_SUCCESS)
-//			{
-//				std::cout << testExporter.GetErrorString() << std::endl;
-//			}
-////			delete testScene;
-
-//			wasTestSceneGenerated = true;
-//		}
-
 		std::cout << " ### " << __FUNCTION__ << " support is being exported for geometry file: " << stlGeometry->getInputFile().toStdString() << std::endl;
 
-		uint32_t fileIndex = 0;
 		for (const TriangleGeometry* supportGeometry : stlGeometry->getSupportGeometries())
 		{
 			aiScene* newScene = generateTransformedGeometryScene(supportGeometry, aiTransform);
 			scenes.push_back(newScene);
-
-			//TODO: Remove this test code.
-			Assimp::Exporter exporter;
-//			if (exporter.Export(newScene, "objnomtl", std::string("C:/ProjectsData/stl_files/test_support") + std::to_string(fileIndex++) + ".obj") != AI_SUCCESS)
-			if (exporter.Export(newScene, "stlb", std::string("C:/ProjectsData/stl_files/test_support") + std::to_string(fileIndex++) + ".stl") != AI_SUCCESS)
-			{
-				std::cout << exporter.GetErrorString() << std::endl;
-			}
 		}
 	}
 	return scenes;
