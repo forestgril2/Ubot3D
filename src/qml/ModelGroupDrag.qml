@@ -27,7 +27,7 @@ QtObject {
                 return
 
             // In case of right drag, we will rotate.
-//            startDragPos = helper3D
+//            startDragPos = helpers3D
         }
 
 //        dragType = mouse.PickArea.DragType.Position
@@ -76,19 +76,19 @@ QtObject {
 
         var startDir = dragStart.minus(centerPosition)
         var endDir = startDir.plus(dragVector)
-        var additionalRotation = helper3D.getRotationFromAxes(startDir, endDir)
+        var additionalRotation = helpers3D.getRotationFromAxes(startDir, endDir)
 
         for (var i=0; i<objects.length; i++) {
-            objects[i].rotation = helper3D.getRotationFromQuaternions(objectStartRotations[i], additionalRotation)
+            objects[i].rotation = helpers3D.getRotationFromQuaternions(objectStartRotations[i], additionalRotation)
             var initialObjectRadiusFromCenter = objectStartPositions[i].minus(centerPosition)
-            var rotatedObjectRadius = helper3D.getRotatedVector(additionalRotation, initialObjectRadiusFromCenter)
+            var rotatedObjectRadius = helpers3D.getRotatedVector(additionalRotation, initialObjectRadiusFromCenter)
             objects[i].position = centerPosition.plus(rotatedObjectRadius)
         }
     }
 
     function dragPositionChanged(origin, ray) {
         var planeIntersection =
-                helper3D.getLinePlaneIntersection(origin, ray, Qt.vector3d(0,0,1), modelGroupDrag.startDragPos)
+                helpers3D.getLinePlaneIntersection(origin, ray, Qt.vector3d(0,0,1), modelGroupDrag.startDragPos)
 
         var dragVector = planeIntersection.intersection.minus(modelGroupDrag.startDragPos)
 

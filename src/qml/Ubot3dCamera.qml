@@ -16,7 +16,7 @@ PerspectiveCamera {
 	{
 		var direction = point.minus(camera.position)
 		var upDirection = Qt.vector3d(0,0,1)
-		var lookAtRotation = helper3D.getRotationFromDirection(direction, upDirection)
+		var lookAtRotation = helpers3D.getRotationFromDirection(direction, upDirection)
 		camera.rotation = lookAtRotation
         setUpPlane(Qt.vector3d(0,0,1))
 	}
@@ -29,6 +29,6 @@ PerspectiveCamera {
 	function setUpPlane(upVector) {
 		var newPointSceneTo = mapFromViewport(Qt.vector3d(0.5, 0.5, 0))
 		var newDirection = newPointSceneTo.minus(position)
-		setRotation(helper3D.getRotationFromDirection(newDirection, upVector))
+		setRotation(helpers3D.getRotationFromDirection(newDirection, upVector))
 	}
 }

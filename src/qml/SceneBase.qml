@@ -20,7 +20,7 @@ Node {
         clipFar: 500.0
         clipNear: 0.1
         fieldOfView: 45
-        rotation: helper3D.getRotationFromDirection(Qt.vector3d(75, 75, -75), Qt.vector3d(0,0,1))
+        rotation: helpers3D.getRotationFromDirection(Qt.vector3d(75, 75, -75), Qt.vector3d(0,0,1))
     }
 
     DirectionalLight {

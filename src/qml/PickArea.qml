@@ -118,7 +118,7 @@ MouseArea {
         if (!coords) {
             // If there is no hit, pick point on the ground ground
             var planeHit =
-                    helper3D.getLinePlaneIntersection(origin, ray, Qt.vector3d(0,0,1), Qt.vector3d(0,0,0))
+                    helpers3D.getLinePlaneIntersection(origin, ray, Qt.vector3d(0,0,1), Qt.vector3d(0,0,0))
 
             if (planeHit.isHit) {
                 coords = planeHit.intersection

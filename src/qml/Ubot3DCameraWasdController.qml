@@ -317,7 +317,7 @@ Item {
                 var origin = camera.position
                 // Use mouse translation delta to designate, how view center would move.
                 var pointSceneTo = camera.mapFromViewport(Qt.vector3d(0.5+delta.x/implicitWidth, 0.5+delta.y/implicitHeight, 0))
-                camera.rotation = helper3D.getRotationFromDirection(pointSceneTo.minus(origin), Qt.vector3d(0,0,1))
+                camera.rotation = helpers3D.getRotationFromDirection(pointSceneTo.minus(origin), Qt.vector3d(0,0,1))
                 lastPos = currentPos;
                 focus = true
                 return
@@ -327,18 +327,18 @@ Item {
 
                 if (axisFrom.length() > 0 && axisTo.length() > 0)
                 {
-                    var additionalRotation = isMouseDragInverted ? helper3D.getRotationFromAxes(axisTo, axisFrom) :
-                                                                   helper3D.getRotationFromAxes(axisFrom, axisTo)
-                    var axis = helper3D.getRotationAxis(additionalRotation)
-                    var angle = helper3D.getRotationAngle(additionalRotation)
+                    var additionalRotation = isMouseDragInverted ? helpers3D.getRotationFromAxes(axisTo, axisFrom) :
+                                                                   helpers3D.getRotationFromAxes(axisFrom, axisTo)
+                    var axis = helpers3D.getRotationAxis(additionalRotation)
+                    var angle = helpers3D.getRotationAngle(additionalRotation)
 
                     angle *= isMouseDragInverted ? 1.0 : mouseRotationDragSpeed
 
-                    additionalRotation = helper3D.getRotationFromAxisAndAngle(axis, angle)
+                    additionalRotation = helpers3D.getRotationFromAxisAndAngle(axis, angle)
 
                     if (additionalRotation.x !== 0)
                     {
-                        var preFinalRotation = helper3D.getRotationFromQuaternions(additionalRotation, rotation)
+                        var preFinalRotation = helpers3D.getRotationFromQuaternions(additionalRotation, rotation)
 
                         if (preFinalRotation.x)
                         {
