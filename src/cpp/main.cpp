@@ -11,6 +11,7 @@
 #include <QtCore/QVector>
 
 #include <Chronograph.h>
+#include <FileImportExport.h>
 #include <Helpers3D.h>
 #include <ProcessLauncher.h>
 
@@ -23,8 +24,10 @@ int main(int argc, char *argv[])
 	QQmlContext* context = engine.rootContext();
 
 	Helpers3D helpers3D;
+	FileImportExport fileImportExport;
 	ProcessLauncher launcher;
-	context->setContextProperty("helper3D", &helpers3D);
+	context->setContextProperty("helpers3D", &helpers3D);
+	context->setContextProperty("fileImportExport", &fileImportExport);
 
 	engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
 

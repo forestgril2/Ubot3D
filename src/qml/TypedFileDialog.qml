@@ -40,7 +40,7 @@ FileDialog {
                 if (stlObjectsRepeater.count > 1) {
                     exportedModels = QmlHelpers.getSelected(stlObjectsRepeater)
                 }
-                helper3D.exportModelsToSTL(prepareStlExportData(exportedModels),
+                fileImportExport.exportModelsToSTL(prepareStlExportData(exportedModels),
                                            generateSystemFilePath(fileDialog.currentFile))
                 console.log(" ### TypedFileDialog.StlExport: " + fileDialog.currentFiles)
                 break

@@ -50,7 +50,6 @@ public:
 	static int drawTriangulation(const QVector<QVector3D>& points);
 
 	// TODO: Assimp related - extract to AssimpSceneProcessor or whatever.
-	static Q_INVOKABLE bool exportModelsToSTL(const QVariantList& stlExportData, const QString filePath);
 	static void countAssimpFacesAndVertices(const aiScene* _scene, uint32_t& numAssimpMeshFaces, uint32_t& numAssimpVertices);
 	static void getContiguousAssimpVerticesAndNormals(const aiScene* _scene,
 													  std::vector<Vec3>& assimpVertices,
