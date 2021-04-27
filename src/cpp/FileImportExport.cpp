@@ -1,6 +1,8 @@
 #include "FileImportExport.h"
 
+#include <fstream>
 #include <iostream>
+#include <vector>
 
 #include <assimp/scene.h>
 #include <assimp/Exporter.hpp>
@@ -9,6 +11,30 @@
 
 #include <TriangleGeometry.h>
 
+struct StlTriangleData
+{
+	uint32_t numModelTriangles;
+	uint32_t numSupportTriangles;
+	uint32_t numStandTriangles;
+};
+
+static std::vector<uint8_t> readFirstFileBytes(const std::string& file, uint32_t numBytes)
+{
+	std::basic_ifstream<uint8_t> stream(file);
+	std::vector<uint8_t> buffer(numBytes);
+	stream.read(&buffer[0], numBytes);
+
+	return buffer;
+}
+
+static void writeFirstFileBytes(const std::string& file, std::vector<uint8_t>& buffer)
+{
+	std::fstream stream(file, std::ios::binary);
+	stream.seekp(0, std::ios_base::beg);
+	stream.write((char*)&buffer[0], buffer.size());
+	std::cout << " ### " << __FUNCTION__ << " buffer.size():" << buffer.size() << "," << "" << std::endl;
+	stream.close();
+}
 
 static aiScene* generateTransformedGeometryScene(const TriangleGeometry* geometry, const aiMatrix4x4& aiTransform)
 {//https://github.com/assimp/assimp/issues/203
@@ -195,6 +221,20 @@ bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, cons
 		std::cout << " ### " << __FUNCTION__ << " ERROR for file:" << filePath.toStdString() << std::endl;
 		return false;
 	}
+
+	std::vector<uint8_t> inputBuffer(sizeof(StlTriangleData));
+	StlTriangleData* inputTriangleData = reinterpret_cast<StlTriangleData*>(&inputBuffer[0]);
+
+	inputTriangleData->numModelTriangles   = 1111;
+	inputTriangleData->numSupportTriangles = 2222;
+	inputTriangleData->numStandTriangles   = 3333;
+	writeFirstFileBytes(filePath.toStdString(), inputBuffer);
+
+	std::vector<uint8_t> outputBuffer = readFirstFileBytes(filePath.toStdString(), sizeof(StlTriangleData));
+	const StlTriangleData outputTriangleData = *reinterpret_cast<StlTriangleData*>(&outputBuffer[0]);
+	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numModelTriangles:   " << outputTriangleData.numModelTriangles   << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numSupportTriangles: " << outputTriangleData.numSupportTriangles << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numStandTriangles:   " << outputTriangleData.numStandTriangles   << std::endl;
 
 	return true;
 }
