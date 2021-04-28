@@ -34,28 +34,60 @@ struct StlTriangleData
 {
 	float normal[3] = {0.0f, 0.0f, 0.0f};
 	// Vertices
+	float v0[3]     = {0.0f, 0.0f, 0.0f};
 	float v1[3]     = {0.0f, 0.0f, 0.0f};
 	float v2[3]     = {0.0f, 0.0f, 0.0f};
-	float v3[3]     = {0.0f, 0.0f, 0.0f};
 
 	uint16_t attributes = 0u;
 };
 
-static StlHeaderData readStlTriangleData(const std::string& file)
+static StlHeaderData readStlTriangleData(const std::string& filePath)
 {
 	std::vector<uint8_t> inputBuffer(sizeof(StlHeaderData));
-	std::basic_ifstream<uint8_t> stream(file);
+	std::basic_ifstream<uint8_t> stream(filePath);
+
+	if (!stream.is_open())
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR: cannot open file for reading: " << filePath << std::endl;
+		return StlHeaderData();
+	}
+
 	stream.read(&inputBuffer[0], sizeof(StlHeaderData));
 	return *reinterpret_cast<StlHeaderData*>(&inputBuffer[0]);
 }
 
-static void writeStlHeaderData(const std::string& file, const StlHeaderData& data)
+static bool writeStlHeaderData(const std::string& filePath, const StlHeaderData& data)
 {
-	std::basic_fstream<uint8_t> stream(file, std::ios::binary | std::ios::out | std::ios::in);
+	std::basic_fstream<uint8_t> stream(filePath, std::ios::binary | std::ios::out | std::ios::in);
+
+	if (!stream.is_open())
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR: cannot open file for writing: " << filePath << std::endl;
+		return false;
+	}
 
 	stream.seekp(0, std::ios_base::beg);
-	stream.write((const uint8_t*)&data, sizeof(data));
+	stream.write(reinterpret_cast<const uint8_t*>(&data), sizeof(data));
 	stream.close();
+
+	return true;
+}
+
+static bool writeStlTrianglesData(const std::string& filePath, const std::vector<StlTriangleData>& data)
+{
+	std::basic_fstream<uint8_t> stream(filePath, std::ios::binary | std::ios::out | std::ios::in);
+
+	if (!stream.is_open())
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR: cannot open file for writing: " << filePath << std::endl;
+		return false;
+	}
+
+	stream.seekp(sizeof(StlHeaderData), std::ios_base::beg);
+	stream.write(reinterpret_cast<const uint8_t*>(data.data()), sizeof(data));
+	stream.close();
+
+	return true;
 }
 
 static aiScene* generateTransformedGeometryScene(const TriangleGeometry* geometry, const aiMatrix4x4& aiTransform)
@@ -296,20 +328,47 @@ static StlHeaderData getStlHeaderFromAssimpScenes(const std::vector<aiScene*>& m
 	return {numModelTriangles, numSupportTriangles, numStandTriangles, {}, numTotalTriangles};
 }
 
-static std::vector<StlTriangleData> getStlTrianglesFromAssimpScenes(const std::vector<aiScene*>& modelScenes,
-																	const std::vector<aiScene*>& supportScenes = {},
-																	const std::vector<aiScene*>& standScenes = {})
+static bool exportAssimpScenesAsStl(const std::string& filePath,
+									const std::vector<aiScene*>& modelScenes,
+									const std::vector<aiScene*>& supportScenes = {},
+									const std::vector<aiScene*>& standScenes = {})
 {
-	StlHeaderData headerData = getStlHeaderFromAssimpScenes(modelScenes, supportScenes, standScenes);
+	const StlHeaderData headerData = getStlHeaderFromAssimpScenes(modelScenes, supportScenes, standScenes);
 
-	TriangleGeometryData modelData   = getCombinedScenesTriangleData(modelScenes, headerData.numModelTriangles);
-	TriangleGeometryData supportData = getCombinedScenesTriangleData(supportScenes, headerData.numSupportTriangles);
-	TriangleGeometryData standData   = getCombinedScenesTriangleData(standScenes, headerData.numStandTriangles);
+	const TriangleGeometryData modelData   = getCombinedScenesTriangleData(modelScenes, headerData.numModelTriangles);
+	const TriangleGeometryData supportData = getCombinedScenesTriangleData(supportScenes, headerData.numSupportTriangles);
+	const TriangleGeometryData standData   = getCombinedScenesTriangleData(standScenes, headerData.numStandTriangles);
 
 	std::vector<StlTriangleData> triangles;
+	const uint32_t numTotalIndices = static_cast<uint32_t>(modelData.indices.size() +
+														   modelData.indices.size() +
+														   modelData.indices.size());
+	assert(0 == numTotalIndices%3);
+	triangles.reserve(numTotalIndices/3);
 
-	return triangles;
+	auto addExportTriangles = [](const TriangleGeometryData& data, std::vector<StlTriangleData>& triangles) {
+		for (uint32_t i=0; i<data.indices.size(); i+=3)
+		{
+			const Vec3& v0 = data.vertices[i   ];
+			const Vec3& v1 = data.vertices[i +1];
+			const Vec3& v2 = data.vertices[i +2];
+			const Vec3 n = (v1-v0).cross(v2-v0).normalized();
+			triangles.emplace_back(StlTriangleData{{n .x(), n .y(), n .z()},
+												   {v0.x(), v0.y(), v0.z()},
+												   {v1.x(), v1.y(), v1.z()},
+												   {v2.x(), v2.y(), v2.z()},
+												   0});
+		}
+	};
 
+	addExportTriangles(modelData,   triangles);
+	addExportTriangles(supportData, triangles);
+	addExportTriangles(standData,   triangles);
+
+	if (!writeStlHeaderData(filePath, headerData) || !writeStlTrianglesData(filePath, triangles))
+		return false;
+
+	return true;
 }
 
 bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, const QString filePath)
@@ -334,9 +393,12 @@ bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, cons
 	//       for app in Release  mode and twice the master scene in Debug. (https://github.com/assimp/assimp/issues/203)
 //	assimpExportScenes(modelScenes, filePath.toStdString());
 
-	const StlHeaderData stlHeader = getStlHeaderFromAssimpScenes(modelScenes, supportScenes);
+	if (!exportAssimpScenesAsStl(filePath.toStdString(), modelScenes, supportScenes));
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR: export failed." << std::endl;
+		return false;
+	}
 
-	writeStlHeaderData(filePath.toStdString(), stlHeader);
 	const StlHeaderData outputTriangleData = readStlTriangleData(filePath.toStdString());
 	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numModelTriangles:   " << outputTriangleData.numModelTriangles   << std::endl;
 	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numSupportTriangles: " << outputTriangleData.numSupportTriangles << std::endl;
