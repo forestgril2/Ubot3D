@@ -13,10 +13,27 @@
 
 struct StlTriangleData
 {
-	uint32_t numModelTriangles;
-	uint32_t numSupportTriangles;
-	uint32_t numStandTriangles;
+	uint32_t numModelTriangles   = 0;
+	uint32_t numSupportTriangles = 0;
+	uint32_t numStandTriangles   = 0;
 };
+
+static StlTriangleData readStlTriangleData(const std::string& file)
+{
+	std::vector<uint8_t> inputBuffer(sizeof(StlTriangleData));
+	std::basic_ifstream<uint8_t> stream(file);
+	stream.read(&inputBuffer[0], sizeof(StlTriangleData));
+	return *reinterpret_cast<StlTriangleData*>(&inputBuffer[0]);
+}
+
+static void writeStlTriangleData(const std::string& file, const StlTriangleData& data)
+{
+	std::basic_fstream<uint8_t> stream(file, std::ios::binary | std::ios::out | std::ios::in);
+
+	stream.seekp(0, std::ios_base::beg);
+	stream.write((const uint8_t*)&data, sizeof(data));
+	stream.close();
+}
 
 static std::vector<uint8_t> readFirstFileBytes(const std::string& file, uint32_t numBytes)
 {
@@ -29,10 +46,9 @@ static std::vector<uint8_t> readFirstFileBytes(const std::string& file, uint32_t
 
 static void writeFirstFileBytes(const std::string& file, std::vector<uint8_t>& buffer)
 {
-	std::fstream stream(file, std::ios::binary);
+	std::fstream stream(file, std::ios::binary | std::ios::out | std::ios::in);
 	stream.seekp(0, std::ios_base::beg);
 	stream.write((char*)&buffer[0], buffer.size());
-	std::cout << " ### " << __FUNCTION__ << " buffer.size():" << buffer.size() << "," << "" << std::endl;
 	stream.close();
 }
 
@@ -126,7 +142,7 @@ static aiScene* copyTransformedGeometryScene(const TriangleGeometry* geometry, c
 	return destGeometryScene;
 }
 
-static std::vector<aiScene*> generateScenes(const QVariantList& stlExportData)
+static std::vector<aiScene*> generateScenes(const QVariantList& stlExportData, StlTriangleData& data)
 {
 	std::vector<aiScene*> scenes;
 
@@ -149,6 +165,7 @@ static std::vector<aiScene*> generateScenes(const QVariantList& stlExportData)
 
 		scenes.push_back(copyTransformedGeometryScene(stlGeometry, aiTransform));
 
+		data.numModelTriangles += scenes.back()->mMeshes[0]->mNumFaces;
 
 		if (!isSupportExported)
 			continue;
@@ -159,6 +176,7 @@ static std::vector<aiScene*> generateScenes(const QVariantList& stlExportData)
 		{
 			aiScene* newScene = generateTransformedGeometryScene(supportGeometry, aiTransform);
 			scenes.push_back(newScene);
+			data.numSupportTriangles += scenes.back()->mMeshes[0]->mNumFaces;
 		}
 	}
 	return scenes;
@@ -202,14 +220,26 @@ bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, cons
 		return false;
 	}
 
-	std::vector<aiScene*> scenes = generateScenes(stlExportData);
+	StlTriangleData inputTriangleData;
+	std::vector<aiScene*> scenes = generateScenes(stlExportData, inputTriangleData);
+	std::cout << " ### " << __FUNCTION__ << " inputTriangleData.numModelTriangles:   " << inputTriangleData.numModelTriangles   << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " inputTriangleData.numSupportTriangles: " << inputTriangleData.numSupportTriangles << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " inputTriangleData.numStandTriangles:   " << inputTriangleData.numStandTriangles   << std::endl;
+
 	if (scenes.empty())
 	{
 		std::cout << " ### " << __FUNCTION__ << " ERROR no geometry data provided for file: " << filePath.toStdString() << std::endl;
 		return false;
 	}
-	const aiScene* destScene = combineScenes(scenes);
 
+	std::cout << " ### " << __FUNCTION__ << " scenes.size(): " << scenes.size() << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " scenes.back()->mNumMeshes              : " << scenes.back()->mNumMeshes               << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " scenes.back()->mMeshes[0]->mNumFaces   : " << scenes.back()->mMeshes[0]->mNumFaces    << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " scenes.back()->mMeshes[0]->mNumVertices: " << scenes.back()->mMeshes[0]->mNumVertices << std::endl;
+	const aiScene* destScene = combineScenes(scenes);
+	std::cout << " ### " << __FUNCTION__ << " destScene->mNumMeshes              : " << destScene->mNumMeshes << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " destScene->mMeshes[0]->mNumFaces   : " << destScene->mMeshes[0]->mNumFaces << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " destScene->mMeshes[0]->mNumVertices: " << destScene->mMeshes[0]->mNumVertices << std::endl;
 
 	Assimp::Exporter exporter;
 	if (AI_SUCCESS == exporter.Export(destScene, "stlb", filePath.toStdString()))
@@ -222,16 +252,8 @@ bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, cons
 		return false;
 	}
 
-	std::vector<uint8_t> inputBuffer(sizeof(StlTriangleData));
-	StlTriangleData* inputTriangleData = reinterpret_cast<StlTriangleData*>(&inputBuffer[0]);
-
-	inputTriangleData->numModelTriangles   = 1111;
-	inputTriangleData->numSupportTriangles = 2222;
-	inputTriangleData->numStandTriangles   = 3333;
-	writeFirstFileBytes(filePath.toStdString(), inputBuffer);
-
-	std::vector<uint8_t> outputBuffer = readFirstFileBytes(filePath.toStdString(), sizeof(StlTriangleData));
-	const StlTriangleData outputTriangleData = *reinterpret_cast<StlTriangleData*>(&outputBuffer[0]);
+	writeStlTriangleData(filePath.toStdString(), inputTriangleData);
+	const StlTriangleData outputTriangleData = readStlTriangleData(filePath.toStdString());
 	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numModelTriangles:   " << outputTriangleData.numModelTriangles   << std::endl;
 	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numSupportTriangles: " << outputTriangleData.numSupportTriangles << std::endl;
 	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numStandTriangles:   " << outputTriangleData.numStandTriangles   << std::endl;

@@ -19,12 +19,10 @@ Window {
     {
         Switch {
             id: supportSwitch
-            position: 1.0
             text: "Generate support"
         }
         Switch {
             id: supportExportSwitch
-            position: 1.0
             text: "STL Export support with model"
         }
     }
