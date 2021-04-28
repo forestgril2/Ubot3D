@@ -9,24 +9,41 @@
 #include <assimp/cexport.h>
 #include <assimp/SceneCombiner.h>
 
+#include <Helpers3D.h>
 #include <TriangleGeometry.h>
+
+static constexpr uint32_t kStlHeaderSize = 80u;
+struct StlHeaderData
+{
+	uint32_t numModelTriangles   = 0u;
+	uint32_t numSupportTriangles = 0u;
+	uint32_t numStandTriangles   = 0u;
+	char unused[kStlHeaderSize - (sizeof(numModelTriangles) +
+								  sizeof(numSupportTriangles) +
+								  sizeof(numStandTriangles))];
+	uint32_t numTotalTriangles   = 0u;
+};
 
 struct StlTriangleData
 {
-	uint32_t numModelTriangles   = 0;
-	uint32_t numSupportTriangles = 0;
-	uint32_t numStandTriangles   = 0;
+	float normal[3] = {0.0f, 0.0f, 0.0f};
+	// Vertices
+	float v1[3]     = {0.0f, 0.0f, 0.0f};
+	float v2[3]     = {0.0f, 0.0f, 0.0f};
+	float v3[3]     = {0.0f, 0.0f, 0.0f};
+
+	uint16_t attributes = 0u;
 };
 
-static StlTriangleData readStlTriangleData(const std::string& file)
+static StlHeaderData readStlTriangleData(const std::string& file)
 {
-	std::vector<uint8_t> inputBuffer(sizeof(StlTriangleData));
+	std::vector<uint8_t> inputBuffer(sizeof(StlHeaderData));
 	std::basic_ifstream<uint8_t> stream(file);
-	stream.read(&inputBuffer[0], sizeof(StlTriangleData));
-	return *reinterpret_cast<StlTriangleData*>(&inputBuffer[0]);
+	stream.read(&inputBuffer[0], sizeof(StlHeaderData));
+	return *reinterpret_cast<StlHeaderData*>(&inputBuffer[0]);
 }
 
-static void writeStlTriangleData(const std::string& file, const StlTriangleData& data)
+static void writeStlHeaderData(const std::string& file, const StlHeaderData& data)
 {
 	std::basic_fstream<uint8_t> stream(file, std::ios::binary | std::ios::out | std::ios::in);
 
@@ -142,12 +159,9 @@ static aiScene* copyTransformedGeometryScene(const TriangleGeometry* geometry, c
 	return destGeometryScene;
 }
 
-static std::vector<aiScene*> generateScenes(const QVariantList& stlExportData, StlTriangleData& data)
+static bool generateScenes(const QVariantList& stlExportData, std::vector<aiScene*>& modelScenes,
+															  std::vector<aiScene*>& supportScenes)
 {
-	std::vector<aiScene*> scenes;
-
-	// deleting the scene will also take care of the vertices, faces, meshes, materials, nodes, etc.
-
 	for (const QVariant& exportData : stlExportData)
 	{
 		QVariantMap map = exportData.toMap();
@@ -157,15 +171,13 @@ static std::vector<aiScene*> generateScenes(const QVariantList& stlExportData, S
 
 		if (!stlGeometry) {
 			std::cout << " ### " << __FUNCTION__ << " ERROR: cannot cast export data to TriangleGeometry." << std::endl;
-			return {};
+			return false;
 		}
 
 		aiMatrix4x4 aiTransform = *reinterpret_cast<const aiMatrix4x4*>(&transform);
 		aiTransform.Transpose();
 
-		scenes.push_back(copyTransformedGeometryScene(stlGeometry, aiTransform));
-
-		data.numModelTriangles += scenes.back()->mMeshes[0]->mNumFaces;
+		modelScenes.push_back(copyTransformedGeometryScene(stlGeometry, aiTransform));
 
 		if (!isSupportExported)
 			continue;
@@ -175,13 +187,11 @@ static std::vector<aiScene*> generateScenes(const QVariantList& stlExportData, S
 		for (const TriangleGeometry* supportGeometry : stlGeometry->getSupportGeometries())
 		{
 			aiScene* newScene = generateTransformedGeometryScene(supportGeometry, aiTransform);
-			scenes.push_back(newScene);
-			data.numSupportTriangles += scenes.back()->mMeshes[0]->mNumFaces;
+			supportScenes.push_back(newScene);
 		}
 	}
-	return scenes;
+	return true;
 }
-
 
 static aiScene* combineScenes(const std::vector<aiScene*>& scenes, aiScene* masterScene = nullptr)
 {
@@ -209,6 +219,96 @@ static aiScene* combineScenes(const std::vector<aiScene*>& scenes, aiScene* mast
 	return destReturnScene;
 }
 
+static bool assimpExportScenes(const std::vector<aiScene*>& scenes, const std::string& filePath)
+{
+	const aiScene* destScene = combineScenes(scenes);
+	Assimp::Exporter exporter;
+	if (AI_SUCCESS == exporter.Export(destScene, "stlb", filePath))
+	{
+		std::cout << " ### " << __FUNCTION__ << " filePATH:" << filePath << " export OK" << std::endl;
+	}
+	else
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR for file:" << filePath << std::endl;
+		return false;
+	}
+}
+
+static void getScenesFaceAndVertexCounts(const std::vector<aiScene*>& assimpScenes,
+										 uint32_t& numFacesTotal,
+										 uint32_t& numVerticesTotal)
+{
+	for (const aiScene* scene : assimpScenes)
+	{
+		Helpers3D::countAssimpFacesAndVertices(scene, numFacesTotal, numVerticesTotal);
+	}
+};
+
+static void getScenesVerticesAndNormals(const std::vector<aiScene*>& modelScenes,
+										 uint32_t& numAssimpMeshFacesTotal,
+										 uint32_t& numAssimpVerticesTotal)
+{
+	for (const aiScene* scene : modelScenes)
+	{
+		uint32_t numAssimpMeshFaces = 0;
+		uint32_t numAssimpVertices = 0;
+		Helpers3D::countAssimpFacesAndVertices(scene, numAssimpMeshFaces, numAssimpVertices);
+		numAssimpMeshFacesTotal += numAssimpMeshFaces;
+		numAssimpVerticesTotal += numAssimpVertices;
+	}
+};
+
+static StlHeaderData getStlHeaderFromAssimpScenes(const std::vector<aiScene*>& modelScenes,
+												  const std::vector<aiScene*>& supportScenes = {},
+												  const std::vector<aiScene*>& standScenes = {})
+{
+	uint32_t numModelTriangles = 0;
+	uint32_t numModelVertices = 0;
+	getScenesFaceAndVertexCounts(modelScenes,
+								 numModelTriangles,
+								 numModelVertices);
+
+	uint32_t numSupportTriangles = 0;
+	uint32_t numSupportVertices = 0;
+	getScenesFaceAndVertexCounts(supportScenes,
+								 numSupportTriangles,
+								 numSupportVertices);
+
+	uint32_t numStandTriangles = 0;
+	uint32_t numStandVertices = 0;
+	getScenesFaceAndVertexCounts(standScenes,
+								 numStandTriangles,
+								 numStandVertices);
+
+	const uint32_t numTotalTriangles = numModelTriangles + numSupportTriangles + numStandTriangles;
+	return {numModelTriangles, numSupportTriangles, numStandTriangles, {}, numTotalTriangles};
+}
+
+static std::vector<StlTriangleData> getStlTrianglesFromAssimpScenes(const std::vector<aiScene*>& modelScenes,
+																	const std::vector<aiScene*>& supportScenes = {},
+																	const std::vector<aiScene*>& standScenes = {})
+{
+	uint32_t numModelTriangles = 0;
+	uint32_t numModelVertices = 0;
+	getScenesFaceAndVertexCounts(modelScenes,
+								 numModelTriangles,
+								 numModelVertices);
+
+	uint32_t numSupportTriangles = 0;
+	uint32_t numSupportVertices = 0;
+	getScenesFaceAndVertexCounts(supportScenes,
+								 numSupportTriangles,
+								 numSupportVertices);
+
+	uint32_t numStandTriangles = 0;
+	uint32_t numStandVertices = 0;
+	getScenesFaceAndVertexCounts(standScenes,
+								 numStandTriangles,
+								 numStandVertices);
+
+	const uint32_t numTotalTriangles = numModelTriangles + numSupportTriangles + numStandTriangles;
+	return {numModelTriangles, numSupportTriangles, numStandTriangles, {}, numTotalTriangles};
+}
 
 bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, const QString filePath)
 {
@@ -220,43 +320,30 @@ bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, cons
 		return false;
 	}
 
-	StlTriangleData inputTriangleData;
-	std::vector<aiScene*> scenes = generateScenes(stlExportData, inputTriangleData);
-	std::cout << " ### " << __FUNCTION__ << " inputTriangleData.numModelTriangles:   " << inputTriangleData.numModelTriangles   << std::endl;
-	std::cout << " ### " << __FUNCTION__ << " inputTriangleData.numSupportTriangles: " << inputTriangleData.numSupportTriangles << std::endl;
-	std::cout << " ### " << __FUNCTION__ << " inputTriangleData.numStandTriangles:   " << inputTriangleData.numStandTriangles   << std::endl;
-
-	if (scenes.empty())
+	std::vector<aiScene*> modelScenes;
+	std::vector<aiScene*> supportScenes;
+	if (!generateScenes(stlExportData, modelScenes, supportScenes) || modelScenes.empty())
 	{
 		std::cout << " ### " << __FUNCTION__ << " ERROR no geometry data provided for file: " << filePath.toStdString() << std::endl;
 		return false;
 	}
 
-	std::cout << " ### " << __FUNCTION__ << " scenes.size(): " << scenes.size() << std::endl;
-	std::cout << " ### " << __FUNCTION__ << " scenes.back()->mNumMeshes              : " << scenes.back()->mNumMeshes               << std::endl;
-	std::cout << " ### " << __FUNCTION__ << " scenes.back()->mMeshes[0]->mNumFaces   : " << scenes.back()->mMeshes[0]->mNumFaces    << std::endl;
-	std::cout << " ### " << __FUNCTION__ << " scenes.back()->mMeshes[0]->mNumVertices: " << scenes.back()->mMeshes[0]->mNumVertices << std::endl;
-	const aiScene* destScene = combineScenes(scenes);
-	std::cout << " ### " << __FUNCTION__ << " destScene->mNumMeshes              : " << destScene->mNumMeshes << std::endl;
-	std::cout << " ### " << __FUNCTION__ << " destScene->mMeshes[0]->mNumFaces   : " << destScene->mMeshes[0]->mNumFaces << std::endl;
-	std::cout << " ### " << __FUNCTION__ << " destScene->mMeshes[0]->mNumVertices: " << destScene->mMeshes[0]->mNumVertices << std::endl;
+	// TODO: Assimp exporter doesn't work correctly in release 5.0.1. It exports only master scene
+	//       for app in Release  mode and twice the master scene in Debug. (https://github.com/assimp/assimp/issues/203)
+//	assimpExportScenes(modelScenes, filePath.toStdString());
 
-	Assimp::Exporter exporter;
-	if (AI_SUCCESS == exporter.Export(destScene, "stlb", filePath.toStdString()))
-	{
-		std::cout << " ### " << __FUNCTION__ << " filePATH:" << filePath.toStdString() << " export OK" << std::endl;
-	}
-	else
-	{
-		std::cout << " ### " << __FUNCTION__ << " ERROR for file:" << filePath.toStdString() << std::endl;
-		return false;
-	}
+	const StlHeaderData stlHeader = getStlHeaderFromAssimpScenes(modelScenes, supportScenes);
 
-	writeStlTriangleData(filePath.toStdString(), inputTriangleData);
-	const StlTriangleData outputTriangleData = readStlTriangleData(filePath.toStdString());
+//	std::vector<Vec3> assimpVertices;
+//	std::vector<Vec3> assimpNormals;
+//	Helpers3D::getContiguousAssimpVerticesAndNormals(_scene, assimpVertices, assimpNormals);
+
+	writeStlHeaderData(filePath.toStdString(), stlHeader);
+	const StlHeaderData outputTriangleData = readStlTriangleData(filePath.toStdString());
 	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numModelTriangles:   " << outputTriangleData.numModelTriangles   << std::endl;
 	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numSupportTriangles: " << outputTriangleData.numSupportTriangles << std::endl;
 	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numStandTriangles:   " << outputTriangleData.numStandTriangles   << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numTotalTriangles:   " << outputTriangleData.numTotalTriangles   << std::endl;
 
 	return true;
 }
