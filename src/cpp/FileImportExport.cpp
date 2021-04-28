@@ -13,6 +13,12 @@
 #include <TriangleGeometry.h>
 
 static constexpr uint32_t kStlHeaderSize = 80u;
+
+struct Face
+{
+	uint32_t indices[3] = {0u, 0u, 0u};
+};
+
 struct StlHeaderData
 {
 	uint32_t numModelTriangles   = 0u;
@@ -49,23 +55,6 @@ static void writeStlHeaderData(const std::string& file, const StlHeaderData& dat
 
 	stream.seekp(0, std::ios_base::beg);
 	stream.write((const uint8_t*)&data, sizeof(data));
-	stream.close();
-}
-
-static std::vector<uint8_t> readFirstFileBytes(const std::string& file, uint32_t numBytes)
-{
-	std::basic_ifstream<uint8_t> stream(file);
-	std::vector<uint8_t> buffer(numBytes);
-	stream.read(&buffer[0], numBytes);
-
-	return buffer;
-}
-
-static void writeFirstFileBytes(const std::string& file, std::vector<uint8_t>& buffer)
-{
-	std::fstream stream(file, std::ios::binary | std::ios::out | std::ios::in);
-	stream.seekp(0, std::ios_base::beg);
-	stream.write((char*)&buffer[0], buffer.size());
 	stream.close();
 }
 
@@ -244,18 +233,41 @@ static void getScenesFaceAndVertexCounts(const std::vector<aiScene*>& assimpScen
 	}
 };
 
-static void getScenesVerticesAndNormals(const std::vector<aiScene*>& modelScenes,
-										 uint32_t& numAssimpMeshFacesTotal,
-										 uint32_t& numAssimpVerticesTotal)
+static std::vector<uint32_t>& getSceneIndices(const aiScene* scene,
+											  std::vector<uint32_t>& indices,
+											  const uint32_t numNewIndices = 0)
 {
-	for (const aiScene* scene : modelScenes)
+	if (indices.size() + numNewIndices > indices.capacity())
 	{
-		uint32_t numAssimpMeshFaces = 0;
-		uint32_t numAssimpVertices = 0;
-		Helpers3D::countAssimpFacesAndVertices(scene, numAssimpMeshFaces, numAssimpVertices);
-		numAssimpMeshFacesTotal += numAssimpMeshFaces;
-		numAssimpVerticesTotal += numAssimpVertices;
+		indices.reserve(indices.size() + numNewIndices);
 	}
+	const uint32_t offset = static_cast<uint32_t>(indices.size());
+	for (uint32_t m=0; m<scene->mNumMeshes; ++m)
+	{
+		const aiMesh* mesh = scene->mMeshes[m];
+		for (uint32_t f=0; f<mesh->mNumFaces; ++m)
+		{
+			const aiFace& face = mesh->mFaces[f];
+			assert(3 == face.mNumIndices);
+			indices.push_back(offset + face.mIndices[0]);
+			indices.push_back(offset + face.mIndices[1]);
+			indices.push_back(offset + face.mIndices[2]);
+		}
+	}
+	return indices;
+};
+
+static TriangleGeometryData getCombinedScenesTriangleData(const std::vector<aiScene*>& scenes, const uint32_t finalIndicesSize = 0)
+{
+	TriangleGeometryData data;
+	data.indices.reserve(finalIndicesSize);
+	for (const aiScene* scene : scenes)
+	{
+		Helpers3D::getContiguousAssimpVerticesAndNormals(scene, data.vertices, data.normals);
+		getSceneIndices(scene, data.indices);
+	}
+
+	return data;
 };
 
 static StlHeaderData getStlHeaderFromAssimpScenes(const std::vector<aiScene*>& modelScenes,
@@ -288,26 +300,16 @@ static std::vector<StlTriangleData> getStlTrianglesFromAssimpScenes(const std::v
 																	const std::vector<aiScene*>& supportScenes = {},
 																	const std::vector<aiScene*>& standScenes = {})
 {
-	uint32_t numModelTriangles = 0;
-	uint32_t numModelVertices = 0;
-	getScenesFaceAndVertexCounts(modelScenes,
-								 numModelTriangles,
-								 numModelVertices);
+	StlHeaderData headerData = getStlHeaderFromAssimpScenes(modelScenes, supportScenes, standScenes);
 
-	uint32_t numSupportTriangles = 0;
-	uint32_t numSupportVertices = 0;
-	getScenesFaceAndVertexCounts(supportScenes,
-								 numSupportTriangles,
-								 numSupportVertices);
+	TriangleGeometryData modelData   = getCombinedScenesTriangleData(modelScenes, headerData.numModelTriangles);
+	TriangleGeometryData supportData = getCombinedScenesTriangleData(supportScenes, headerData.numSupportTriangles);
+	TriangleGeometryData standData   = getCombinedScenesTriangleData(standScenes, headerData.numStandTriangles);
 
-	uint32_t numStandTriangles = 0;
-	uint32_t numStandVertices = 0;
-	getScenesFaceAndVertexCounts(standScenes,
-								 numStandTriangles,
-								 numStandVertices);
+	std::vector<StlTriangleData> triangles;
 
-	const uint32_t numTotalTriangles = numModelTriangles + numSupportTriangles + numStandTriangles;
-	return {numModelTriangles, numSupportTriangles, numStandTriangles, {}, numTotalTriangles};
+	return triangles;
+
 }
 
 bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, const QString filePath)
@@ -333,10 +335,6 @@ bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, cons
 //	assimpExportScenes(modelScenes, filePath.toStdString());
 
 	const StlHeaderData stlHeader = getStlHeaderFromAssimpScenes(modelScenes, supportScenes);
-
-//	std::vector<Vec3> assimpVertices;
-//	std::vector<Vec3> assimpNormals;
-//	Helpers3D::getContiguousAssimpVerticesAndNormals(_scene, assimpVertices, assimpNormals);
 
 	writeStlHeaderData(filePath.toStdString(), stlHeader);
 	const StlHeaderData outputTriangleData = readStlTriangleData(filePath.toStdString());

@@ -54,14 +54,15 @@ public:
 	static void getContiguousAssimpVerticesAndNormals(const aiScene* _scene,
 													  std::vector<Vec3>& assimpVertices,
 													  std::vector<Vec3>& assimpNormals);
+
 	static IndicesToVertices mapIndicesToUniqueVerticesAndNormals(const std::vector<Vec3>& vertices,
 																  const std::vector<Vec3>& normals,
 																  std::vector<Vec3>& uniqueVertices,
 																  std::vector<Vec3>& uniqueNormals);
 	static std::vector<uint32_t> getRemappedIndices(const IndicesToVertices& indicesToUniqueVertices,
-														  const std::vector<Vec3>& nonUniqueVertices);
+													const std::vector<Vec3>& nonUniqueVertices);
 	static std::vector<uint32_t> calculateOverhangingTriangleIndices(const std::vector<Vec3>& vertices,
-															  const std::vector<uint32_t>& indices, float _overhangAngleMax);
+																	 const std::vector<uint32_t>& indices, float _overhangAngleMax);
 
 	static bool vertexLess(const Vec3& a, const Vec3& b);
 

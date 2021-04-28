@@ -393,29 +393,31 @@ bool definitelyLessThan(float a, float b, float epsilon)
 
 
 void Helpers3D::countAssimpFacesAndVertices(const aiScene* _scene, uint32_t& numAssimpMeshFaces, uint32_t& numAssimpVertices)
-{
+{// NOTE: this function will accumulate in passed counters  without resetting to 0.
 	for (uint32_t m=0; m<_scene->mNumMeshes; ++m)
 	{
 		numAssimpMeshFaces += _scene->mMeshes[m]->mNumFaces;
-		numAssimpVertices += _scene->mMeshes[m]->mNumVertices;
+		numAssimpVertices  += _scene->mMeshes[m]->mNumVertices;
 	}
 }
 
 void Helpers3D::getContiguousAssimpVerticesAndNormals(const aiScene* assimpScene,
 													  std::vector<Vec3>& assimpVertices,
 													  std::vector<Vec3>& assimpNormals)
-{
+{// NOTE: this function will update existing arrays - resize and append data to them.
 	Chronograph chronograph(__FUNCTION__, false);
 
 	uint32_t numAssimpMeshFaces = 0;
 	uint32_t numAssimpVertices = 0;
 	countAssimpFacesAndVertices(assimpScene, numAssimpMeshFaces, numAssimpVertices);
 
-	assimpVertices.resize(numAssimpVertices);
-	assimpNormals.resize(numAssimpVertices);
+	const uint32_t prevAssimpVerticesSize = static_cast<uint32_t>(assimpVertices.size());
+	const uint32_t prevAssimpNormalsSize = static_cast<uint32_t>(assimpNormals.size());
+	assimpVertices.resize(prevAssimpVerticesSize + numAssimpVertices);
+	assimpNormals.resize(prevAssimpNormalsSize + numAssimpVertices);
 
-	Vec3* vertexPtr = &assimpVertices[0];
-	Vec3* normalsPtr = &assimpNormals[0];
+	Vec3* vertexPtr = &assimpVertices[prevAssimpVerticesSize];
+	Vec3* normalsPtr = &assimpNormals[prevAssimpNormalsSize];
 
 	for (uint32_t m=0; m<assimpScene->mNumMeshes; ++m)
 	{
