@@ -13,6 +13,7 @@
 #include <TriangleGeometry.h>
 
 static constexpr uint32_t kStlHeaderSize = 80u;
+static constexpr uint32_t kStlTriangleSize = 50u;
 
 struct Face
 {
@@ -53,12 +54,20 @@ static StlHeaderData readStlTriangleData(const std::string& filePath)
 	}
 
 	stream.read(&inputBuffer[0], sizeof(StlHeaderData));
-	return *reinterpret_cast<StlHeaderData*>(&inputBuffer[0]);
+
+	StlHeaderData data = *reinterpret_cast<StlHeaderData*>(&inputBuffer[0]);
+
+	std::cout << " ### " << __FUNCTION__ << " numModelTriangles:   " << data.numModelTriangles   << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " numSupportTriangles: " << data.numSupportTriangles << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " numStandTriangles:   " << data.numStandTriangles   << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " numTotalTriangles:   " << data.numTotalTriangles   << std::endl;
+
+	return data;
 }
 
 static bool writeStlHeaderData(const std::string& filePath, const StlHeaderData& data)
 {
-	std::basic_fstream<uint8_t> stream(filePath, std::ios::binary | std::ios::out | std::ios::in);
+	std::basic_fstream<uint8_t> stream(filePath, std::ios::binary | std::ios::out);
 
 	if (!stream.is_open())
 	{
@@ -84,9 +93,13 @@ static bool writeStlTrianglesData(const std::string& filePath, const std::vector
 	}
 
 	stream.seekp(sizeof(StlHeaderData), std::ios_base::beg);
-	stream.write(reinterpret_cast<const uint8_t*>(data.data()), sizeof(data));
+	for (const StlTriangleData& triangle : data)
+	{
+		stream.write(reinterpret_cast<const uint8_t*>(&triangle), kStlTriangleSize);
+	}
 	stream.close();
 
+	std::cout << " ### " << __FUNCTION__ << " Written " << data.size() << " triangles in " << stream.tellp() << " bytes to file: " << filePath << std::endl;
 	return true;
 }
 
@@ -406,11 +419,7 @@ bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, cons
 		return false;
 	}
 
-	const StlHeaderData outputTriangleData = readStlTriangleData(filePath.toStdString());
-	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numModelTriangles:   " << outputTriangleData.numModelTriangles   << std::endl;
-	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numSupportTriangles: " << outputTriangleData.numSupportTriangles << std::endl;
-	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numStandTriangles:   " << outputTriangleData.numStandTriangles   << std::endl;
-	std::cout << " ### " << __FUNCTION__ << " outputTriangleData.numTotalTriangles:   " << outputTriangleData.numTotalTriangles   << std::endl;
-
+	std::cout << " ### " << __FUNCTION__ << " Data successfully exported to file: " << filePath.toStdString() << std::endl;
+	readStlTriangleData(filePath.toStdString());
 	return true;
 }
