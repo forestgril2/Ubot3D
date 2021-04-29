@@ -21,9 +21,9 @@ struct QSSGMeshBVH;
 class TriangleIsland;
 struct TriangleGeometryData
 {
-	std::vector<Vec3> vertices;
-	std::vector<Vec3> normals;
-	std::vector<uint32_t> indices;
+	std::vector<Vec3> vertices = {};
+	std::vector<Vec3> normals = {};
+	std::vector<uint32_t> indices = {};
 };
 
 

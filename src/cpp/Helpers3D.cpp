@@ -419,13 +419,25 @@ void Helpers3D::getContiguousAssimpVerticesAndNormals(const aiScene* assimpScene
 	Vec3* vertexPtr = &assimpVertices[prevAssimpVerticesSize];
 	Vec3* normalsPtr = &assimpNormals[prevAssimpNormalsSize];
 
-	for (uint32_t m=0; m<assimpScene->mNumMeshes; ++m)
+	const uint32_t numMeshes = assimpScene->mNumMeshes;
+	for (uint32_t m=0; m<numMeshes; ++m)
 	{
-		for (uint32_t v=0; v<assimpScene->mMeshes[m]->mNumVertices; ++v, ++vertexPtr, ++normalsPtr)
+		const aiMesh* mesh = assimpScene->mMeshes[m];
+		const uint32_t numVertices = mesh->mNumVertices;
+		for (uint32_t v=0; v<numVertices; ++v, ++vertexPtr)
 		{
 			// TODO: We should probably perform subsequent mesh node transformations here.
-			*vertexPtr = *reinterpret_cast<Vec3*>(&assimpScene->mMeshes[m]->mVertices[v]);
-			*normalsPtr = *reinterpret_cast<Vec3*>(&assimpScene->mMeshes[m]->mNormals[v]);
+			const aiVector3D& vertex = assimpScene->mMeshes[m]->mVertices[v];
+			*vertexPtr  = *reinterpret_cast<const Vec3*>(&vertex);
+		}
+
+		if (!mesh->mNormals)
+			continue;
+
+		for (uint32_t v=0; v<numVertices; ++v, ++normalsPtr)
+		{
+			const aiVector3D& normal = assimpScene->mMeshes[m]->mNormals[v];
+			*normalsPtr = *reinterpret_cast<const Vec3*>(&normal);
 		}
 	}
 }

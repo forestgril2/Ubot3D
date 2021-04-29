@@ -267,17 +267,17 @@ static void getScenesFaceAndVertexCounts(const std::vector<aiScene*>& assimpScen
 
 static std::vector<uint32_t>& getSceneIndices(const aiScene* scene,
 											  std::vector<uint32_t>& indices,
+											  const uint32_t offset,
 											  const uint32_t numNewIndices = 0)
 {
 	if (indices.size() + numNewIndices > indices.capacity())
 	{
 		indices.reserve(indices.size() + numNewIndices);
 	}
-	const uint32_t offset = static_cast<uint32_t>(indices.size());
 	for (uint32_t m=0; m<scene->mNumMeshes; ++m)
 	{
 		const aiMesh* mesh = scene->mMeshes[m];
-		for (uint32_t f=0; f<mesh->mNumFaces; ++m)
+		for (uint32_t f=0; f<mesh->mNumFaces; ++f)
 		{
 			const aiFace& face = mesh->mFaces[f];
 			assert(3 == face.mNumIndices);
@@ -295,8 +295,9 @@ static TriangleGeometryData getCombinedScenesTriangleData(const std::vector<aiSc
 	data.indices.reserve(finalIndicesSize);
 	for (const aiScene* scene : scenes)
 	{
+		const uint32_t prevSizeOffset = static_cast<uint32_t>(data.vertices.size());
+		getSceneIndices(scene, data.indices, prevSizeOffset);
 		Helpers3D::getContiguousAssimpVerticesAndNormals(scene, data.vertices, data.normals);
-		getSceneIndices(scene, data.indices);
 	}
 
 	return data;
@@ -335,23 +336,29 @@ static bool exportAssimpScenesAsStl(const std::string& filePath,
 {
 	const StlHeaderData headerData = getStlHeaderFromAssimpScenes(modelScenes, supportScenes, standScenes);
 
-	const TriangleGeometryData modelData   = getCombinedScenesTriangleData(modelScenes, headerData.numModelTriangles);
-	const TriangleGeometryData supportData = getCombinedScenesTriangleData(supportScenes, headerData.numSupportTriangles);
-	const TriangleGeometryData standData   = getCombinedScenesTriangleData(standScenes, headerData.numStandTriangles);
+	const TriangleGeometryData modelData   = getCombinedScenesTriangleData(modelScenes,   3 * headerData.numModelTriangles);
+	const TriangleGeometryData supportData = getCombinedScenesTriangleData(supportScenes, 3 * headerData.numSupportTriangles);
+	//TODO: Add "isInitialized" to TriangleGeometryData or let know otherwise.
+//	const TriangleGeometryData standData   = getCombinedScenesTriangleData(standScenes,   3 * headerData.numStandTriangles);
 
 	std::vector<StlTriangleData> triangles;
 	const uint32_t numTotalIndices = static_cast<uint32_t>(modelData.indices.size() +
-														   modelData.indices.size() +
-														   modelData.indices.size());
+														   supportData.indices.size());
+//														    +standData.indices.size());
 	assert(0 == numTotalIndices%3);
 	triangles.reserve(numTotalIndices/3);
 
 	auto addExportTriangles = [](const TriangleGeometryData& data, std::vector<StlTriangleData>& triangles) {
 		for (uint32_t i=0; i<data.indices.size(); i+=3)
 		{
-			const Vec3& v0 = data.vertices[i   ];
-			const Vec3& v1 = data.vertices[i +1];
-			const Vec3& v2 = data.vertices[i +2];
+			const uint32_t i0 = data.indices[i   ];
+			const uint32_t i1 = data.indices[i +1];
+			const uint32_t i2 = data.indices[i +2];
+
+			const Vec3& v0 = data.vertices[i0];
+			const Vec3& v1 = data.vertices[i1];
+			const Vec3& v2 = data.vertices[i2];
+
 			const Vec3 n = (v1-v0).cross(v2-v0).normalized();
 			triangles.emplace_back(StlTriangleData{{n .x(), n .y(), n .z()},
 												   {v0.x(), v0.y(), v0.z()},
@@ -363,7 +370,7 @@ static bool exportAssimpScenesAsStl(const std::string& filePath,
 
 	addExportTriangles(modelData,   triangles);
 	addExportTriangles(supportData, triangles);
-	addExportTriangles(standData,   triangles);
+//	addExportTriangles(standData,   triangles);
 
 	if (!writeStlHeaderData(filePath, headerData) || !writeStlTrianglesData(filePath, triangles))
 		return false;
@@ -393,7 +400,7 @@ bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, cons
 	//       for app in Release  mode and twice the master scene in Debug. (https://github.com/assimp/assimp/issues/203)
 //	assimpExportScenes(modelScenes, filePath.toStdString());
 
-	if (!exportAssimpScenesAsStl(filePath.toStdString(), modelScenes, supportScenes));
+	if (!exportAssimpScenesAsStl(filePath.toStdString(), modelScenes, supportScenes))
 	{
 		std::cout << " ### " << __FUNCTION__ << " ERROR: export failed." << std::endl;
 		return false;
