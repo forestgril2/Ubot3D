@@ -39,7 +39,7 @@ QtObject {
             pickedObject.isPicked = true
         }
 
-        objects = QmlHelpers.getSelected(stlObjectsRepeater)
+        objects = QmlHelpers.getSelectedModels(stlObjectsRepeater)
         objectStartPositions = QmlHelpers.getPositions(objects)
         objectStartRotations = QmlHelpers.getRotations(objects)
 

@@ -25,24 +25,6 @@ Window {
         }
     }
 
-    Keys.onPressed: {
-        if (event.key === Qt.Key_Delete) {
-            console.log(" ### IMPLEMENT THIS! This  may be tricky as STL objects repeater model" +
-                        " is a file path list, change it, so a file may be opened multiple times" +
-                        " and there is no mistake, when deleting models")
-
-//            var selectedStlObjects = QmlHelpers.getSelected(stlObjects)
-//            for (var i=0; i<selectedObjects.length; i++) {
-//                const index = array.indexOf(5);
-//                if (index > -1) {
-//                    array.splice(index, 1);
-//                }
-//            }
-
-            event.accepted = true;
-        }
-    }
-
     TypedFileDialog {
         id: fileDialog
     }
@@ -89,6 +71,25 @@ Window {
         SceneBase {
             id: sceneBase
             sceneCenter: Qt.vector3d(100, 100, 0)
+        }
+
+        Keys.onPressed: {
+            if (event.key === Qt.Key_Delete) {
+                var allModels = stlObjectsRepeater.model
+                var selectedStlIndices = QmlHelpers.getSelectedModelIndices(stlObjectsRepeater)
+                for (var i=0; i<selectedStlIndices.length; i++) {
+                    const index = selectedStlIndices[i]
+                    allModels.splice(index, 1);
+                }
+
+                for (var i=0; i<allModels.length; i++) {
+                    console.log(allModels[i])
+                }
+
+                stlObjectsRepeater.model = allModels
+
+                event.accepted = true;
+            }
         }
 
         Ubot3DCameraWasdController {
@@ -279,7 +280,7 @@ Window {
             }
 
             function sliceSelectedModel() {
-                var selectedModels = QmlHelpers.getSelected(stlObjectsRepeater)
+                var selectedModels = QmlHelpers.getSelectedModels(stlObjectsRepeater)
 
                 if (selectedModels.length === 0) {
                     popup.backgroundColor = "yellow"

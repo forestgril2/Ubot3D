@@ -38,7 +38,7 @@ FileDialog {
             case TypedFileDialog.StlExport:
                 var exportedModels = [stlObjectsRepeater.objectAt(0)]
                 if (stlObjectsRepeater.count > 1) {
-                    exportedModels = QmlHelpers.getSelected(stlObjectsRepeater)
+                    exportedModels = QmlHelpers.getSelectedModels(stlObjectsRepeater)
                 }
                 fileImportExport.exportModelsToSTL(prepareStlExportData(exportedModels),
                                            generateSystemFilePath(fileDialog.currentFile))
@@ -72,7 +72,7 @@ FileDialog {
             return
         }
 
-        if (stlObjectsRepeater.count > 1 && QmlHelpers.getSelected(stlObjectsRepeater).length === 0) {
+        if (stlObjectsRepeater.count > 1 && QmlHelpers.getSelectedModels(stlObjectsRepeater).length === 0) {
             popup.backgroundColor = "yellow"
             popup.messageColor = "black"
             popup.messageText = "There are multiple models on scene, but no models selected. Please select model(s) to export to STL."

@@ -82,6 +82,23 @@ static bool writeStlHeaderData(const std::string& filePath, const StlHeaderData&
 	return true;
 }
 
+static bool updateStlHeaderData(const std::string& filePath, const StlHeaderData& data)
+{
+	std::basic_fstream<uint8_t> stream(filePath, std::ios::binary | std::ios::out | std::ios::in);
+
+	if (!stream.is_open())
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR: cannot open file for writing: " << filePath << std::endl;
+		return false;
+	}
+
+	stream.seekp(0, std::ios_base::beg);
+	stream.write(reinterpret_cast<const uint8_t*>(&data), sizeof(data));
+	stream.close();
+
+	return true;
+}
+
 static bool writeStlTrianglesData(const std::string& filePath, const std::vector<StlTriangleData>& data)
 {
 	std::basic_fstream<uint8_t> stream(filePath, std::ios::binary | std::ios::out | std::ios::in);

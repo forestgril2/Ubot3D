@@ -22,14 +22,24 @@ function deselectAll(models) {
     }
 }
 
-function getSelected(modelsListContainer) {
-    var selectedModels = []
+function getSelectedModelIndices(modelsListContainer) {
+    var selectedIndices = []
     for (var i=0; i<modelsListContainer.count; i++)
     {
         var model = modelsListContainer.objectAt(i)
         if (!model.isPicked)
             continue
-        selectedModels.push(model)
+        selectedIndices.push(i)
+    }
+    return selectedIndices
+}
+
+function getSelectedModels(modelsListContainer) {
+    var selectedModels = []
+    var selectedModelIndices = getSelectedModelIndices(modelsListContainer)
+    for (var i=0; i<selectedModelIndices.length; i++)
+    {
+        selectedModels.push(modelsListContainer.objectAt(selectedModelIndices[i]))
     }
     return selectedModels
 }
@@ -67,7 +77,7 @@ function getRotations(objects) {
 }
 
 function getPickedModel(modelsListContainer) {
-    var selectedModels = getSelected(modelsListContainer)
+    var selectedModels = getSelectedModels(modelsListContainer)
     if (selectedModels.length !== 1)
         return undefined
     return selectedModels[0]
