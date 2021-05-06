@@ -65,37 +65,71 @@ Window {
         anchors.fill: parent
         camera: sceneBase.camera
 
+        property var selectedObjects: []
         property var gCodeModel
         property vector3d gcodeModelCenter: Qt.vector3d(0, 0, 0)
+
+        signal pickedModelsChanged()
+        onPickedModelsChanged: {
+            selectedObjects = QmlHelpers.getSelectedModels(stlObjectsRepeater)
+            console.log(" ### selectedObjects.length:" + selectedObjects.length)
+        }
 
         SceneBase {
             id: sceneBase
             sceneCenter: Qt.vector3d(100, 100, 0)
         }
 
-        Keys.onPressed: {
-            if (event.key === Qt.Key_Delete) {
-                var allModels = stlObjectsRepeater.model
-                var selectedStlIndices = QmlHelpers.getSelectedModelIndices(stlObjectsRepeater)
-                for (var i=0; i<selectedStlIndices.length; i++) {
-                    const index = selectedStlIndices[i]
-                    allModels.splice(index, 1);
-                }
+//        Keys.onPressed: {
+//            if (event.key === Qt.Key_Delete) {
+//                var allModels = stlObjectsRepeater.model
+//                var selectedStlIndices = QmlHelpers.getSelectedModelIndices(stlObjectsRepeater)
+//                for (var i=0; i<selectedStlIndices.length; i++) {
+//                    const index = selectedStlIndices[i]
+//                    allModels.splice(index, 1);
+//                }
 
-                for (var i=0; i<allModels.length; i++) {
-                    console.log(allModels[i])
-                }
+//                for (var i=0; i<allModels.length; i++) {
+//                    console.log(allModels[i])
+//                }
 
-                stlObjectsRepeater.model = allModels
+//                stlObjectsRepeater.model = allModels
 
-                event.accepted = true;
-            }
-        }
+//                event.accepted = true;
+//            }
+//            if (event.modifiers & Qt.ControlModifier) {
+//                var selectedModels = QmlHelpers.getSelectedModels(stlObjectsRepeater)
+//                if (selectedModels.length === 0) {
+//                    event.accepted = true;
+//                    return
+//                }
+
+//                switch (event.key)
+//                {
+//                    case Qt.Key_A:
+//                        rotateModelLeft()
+//                        break;
+//                    case Qt.Key_W:
+//                        rotateModelForward()
+//                        break;
+//                    case Qt.Key_S:
+//                        rotateModelBackwards()
+//                        break;
+//                    case Qt.Key_D:
+//                        rotateModelRight()
+//                        break;
+//                    default:
+//                        break;
+//                }
+//                event.accepted = true;
+//            }
+//        }
+
 
         Ubot3DCameraWasdController {
             id: controller
             mouseEnabled: !modelGroupDrag.isActive
-            controlledObject: sceneBase.camera
+            controlledObject: view3d.selectedObjects.length === 1 ? view3d.selectedObjects[0] : sceneBase.camera
             camera: sceneBase.camera
             isMouseDragInverted: true //modelControls.mouseInvertCheckBox.checked
         }
@@ -114,6 +148,10 @@ Window {
 
                 Component.onCompleted: {
                    stlObjectsRepeater.delegateLoaded(stlModel.modelCenter)
+                }
+
+                onIsPickedChanged: {
+                    view3d.pickedModelsChanged()
                 }
             }
 

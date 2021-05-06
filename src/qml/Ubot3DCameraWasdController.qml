@@ -41,6 +41,7 @@ Item {
     property real shiftSpeed: 5
 
     property real forwardSpeed: 1
+    property real rotationSpeed: 1
     property real backSpeed: 1
     property real rightSpeed: 2
     property real leftSpeed: 2
@@ -55,10 +56,11 @@ Item {
     property bool mouseEnabled: true
     property bool keysEnabled: true
 
-    readonly property bool inputsNeedProcessing: status.moveForward | status.moveBack
-                                                 | status.moveLeft | status.moveRight
-                                                 | status.moveUp | status.moveDown
-                                                 | status.useMouse
+    readonly property bool inputsNeedProcessing: status.moveForward   | status.moveBack   |
+                                                 status.moveLeft      | status.moveRight  |
+                                                 status.moveUp        | status.moveDown   |
+                                                 status.rotateForward | status.rotateBack |
+                                                 status.useMouse
 
     property alias acceptedButtons: dragHandler.acceptedButtons
 
@@ -99,22 +101,44 @@ Item {
         status.currentPos = newPos;
     }
 
-    function forwardPressed() {
-        status.moveForward = true
+    function forwardPressed() { 
+        if (!status.controlDown)
+        {
+            status.moveForward = true
+            status.rotateForward = false
+        }
+        else
+        {
+            status.rotateForward = true
+            status.moveForward = false
+        }
+        status.rotateBack = false
         status.moveBack = false
     }
 
     function forwardReleased() {
         status.moveForward = false
+        status.rotateForward = false
     }
 
     function backPressed() {
-        status.moveBack = true
+        if (!status.controlDown)
+        {
+            status.moveBack = true
+            status.moveForward = false
+        }
+        else
+        {
+            status.rotateBack = true
+            status.moveBack = false
+        }
         status.moveForward = false
+        status.rotateForward = false
     }
 
     function backReleased() {
         status.moveBack = false
+        status.rotateBack = false
     }
 
     function rightPressed() {
@@ -161,6 +185,14 @@ Item {
         status.shiftDown = false
     }
 
+    function controlPressed() {
+        status.controlDown = true
+    }
+
+    function controlReleased() {
+        status.controlDown = false
+    }
+
     function handleKeyPress(event)
     {
         switch (event.key) {
@@ -198,6 +230,10 @@ Item {
             focus = true
             shiftPressed();
             break;
+        case Qt.Key_Control:
+            focus = true
+            controlPressed();
+            break;
         }
     }
 
@@ -231,6 +267,9 @@ Item {
         case Qt.Key_Shift:
             shiftReleased();
             break;
+        case Qt.Key_Control:
+            controlReleased();
+            break;
         }
     }
 
@@ -256,12 +295,20 @@ Item {
 
         property bool moveForward: false
         property bool moveBack: false
+
         property bool moveLeft: false
         property bool moveRight: false
+
         property bool moveUp: false
         property bool moveDown: false
+
+        property bool rotateForward: false
+        property bool rotateBack: false
+
         property bool shiftDown: false
+        property bool controlDown: false
         property bool useMouse: false
+
 
         property vector2d lastPos: Qt.vector2d(0, 0)
         property vector2d currentPos: Qt.vector2d(0, 0)
@@ -284,6 +331,23 @@ Item {
 //            console.log(" ### controlledObject.position:" + controlledObject.position)
         }
 
+        function updateRotation(vector, speed)
+        {
+            if (controlledObject.rotation.scalar === 0) {
+                controlledObject.rotation.scalar = 1
+            }
+
+            if (shiftDown)
+                speed *= shiftSpeed;
+            else
+                speed *= root.speed
+
+            var axis = vector.crossProduct(Qt.vector3d(0,1,0)).normalized();
+
+            var additionalRotation = helpers3D.getRotationFromAxisAndAngle(vector, speed)
+            controlledObject.rotation = helpers3D.getRotationFromQuaternions(controlledObject.rotation, additionalRotation)
+        }
+
         function negate(vector) {
             return Qt.vector3d(-vector.x, -vector.y, -vector.z)
         }
@@ -296,6 +360,10 @@ Item {
                 updatePosition(controlledObject.forward, forwardSpeed, controlledObject.position);
             else if (moveBack)
                 updatePosition(negate(controlledObject.forward), backSpeed, controlledObject.position);
+            else if (rotateForward)
+                updateRotation(controlledObject.forward, rotationSpeed)
+            else if (rotateBack)
+                updateRotation(negate(controlledObject.forward), rotationSpeed)
 
             if (moveRight)
                 updatePosition(controlledObject.right, rightSpeed, controlledObject.position);
