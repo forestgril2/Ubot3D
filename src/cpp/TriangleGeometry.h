@@ -51,8 +51,10 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
 	Q_PROPERTY(QVector<QVector3D> overhangingTriangleVertices READ getOverhangingTriangleVertices NOTIFY overhangingTriangleVerticesChanged)
 	Q_PROPERTY(QVector<QVector3D> triangulationResult READ getTriangulationResult NOTIFY triangulationResultChanged)
+	Q_PROPERTY(QVector<QVector<QVector3D>> alphaShapes READ getAlphaShapes NOTIFY supportGeometriesChanged)
 	Q_PROPERTY(QVector<TriangleGeometry*> supportGeometries READ getSupportGeometries NOTIFY supportGeometriesChanged)
 	Q_PROPERTY(bool isSupportGenerated READ isSupportGenerated WRITE setSupportGenerated NOTIFY isSupportGeneratedChanged)
+	Q_PROPERTY(float supportAlphaValue READ getSupportAlphaValue WRITE setSupportAlphaValue)
 //	Q_PROPERTY(QMatrix4x4 sceneTransform READ _sceneTransform WRITE setSceneTransform)
 
 public:
@@ -77,6 +79,10 @@ public:
 	QVector<QVector3D> getOverhangingTriangleVertices() const;
 	QVector<QVector3D> getTriangulationResult() const;
 	QVector<TriangleGeometry*> getSupportGeometries() const;
+	QVector<QVector<QVector3D>> getAlphaShapes() const;
+
+	void setSupportAlphaValue(float value);
+	float getSupportAlphaValue() const;
 
 	const aiScene* getAssimpScene() const;
 
@@ -150,6 +156,8 @@ private:
 	std::vector<uint32_t> _overhangingTriangleIndices;
 	QVector<QVector3D> _overhangingTriangleVertices;
 	QVector<QVector3D> _triangulationResult;
+	QVector<QVector<QVector3D>> _alphaShapes;
+	float _supportAlphaValue;
 	std::vector<std::shared_ptr<TriangleGeometry>> _supportGeometries;
 
 	bool _hasColors = true;

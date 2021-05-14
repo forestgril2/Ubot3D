@@ -6,6 +6,7 @@ Column {
     property alias to: slider.to
     property alias from: slider.from
     property alias value: slider.value
+    property alias orientation: slider.orientation
 
     anchors {
         top: parent.top

@@ -90,27 +90,33 @@ bool Helpers3D::vertexLess(const Vec3& a, const Vec3& b)
 	return false;
 }
 
-std::vector<Vec3> Helpers3D::computeAlphaShapeSegments(const std::vector<Vec3>& points, float floorLevel)
+std::vector<Vec3> Helpers3D::computeAlphaShapeSegments(const std::vector<Vec3>& points, float alphaValue, float floorLevel)
 {
 	std::vector<Vec3> result;
 	if (points.size() == 0)
 		return result;
 
 #ifdef USE_CGAL
-
 	std::vector<Point> points2 = getCgalPoints2<Point>(points);
 	Alpha_shape_2 A(points2.begin(), points2.end(),
-					FT(0.1),
+					FT(alphaValue),
 					Alpha_shape_2::GENERAL);
 	const double optimalAlpha = *A.find_optimal_alpha(1);
+	const double minimalAlpha = A.find_alpha_solid();
+	Alpha_shape_2::NT alpha_solid = A.find_alpha_solid();
+	Alpha_shape_2::Alpha_iterator opt = A.find_optimal_alpha(1);
 	//Recalculate with optimal alpha
-	Alpha_shape_2 B(points2.begin(), points2.end(),
-					FT(optimalAlpha),
-					Alpha_shape_2::GENERAL);
+//	Alpha_shape_2 B(points2.begin(), points2.end(),
+//					FT(optimalAlpha),
+//					Alpha_shape_2::GENERAL);
 	std::vector<Segment> segments;
-	alpha_edges(B, std::back_inserter(segments));
+	alpha_edges(A, std::back_inserter(segments));
 //	std::cout << "Alpha Shape computed" << std::endl;
 //	std::cout << segments.size() << " alpha shape edges" << std::endl;
+
+	std::cout << " ### " << __FUNCTION__ << " optimal alpha:" << optimalAlpha << "," << "" << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " minimalAlpha :" << minimalAlpha << "," << "" << std::endl;
+	std::cout << " ### " << __FUNCTION__ << " alpha_solid  :" << alpha_solid << "," << "" << std::endl;
 
 	std::for_each(segments.begin(), segments.end(), [&result, &floorLevel](const Segment& s) {
 		result.push_back({static_cast<float>(s[0].x()), static_cast<float>(s[0].y()), floorLevel});
@@ -193,9 +199,11 @@ int Helpers3D::drawTriangulation(const QVector<QVector3D>& points)
   return EXIT_SUCCESS;
 }
 
-std::shared_ptr<TriangleGeometry> Helpers3D::extrudedTriangleIsland(const TriangleIsland& modelIsland,
-																	const std::vector<Vec3>& modelVertices,
-																	float modelFloorLevel)
+std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedTriangleIsland(const TriangleIsland& modelIsland,
+																		   const std::vector<Vec3>& modelVertices,
+																		   float alphaValue,
+																		   float modelFloorLevel,
+																		   std::vector<Vec3>* alphaShape)
 {// Get (top) triangle island points, get it casted to floor, connect both.
 	TriangleGeometryData returnData;
 
@@ -260,9 +268,12 @@ std::shared_ptr<TriangleGeometry> Helpers3D::extrudedTriangleIsland(const Triang
 		}
 	}
 
-	// IslandAlpahShapeRing should have Z changed to floorLevel to be found in the maps.
-	const std::vector<Vec3> islandAlphaShapeRing = Helpers3D::computeAlphaShapeSegments(floorVertices, modelFloorLevel);
-
+	// IslandAlphaShapeRing has Z set to floorLevel to be found in the maps.
+	const std::vector<Vec3> islandAlphaShapeRing = Helpers3D::computeAlphaShapeSegments(floorVertices, alphaValue, modelFloorLevel);
+	if (alphaShape)
+	{
+		*alphaShape = islandAlphaShapeRing;
+	}
 
 	// Reserve for top, bottom and side triangles.
 	supportGeometryIndices.reserve(2*islandTriangleIndices.size() + 6*islandAlphaShapeRing.size());

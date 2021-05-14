@@ -25,12 +25,13 @@ public:
 
 	uint32_t getNeighbourCount() const;
 	TrianglesSet& getNeighbours();
-	void addNeighbour(TriangleShared& neighbour);
+	std::pair<TrianglesSet::iterator, bool> addNeighbour(TriangleShared& neighbour);
 	uint32_t getVertexIndex(uint32_t i) const;
 
 private:
 	TrianglesSet _neighbours; // TODO: may profile for speed with a std::vector<uint32_t>, as recursiveAdd() discards duplicates anyway.
 	uint32_t _firstIndexPos; // position of the first index of this triangle in the vertex array (which is in  3's)
+	std::vector<std::pair<uint32_t, uint32_t>> _interiorEdges; // If two vertices aren't shared by the same neighbour triangle - they form a TriangleIsland boundary. Otherwise, they are interior.
 	const std::vector<uint32_t>& _vertexIndices;
 	bool _isAdded = false;
 };
@@ -45,7 +46,10 @@ public:
 	std::vector<uint32_t> getTriangleIndices() const;
 
 private:
+	void calculateBoundaries();
+
 	Triangles _triangles;
+	std::vector<std::vector<uint32_t>> _boundaries; // Polygons on the edges of the island.
 	uint32_t _myNumber;
 	uint32_t _numFailedInsertions = 0;
 };
@@ -57,7 +61,7 @@ public:
 	std::vector<TriangleIsland> calculateIslands();
 
 private:
-	void setupTriangleNeighbours();
+	void setupTriangleNeighboursAndEdges();
 	void createTriangles();
 
 	Triangles _triangles;

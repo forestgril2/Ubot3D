@@ -35,6 +35,7 @@ Window {
 
     SupportOptions {
         id: supportOptions
+        supportVertices: view3d.selectedObjects[0]
     }
 
     Popup {
@@ -144,6 +145,7 @@ Window {
             delegate: StlModel {
                 id: stlModel
                 isSupportGenerated: supportOptions.isGeneratingSupport
+                supportAlphaValue: supportOptions.alphaValue
                 inputFile: stlObjectsRepeater.model[index]
 
                 Component.onCompleted: {
@@ -183,27 +185,27 @@ Window {
             }
         }
 
-//        Repeater3D {
-//            id: overhangingTriangles
-//            model: stlObjects.model.length
-//            delegate: Model {
-//                visible: true
-//                scale: Qt.vector3d(1, 1, 1)
-//                geometry: SimplexGeometry {
-//                    simplexType: SimplexGeometry.Lines
-//                    points: stlObjects.objectAt(index).geometry.overhangingTriangleVertices
-//                }
-//                materials: [
-//                    DefaultMaterial {
-//                        pointSize: 5
-//                        lineWidth: 5
-//                        lighting: DefaultMaterial.NoLighting
-//                        cullMode: DefaultMaterial.NoCulling
-//                        diffuseColor: "yellow"
-//                    }
-//                ]
-//            }
-//        }
+        Repeater3D {
+            id: overhangingTriangles
+            model: stlObjectsRepeater.model.length
+            delegate: Model {
+                visible: true
+                scale: Qt.vector3d(1, 1, 1)
+                geometry: SimplexGeometry {
+                    simplexType: SimplexGeometry.Lines
+                    points: stlObjectsRepeater.objectAt(index).geometry.overhangingTriangleVertices
+                }
+                materials: [
+                    DefaultMaterial {
+                        pointSize: 5
+                        lineWidth: 5
+                        lighting: DefaultMaterial.NoLighting
+                        cullMode: DefaultMaterial.NoCulling
+                        diffuseColor: "red"
+                    }
+                ]
+            }
+        }
 
         Repeater3D {
             id: stlSupportGeometries
@@ -222,13 +224,13 @@ Window {
 
 //        Repeater3D {
 //            id: triangulationResult
-//            model: stlObjects.model.length
+//            model: stlObjectsRepeater.model.length
 //            delegate: Model {
 //                visible: true
 //                scale: Qt.vector3d(1, 1, 1)
 //                geometry: SimplexGeometry {
 //                    simplexType: SimplexGeometry.Lines
-//                    points: stlObjects.objectAt(index).geometry.triangulationResult
+//                    points: stlObjectsRepeater.objectAt(index).geometry.triangulationResult
 //                }
 //                materials: [
 //                    DefaultMaterial {
@@ -236,38 +238,41 @@ Window {
 //                        lineWidth: 5
 //                        lighting: DefaultMaterial.NoLighting
 //                        cullMode: DefaultMaterial.NoCulling
-//                        diffuseColor: "red"
+//                        diffuseColor: "yellow"
 //                    }
 //                ]
 //            }
 //        }
 
-//        Repeater3D {
-//            id: allModelsIslands
-//            model: stlObjects.model.length
+        Repeater3D {
+            id: allModelsAlphaShapes
+            model: stlObjectsRepeater.model.length
 
-//            delegate: Repeater3D {
-//                id: triangleIslands
-//                model: stlObjects.objectAt(index).geometry.triangleIslands
-//                delegate: Model {
-//                    visible: true
-//                    scale: Qt.vector3d(1, 1, 1)
-//                    geometry: SimplexGeometry {
-//                        simplexType: SimplexGeometry.Lines
-//                        points: triangleIslands.model[index]
-//                    }
-//                    materials: [
-//                        DefaultMaterial {
-//                            pointSize: 5
-//                            lineWidth: 5
-//                            lighting: DefaultMaterial.NoLighting
-//                            cullMode: DefaultMaterial.NoCulling
-//                            diffuseColor: "red"
-//                        }
-//                    ]
-//                }
-//            }
-//        }
+            delegate: Repeater3D {
+                id: alphaShapes
+                model: stlObjectsRepeater.objectAt(index).geometry.alphaShapes
+                delegate: Model {
+                    visible: true
+                    scale: Qt.vector3d(1, 1, 1)
+                    geometry: SimplexGeometry {
+                        simplexType: SimplexGeometry.Lines
+                        points: alphaShapes.model[index]
+                    }
+                    materials: [
+                        DefaultMaterial {
+                            pointSize: 5
+                            lineWidth: 5
+                            lighting: DefaultMaterial.NoLighting
+                            cullMode: DefaultMaterial.NoCulling
+                            diffuseColor: "yellow"
+                        }
+                    ]
+                }
+                onModelChanged: console.log(" ### alphaShapes:" + model.length)
+            }
+
+            onModelChanged: console.log(" ### allModelsAlphaShapes:" + model.length)
+        }
 
         PickArea {
             id: pickArea

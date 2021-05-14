@@ -5,6 +5,7 @@ Model {
     id: stlModel
     property alias inputFile: geometry.inputFile
     property alias isSupportGenerated: geometry.isSupportGenerated
+    property alias supportAlphaValue: geometry.supportAlphaValue
 
     property bool isPicked: false
     property bool isSnappedToFloor: false

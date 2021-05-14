@@ -27,7 +27,7 @@ TriangleConnectivity::TriangleConnectivity(const std::vector<uint32_t>& indices)
 	Chronograph chronograph(__FUNCTION__, false);
 	assert(0 == _indices.size() % 3);
 	createTriangles();
-	setupTriangleNeighbours();
+	setupTriangleNeighboursAndEdges();
 }
 
 void TriangleConnectivity::createTriangles()
@@ -41,7 +41,7 @@ void TriangleConnectivity::createTriangles()
 	}
 }
 
-void TriangleConnectivity::setupTriangleNeighbours()
+void TriangleConnectivity::setupTriangleNeighboursAndEdges()
 {
 	Chronograph chronograph(__FUNCTION__, false);
 	// Every triangle has 3 vertices, but many triangles may share the same vertex
@@ -60,7 +60,7 @@ void TriangleConnectivity::setupTriangleNeighbours()
 	}
 	const uint32_t numTriangles = uint32_t(_triangles.size());
 	for (uint32_t triangleIndex=0; triangleIndex<numTriangles; ++triangleIndex)
-	{// For every triangle, push this triangle index to collections assigned to all its vertices.
+	{// For every triangle, push its index to collections incident to all vertices of this triangle.
 		// Note: triangle index multiplied by 3, gives position of its first vertex index in _indices.
 		trianglesAtVertex[_indices[triangleIndex*3   ]].push_back(triangleIndex);
 		trianglesAtVertex[_indices[triangleIndex*3 +1]].push_back(triangleIndex);
@@ -69,15 +69,61 @@ void TriangleConnectivity::setupTriangleNeighbours()
 
 	for (uint32_t triangleIndex=0; triangleIndex<numTriangles; ++triangleIndex)
 	{// For every triangle.
-		Triangle& triangle = *_triangles[triangleIndex];
+		Triangle& thisTriangle = *_triangles[triangleIndex];
+		std::map<TriangleShared, uint32_t> trianglesAddedStartingFromThisTriangle;
 
 		for (uint32_t v=0; v<3; ++v)
 		{// For every vertex in triangle.
-			for (uint32_t incidentTriangleIndex : trianglesAtVertex[triangle.getVertexIndex(v)])
+			const uint32_t thisTriangleCurrentVertexIndex = thisTriangle.getVertexIndex(v);
+			for (uint32_t incidentTriangleIndex : trianglesAtVertex[thisTriangleCurrentVertexIndex])
 			{// For every triangle incident to this vertex.
 				if (incidentTriangleIndex == triangleIndex)
 					continue; // Skip index for the triangle in question.
-				triangle.addNeighbour(_triangles[incidentTriangleIndex]);
+
+				// Attempt to add a neighbour triangle.
+				auto [otherTriangleIterator, isAddedForTheFirstTime] = thisTriangle.addNeighbour(_triangles[incidentTriangleIndex]);
+				auto [triangleAddedStartingFromThisTriangle, isAddedForTheFirstTimeStartingFromThisTriangle] =
+						trianglesAddedStartingFromThisTriangle.insert({_triangles[triangleIndex], thisTriangleCurrentVertexIndex});
+				if (isAddedForTheFirstTime)
+				{// Also add this one to the other triangle as neighbour.
+					#ifndef NDEBUG
+					const auto [thisTriangleIterator, isAddedToTheOtherForTheFirstTime] =
+					#endif
+							_triangles[incidentTriangleIndex]->addNeighbour(_triangles[triangleIndex]);
+					assert(isAddedToTheOtherForTheFirstTime);
+					continue;
+				}
+
+				// If the "otherTriangle" has already been added to "thisTriangle", starting from the other,
+				// we do nothing, as all has already been resolved at the other triangle.
+				if (isAddedForTheFirstTimeStartingFromThisTriangle)
+					continue;
+
+				// If the "otherTriangle" has already been added to "thisTriangle", starting from "thisTriangle",
+				// the two triangles share an interior edge - swhich is not an island boundary.
+				TriangleShared added = *otherTriangleIterator;
+
+				// Find out the previous edge-adjacent vertex index.
+				uint32_t otherVertexIndex = std::numeric_limits<uint32_t>::max();
+				if (v == 0)
+				{
+					std::cout << " ### " << __FUNCTION__ << " ERROR, impossible thing happened!" << std::endl;
+					exit(-1);
+				}
+				assert(v!=0); // this should not be possible!
+
+				if (v==1)
+				{// The previous one is the vertex shared by this interior edge.
+					otherVertexIndex = thisTriangle.getVertexIndex(0);
+				}
+				else
+				{// This will be either v==0 || v==1
+					// TODO : assert this one is found!
+					otherVertexIndex = thisTriangle.getVertexIndex(trianglesAddedStartingFromThisTriangle.at(_triangles[triangleIndex]));
+				}
+
+
+				std::pair<uint32_t, uint32_t> interiorEdge{otherVertexIndex, thisTriangleCurrentVertexIndex};
 			}
 		}
 	}
@@ -152,16 +198,9 @@ TrianglesSet& Triangle::getNeighbours()
 	return _neighbours;
 }
 
-void Triangle::addNeighbour(TriangleShared& neighbour)
+std::pair<TrianglesSet::iterator, bool> Triangle::addNeighbour(TriangleShared& neighbour)
 {
-	if (_neighbours.insert(neighbour).second)
-	{
-//		std::cout << " ### " << __FUNCTION__ << " _firstIndexPos:" << _firstIndexPos << ", neighbour._firstIndexPos: " << neighbour->_firstIndexPos << std::endl;
-	}
-	else
-	{
-//		std::cout << " ### " << __FUNCTION__ << " _firstIndexPos:" << _firstIndexPos << ", CANNOT INSERT neighbour._firstIndexPos: " << neighbour->_firstIndexPos << std::endl;
-	}
+	return _neighbours.insert(neighbour);
 }
 
 TriangleIsland::TriangleIsland(TriangleShared& initialTriangle, uint32_t& trianglesLeft)
@@ -201,6 +240,8 @@ TriangleIsland::TriangleIsland(TriangleShared& initialTriangle, uint32_t& triang
 
 		withNeighboursToAdd.clear();
 	}
+
+	calculateBoundaries();
 }
 
 Triangles& TriangleIsland::getTriangles()
@@ -224,4 +265,12 @@ std::vector<uint32_t> TriangleIsland::getTriangleIndices() const
 		islandTriangleIndices.push_back(triangle->getVertexIndex(2));
 	}
 	return islandTriangleIndices;
+}
+
+void TriangleIsland::calculateBoundaries()
+{
+	for(const TriangleShared& triangle : _triangles)
+	{
+
+	}
 }

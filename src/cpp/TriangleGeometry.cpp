@@ -316,10 +316,23 @@ void TriangleGeometry::generateSupportGeometries()
 	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
 
 	_supportGeometries.clear();
+	_alphaShapes.clear();
+
 	for (const TriangleIsland& island : triangleIslands)
 	{// Generate a support geometry for each overhanging triangle island.
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
-		_supportGeometries.push_back(Helpers3D::extrudedTriangleIsland(island, _data.vertices, _minBound.z));
+		std::vector<Vec3> alphaShapeRing;
+		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, _supportAlphaValue, _minBound.z, &alphaShapeRing));
+
+		const auto convertToQVectors3D = [](const std::vector<Vec3>& alphaShapeRing) {
+			QVector<QVector3D> converted;
+			converted.reserve(int32_t(alphaShapeRing.size()));
+			std::for_each(alphaShapeRing.begin(), alphaShapeRing.end(), [&converted](const Vec3& v) {
+				converted.emplaceBack(*reinterpret_cast<const QVector3D*>(&v));
+			});
+			return converted;
+		};
+		_alphaShapes.emplace_back(convertToQVectors3D(alphaShapeRing));
 	}
 
 	emit supportGeometriesChanged();
@@ -356,6 +369,24 @@ QVector<TriangleGeometry*> TriangleGeometry::getSupportGeometries() const
 					  geometries.push_back(&*geometry);
 				  });
 	return geometries;
+}
+
+QVector<QVector<QVector3D> > TriangleGeometry::getAlphaShapes() const
+{
+	return _alphaShapes;
+}
+
+void TriangleGeometry::setSupportAlphaValue(float value)
+{
+	if (value == _supportAlphaValue)
+		return;
+
+	_supportAlphaValue = value;
+}
+
+float TriangleGeometry::getSupportAlphaValue() const
+{
+	return _supportAlphaValue;
 }
 
 TriangleGeometryData TriangleGeometry::prepareDataFromAssimpScene()
