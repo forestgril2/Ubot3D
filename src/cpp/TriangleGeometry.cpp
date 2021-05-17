@@ -332,7 +332,18 @@ void TriangleGeometry::generateSupportGeometries()
 			});
 			return converted;
 		};
-		_alphaShapes.emplace_back(convertToQVectors3D(alphaShapeRing));
+
+		const auto convertEdgesToQVectors3D = [this](const std::set<Edge>& edges) {
+			QVector<QVector3D> converted;
+			converted.reserve(2*int32_t(edges.size()));
+			std::for_each(edges.begin(), edges.end(), [this, &converted](const Edge& edge) {
+				converted.emplaceBack(*reinterpret_cast<const QVector3D*>(&_data.vertices[edge.first]));
+				converted.emplaceBack(*reinterpret_cast<const QVector3D*>(&_data.vertices[edge.second]));
+			});
+			return converted;
+		};
+
+		_alphaShapes.emplace_back(convertEdgesToQVectors3D(island.getEdges()));
 	}
 
 	emit supportGeometriesChanged();
