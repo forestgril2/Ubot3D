@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
 	QQmlApplicationEngine engine;
 	QQmlContext* context = engine.rootContext();
 
+	Chronograph::setOutputFile("Chronograph.log");
 	Helpers3D helpers3D;
 	FileImportExport fileImportExport;
 	ProcessLauncher launcher;

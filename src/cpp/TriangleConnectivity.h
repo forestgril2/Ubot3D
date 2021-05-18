@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <ostream>
 #include <set>
 #include <memory>
 
@@ -33,7 +34,29 @@ public:
 	const std::set<Edge>& getBoundaryEdges() const;
 
 	// An edge is denoted by a vertex opposite to it, but we specify it with two adjacent vertices.
-	void specifyInteriorEdge(const std::pair<uint32_t, uint32_t>& edge);
+	bool specifyInteriorEdge(const std::pair<uint32_t, uint32_t>& edge);
+
+	friend std::ostream& operator<<(std::ostream& stream, const Triangle& triangle)
+	{
+		stream << " Triangle [_firstIndexPos, [indices], [_edges]]: [" << triangle._firstIndexPos
+			   << ",[[" << triangle._vertexIndices[triangle._firstIndexPos]
+			   << ", "  << triangle._vertexIndices[triangle._firstIndexPos +1]
+			   << ", "  << triangle._vertexIndices[triangle._firstIndexPos +2] << "] " << std::endl;
+
+		auto edgesIt = triangle._boundaryEdges.begin();
+		stream << ", boundary edges: " << std::endl << "[";
+		while (edgesIt != triangle._boundaryEdges.end())
+		{
+			stream << "[" << edgesIt->first << "," << edgesIt->second << "],";
+			++edgesIt;
+		}
+		stream << "]" << std::endl;
+		return stream;
+	}
+
+	#ifndef NDEBUG
+	friend class TriangleConnectivity;
+	#endif
 
 private:
 	std::set<Edge> calculateEdges();
@@ -86,4 +109,5 @@ private:
 	const std::vector<uint32_t>& _indices;
 	void composeTriangleNeighbourhoodAtVertex(TriangleShared thisTriangle, TriangleShared neighbour, uint32_t vertexIndex,
 											  std::map<TriangleShared, std::pair<Edge, bool> >& edgesAtNewNeighbours);
+	void specifyCommonTriangleEdge(TriangleShared triangle, TriangleShared neighbour, const Edge& validCommonEdge);
 };

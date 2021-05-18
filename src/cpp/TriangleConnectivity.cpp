@@ -9,7 +9,7 @@
 
 #include <Chronograph.h>
 
-#undef NDEBUG
+//#undef NDEBUG
 
 // Most well-triangulated meshes should have around 6 triangles shared by one vertex. Let's reserve for 8.
 static const uint32_t kNumTrianglesReservedPerVertex = 8;
@@ -62,9 +62,14 @@ std::map<uint32_t, std::set<TriangleShared>> TriangleConnectivity::getTrianglesA
 	return trianglesAtVertex;
 }
 
-void TriangleConnectivity::composeTriangleNeighbourhoodAtVertex(TriangleShared thisTriangle, TriangleShared neighbour, uint32_t vertexIndex,
-														std::map<TriangleShared, std::pair<Edge, bool>>& edgesAtNewNeighbours)
+void TriangleConnectivity::composeTriangleNeighbourhoodAtVertex(TriangleShared thisTriangle, TriangleShared neighbour,
+					uint32_t vertexIndex, std::map<TriangleShared, std::pair<Edge, bool>>& edgesAtNewNeighbours)
 {
+//	if (thisTriangle->_firstIndexPos == 168633 || neighbour->_firstIndexPos == 168633)
+//	{
+//		std::cout << " ### " << __FUNCTION__ << " culprit triangle:"  << std::endl << *thisTriangle << "," << "" << std::endl;
+//		std::cout << " ### " << __FUNCTION__ << " culprit neighbour:" << std::endl << *neighbour << "," << "" << std::endl;
+//	}
 	const bool isNewNeighbour = thisTriangle->addNeighbour(neighbour).second;
 	if (isNewNeighbour)
 	{// Also add this one to the other triangle as neighbour.
@@ -74,13 +79,13 @@ void TriangleConnectivity::composeTriangleNeighbourhoodAtVertex(TriangleShared t
 		neighbour->addNeighbour(thisTriangle).second;
 		assert(isAddedToTheOtherForTheFirstTime);
 
-		// Remember the vertex index, at whcih this neighbour was found.
+		// Remember the vertex index, at which this neighbour was found.
 		#ifndef NDEBUG
 		auto [neighbourThisRoundIt, isNewInThisTriangleRound] =
 		#endif
-
 		// We need a second addition of this neighbour in this triangle round to resolve this neighbourhood as a common edge.
 		edgesAtNewNeighbours.insert({neighbour, {{vertexIndex, kMaxUnsigned}, /*isValid*/ false}});
+		assert(isNewInThisTriangleRound);
 		return;
 	}
 
@@ -94,6 +99,19 @@ void TriangleConnectivity::composeTriangleNeighbourhoodAtVertex(TriangleShared t
 	// report common edge resolution, by filling fill a valid common edge data.
 	const uint32_t previousIndex = neighbourIt->second.first.first;
 	neighbourIt->second = {std::minmax(previousIndex, vertexIndex), true};
+}
+
+void TriangleConnectivity::specifyCommonTriangleEdge(TriangleShared triangle, TriangleShared neighbour, const Edge& validCommonEdge)
+{
+	bool isSuccessful = true;
+	isSuccessful &= triangle->specifyInteriorEdge(validCommonEdge);
+	isSuccessful &= neighbour->specifyInteriorEdge(validCommonEdge);
+
+	if (!isSuccessful)
+	{
+		std::cout << " ### " << __FUNCTION__ << ": " << *triangle << std::endl;
+		std::cout << " ### " << __FUNCTION__ << ": " << *neighbour << std::endl;
+	}
 }
 
 void TriangleConnectivity::setupTriangleNeighboursAndEdges()
@@ -115,7 +133,7 @@ void TriangleConnectivity::setupTriangleNeighboursAndEdges()
 				if (neighbour == triangle)
 					continue; // Skip the triangle in question.
 
-				// Setup neighbourhood of this triangle and the neighbour at this vertex.
+				// Setup neighbourhood of: this triangle and the neighbour at this vertex.
 				composeTriangleNeighbourhoodAtVertex(triangle, neighbour, vertexIndex, edgesToNewNeighbours);
 
 				const auto edgeAtNeighbourIt = edgesToNewNeighbours.find(neighbour);
@@ -127,8 +145,14 @@ void TriangleConnectivity::setupTriangleNeighboursAndEdges()
 
 				// The two triangles share a common interior edge - one, which is not an island boundary.
 				const Edge& validCommonEdge = edgeAtNeighbourIt->second.first;
-				triangle->specifyInteriorEdge(validCommonEdge);
-				neighbour->specifyInteriorEdge(validCommonEdge);
+				#ifndef NDEBUG
+				if ((triangle->_firstIndexPos == 168633 || neighbour->_firstIndexPos == 168633) && Edge{259782,259785} == validCommonEdge)
+				{
+					std::cout << " ### " << __FUNCTION__ << " SPECIFY EDGE triangle:"  << *triangle << "," << "" << std::endl;
+					std::cout << " ### " << __FUNCTION__ << " SPECIFY EDGE neighbour:" << *neighbour << "," << "" << std::endl;
+				}
+				#endif
+				specifyCommonTriangleEdge(triangle, neighbour, validCommonEdge);
 			}
 		}
 	}
@@ -220,9 +244,22 @@ std::pair<TrianglesSet::iterator, bool> Triangle::addNeighbour(TriangleShared& n
 	return _neighbours.insert(neighbour);
 }
 
-void Triangle::specifyInteriorEdge(const std::pair<uint32_t, uint32_t>& edge)
+bool Triangle::specifyInteriorEdge(const std::pair<uint32_t, uint32_t>& edge)
 {
-	_boundaryEdges.erase(_boundaryEdges.find(edge));
+	auto edgeIt = _boundaryEdges.find(edge);
+	if (edgeIt == _boundaryEdges.end())
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR: No such edge in boundaries anymore: [" << edge.first << "," << edge.second << "]" << std::endl;
+		std::cout << " ### " << __FUNCTION__ << " Triangle at: " << _firstIndexPos << ", vertex indices: [" << _vertexIndices[_firstIndexPos] << ","
+				  << _vertexIndices[_firstIndexPos +1] << "," << _vertexIndices[_firstIndexPos +2] << "]" << std::endl;
+
+		return false;
+	}
+	assert(edgeIt != _boundaryEdges.end());
+
+	// If this in an interior edge, it does not belong to a TriangleIsland boundary.
+	_boundaryEdges.erase(edgeIt);
+	return true;
 }
 
 std::set<Edge> Triangle::calculateEdges()
