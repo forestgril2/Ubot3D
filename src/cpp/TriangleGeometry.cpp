@@ -321,8 +321,20 @@ void TriangleGeometry::generateSupportGeometries()
 	for (const TriangleIsland& island : triangleIslands)
 	{// Generate a support geometry for each overhanging triangle island.
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
-		std::vector<Vec3> alphaShapeRing;
-		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, _supportAlphaValue, _minBound.z, &alphaShapeRing));
+
+		const auto convertEdgesToVertices = [this](const std::set<Edge>& edges) {
+			std::vector<Vec3> converted;
+			converted.reserve(2*edges.size());
+			std::for_each(edges.begin(), edges.end(), [this, &converted](const Edge& edge) {
+				converted.emplace_back(_data.vertices[edge.first]);
+				converted.emplace_back(_data.vertices[edge.second]);
+			});
+			return converted;
+		};
+
+		const std::vector<Vec3> boundaryEdges = convertEdgesToVertices(island.getEdges());
+
+		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, _supportAlphaValue, _minBound.z, boundaryEdges));
 
 		const auto convertToQVectors3D = [](const std::vector<Vec3>& alphaShapeRing) {
 			QVector<QVector3D> converted;
@@ -333,17 +345,7 @@ void TriangleGeometry::generateSupportGeometries()
 			return converted;
 		};
 
-		const auto convertEdgesToQVectors3D = [this](const std::set<Edge>& edges) {
-			QVector<QVector3D> converted;
-			converted.reserve(2*int32_t(edges.size()));
-			std::for_each(edges.begin(), edges.end(), [this, &converted](const Edge& edge) {
-				converted.emplaceBack(*reinterpret_cast<const QVector3D*>(&_data.vertices[edge.first]));
-				converted.emplaceBack(*reinterpret_cast<const QVector3D*>(&_data.vertices[edge.second]));
-			});
-			return converted;
-		};
-
-		_alphaShapes.emplace_back(convertEdgesToQVectors3D(island.getEdges()));
+		_alphaShapes.emplace_back(convertToQVectors3D(boundaryEdges));
 	}
 
 	emit supportGeometriesChanged();

@@ -44,7 +44,7 @@ public:
 	static std::shared_ptr<TriangleGeometry> computeExtrudedTriangleIsland(const TriangleIsland& modelIsland,
 																		   const std::vector<Vec3>& modelVertices, float alphaValue,
 																		   float modelFloorLevel = 0,
-																		   std::vector<Vec3>* alphaShape = nullptr);
+																		   const std::vector<Vec3>& boundaryEdges = {});
 	static std::vector<Vec3> computeConvexHull(const std::vector<Vec3>& points);
 	static std::vector<Vec3> computeAlphaShapeSegments(const std::vector<Vec3>& points, float alphaValue, float floorLevel);
 	static int createCgalMesh();

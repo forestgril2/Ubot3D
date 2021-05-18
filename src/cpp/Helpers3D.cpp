@@ -203,7 +203,7 @@ std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedTriangleIsland(const
 																		   const std::vector<Vec3>& modelVertices,
 																		   float alphaValue,
 																		   float modelFloorLevel,
-																		   std::vector<Vec3>* alphaShape)
+																		   const std::vector<Vec3>& boundaryEdges)
 {// Get (top) triangle island points, get it casted to floor, connect both.
 	TriangleGeometryData returnData;
 
@@ -269,10 +269,19 @@ std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedTriangleIsland(const
 	}
 
 	// IslandAlphaShapeRing has Z set to floorLevel to be found in the maps.
-	const std::vector<Vec3> islandAlphaShapeRing = Helpers3D::computeAlphaShapeSegments(floorVertices, alphaValue, modelFloorLevel);
-	if (alphaShape)
+//	const std::vector<Vec3> islandAlphaShapeRing = Helpers3D::computeAlphaShapeSegments(floorVertices, alphaValue, modelFloorLevel);
+//	if (alphaShape)
+//	{
+//		*alphaShape = islandAlphaShapeRing;
+//	}
+
+	std::vector<Vec3> islandAlphaShapeRing;
+	islandAlphaShapeRing.reserve(boundaryEdges.size());
+	for (const Vec3& edgeVertex : boundaryEdges)
 	{
-		*alphaShape = islandAlphaShapeRing;
+		Vec3 adjustedFloorVertex = edgeVertex;
+		adjustedFloorVertex.z() = modelFloorLevel;
+		islandAlphaShapeRing.emplace_back(adjustedFloorVertex);
 	}
 
 	// Reserve for top, bottom and side triangles.
