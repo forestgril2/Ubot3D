@@ -18,5 +18,6 @@
         <file>HelperFunctions.js</file>
         <file>SlicerParametersInput.qml</file>
         <file>SupportOptions.qml</file>
+        <file>RaftOptions.qml</file>
     </qresource>
 </RCC>

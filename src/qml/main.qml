@@ -38,6 +38,11 @@ Window {
         supportVertices: view3d.selectedObjects[0]
     }
 
+    RaftOptions {
+        id: raftOptions
+//        floorVertices: view3d.selectedObjects[0]
+    }
+
     Popup {
         id: popup
         property alias messageText: message.text

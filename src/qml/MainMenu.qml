@@ -86,7 +86,8 @@ MenuBar {
                 onTriggered: supportOptions.show()
 			}
 			MenuItem{
-				text: qsTr("Options item 2")
+                text: qsTr("Raft options")
+                onTriggered: raftOptions.show()
 			}
 			MenuItem{
 				text: qsTr("Options item 3")
