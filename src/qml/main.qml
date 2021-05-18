@@ -249,14 +249,14 @@ Window {
             model: stlObjectsRepeater.model.length
 
             delegate: Repeater3D {
-                id: alphaShapes
+                id: triangleIslandBoundaries
                 model: stlObjectsRepeater.objectAt(index).geometry.alphaShapes
                 delegate: Model {
                     visible: true
                     scale: Qt.vector3d(1, 1, 1)
                     geometry: SimplexGeometry {
                         simplexType: SimplexGeometry.Lines
-                        points: alphaShapes.model[index]
+                        points: triangleIslandBoundaries.model[index]
                     }
                     materials: [
                         DefaultMaterial {
@@ -268,10 +268,10 @@ Window {
                         }
                     ]
                 }
-                onModelChanged: console.log(" ### alphaShapes:" + model.length)
+                onModelChanged: console.log(" ### triangleIslandBoundaries:" + model.length)
             }
 
-            onModelChanged: console.log(" ### allModelsAlphaShapes:" + model.length)
+            onModelChanged: console.log(" ### allModels triangleIslandBoundaries:" + model.length)
         }
 
         PickArea {
