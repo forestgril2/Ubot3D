@@ -115,6 +115,7 @@ TriangleGeometry::TriangleGeometry() :
 {
 	updateData(TriangleGeometryData());
 	connect(this, &TriangleGeometry::isSupportGeneratedChanged, this, &TriangleGeometry::onIsSupportGeneratedChanged);
+	connect(this, &TriangleGeometry::isRaftGeneratedChanged, this, &TriangleGeometry::onIsRaftGeneratedChanged);
 }
 
 TriangleGeometry::TriangleGeometry(const TriangleGeometryData& data) : TriangleGeometry()
@@ -192,6 +193,22 @@ void TriangleGeometry::onIsSupportGeneratedChanged()
 	else
 	{
 		clearSupportGeometries();
+	}
+}
+
+void TriangleGeometry::onIsRaftGeneratedChanged()
+{
+	std::cout << " ### " << __FUNCTION__ << " _isRaftGenerated:" << _isRaftGenerated << "," << "" << std::endl;
+	if (!_isRaftGenerated && _raftGeometries.empty())
+		return;
+
+	if (_isRaftGenerated)
+	{
+		generateRaftGeometries();
+	}
+	else
+	{
+		clearRaftGeometries();
 	}
 }
 
@@ -357,6 +374,17 @@ void TriangleGeometry::clearSupportGeometries()
 	emit supportGeometriesChanged();
 }
 
+void TriangleGeometry::generateRaftGeometries()
+{
+
+}
+
+void TriangleGeometry::clearRaftGeometries()
+{
+	_raftGeometries.clear();
+	emit raftGeometriesChanged();
+}
+
 void TriangleGeometry::setSupportGenerated(bool isGenerated)
 {
 	if (isGenerated == _isSupportGenerated)
@@ -372,6 +400,20 @@ bool TriangleGeometry::isSupportGenerated() const
 	return _isSupportGenerated;
 }
 
+void TriangleGeometry::setRaftGenerated(bool isGenerated)
+{
+	if (_isRaftGenerated == isGenerated)
+		return;
+
+	_isRaftGenerated = isGenerated;
+	emit isRaftGeneratedChanged(_isRaftGenerated);
+}
+
+bool TriangleGeometry::isRaftGenerated() const
+{
+	return _isRaftGenerated;
+}
+
 QVector<TriangleGeometry*> TriangleGeometry::getSupportGeometries() const
 {
 	QVector<TriangleGeometry*> geometries;
@@ -381,6 +423,18 @@ QVector<TriangleGeometry*> TriangleGeometry::getSupportGeometries() const
 				  [&geometries](std::shared_ptr<TriangleGeometry> geometry) {
 					  geometries.push_back(&*geometry);
 				  });
+	return geometries;
+}
+
+QVector<TriangleGeometry*> TriangleGeometry::getRaftGeometries() const
+{
+	QVector<TriangleGeometry*> geometries;
+	geometries.reserve(qsizetype(_raftGeometries.size()));
+	std::for_each(_raftGeometries.begin(),
+				  _raftGeometries.end(),
+				  [&geometries](std::shared_ptr<TriangleGeometry> geometry) {
+		geometries.push_back(&*geometry);
+	});
 	return geometries;
 }
 

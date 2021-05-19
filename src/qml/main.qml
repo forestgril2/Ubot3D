@@ -227,6 +227,21 @@ Window {
             }
         }
 
+        Repeater3D {
+            id: stlRaftGeometries
+            model: (raftOptions.isGeneratingRaft && stlObjectsRepeater.count > 0) ? stlObjectsRepeater.objectAt(0).geometry.raftGeometries : []
+            delegate: StlModel {
+                geometry: stlObjectsRepeater.objectAt(0).geometry.raftGeometries[index]
+                position: stlObjectsRepeater.objectAt(0).position
+                rotation: stlObjectsRepeater.objectAt(0).rotation
+            }
+
+            onModelChanged: {
+                console.log(" ### new model with size:" + model.length)
+                console.log(" ### raftOptions.isGeneratingRafts:" + supportOptions.isGeneratingRafts)
+            }
+        }
+
 //        Repeater3D {
 //            id: triangulationResult
 //            model: stlObjectsRepeater.model.length

@@ -49,12 +49,18 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
+
 	Q_PROPERTY(QVector<QVector3D> overhangingTriangleVertices READ getOverhangingTriangleVertices NOTIFY overhangingTriangleVerticesChanged)
 	Q_PROPERTY(QVector<QVector3D> triangulationResult READ getTriangulationResult NOTIFY triangulationResultChanged)
 	Q_PROPERTY(QVector<QVector<QVector3D>> alphaShapes READ getAlphaShapes NOTIFY supportGeometriesChanged)
+
 	Q_PROPERTY(QVector<TriangleGeometry*> supportGeometries READ getSupportGeometries NOTIFY supportGeometriesChanged)
 	Q_PROPERTY(bool isSupportGenerated READ isSupportGenerated WRITE setSupportGenerated NOTIFY isSupportGeneratedChanged)
 	Q_PROPERTY(float supportAlphaValue READ getSupportAlphaValue WRITE setSupportAlphaValue)
+
+	Q_PROPERTY(QVector<TriangleGeometry*> raftGeometries READ getRaftGeometries NOTIFY raftGeometriesChanged)
+	Q_PROPERTY(bool isRaftGenerated READ isRaftGenerated WRITE setRaftGenerated NOTIFY isRaftGeneratedChanged)
+
 //	Q_PROPERTY(QMatrix4x4 sceneTransform READ _sceneTransform WRITE setSceneTransform)
 
 public:
@@ -72,6 +78,9 @@ public:
 	void setSupportGenerated(bool isGenerated);
 	bool isSupportGenerated() const;
 
+	void setRaftGenerated(bool isGenerated);
+	bool isRaftGenerated() const;
+
 	Q_INVOKABLE QVariantMap getPick(const QVector3D& origin,
 									const QVector3D& direction,
 									const QMatrix4x4& globalTransform);
@@ -79,6 +88,7 @@ public:
 	QVector<QVector3D> getOverhangingTriangleVertices() const;
 	QVector<QVector3D> getTriangulationResult() const;
 	QVector<TriangleGeometry*> getSupportGeometries() const;
+	QVector<TriangleGeometry*> getRaftGeometries() const;
 	QVector<QVector<QVector3D>> getAlphaShapes() const;
 
 	void setSupportAlphaValue(float value);
@@ -101,6 +111,7 @@ public slots:
 	void setMinBounds(const QVector3D& minBounds);
 	void setMaxBounds(const QVector3D& maxBounds);
 	void onIsSupportGeneratedChanged();
+	void onIsRaftGeneratedChanged();
 
 signals:
 	void normalsChanged();
@@ -114,8 +125,11 @@ signals:
 	void overhangingTriangleVerticesChanged();
 	void overhangingPointsChanged();
 	void triangulationResultChanged();
+
 	void supportGeometriesChanged();
 	void isSupportGeneratedChanged(bool isGenerated);
+	void raftGeometriesChanged();
+	void isRaftGeneratedChanged(bool isGenerated);
 
 private:
 	bool importModelFromFile(const std::string& pFile);
@@ -124,8 +138,11 @@ private:
 	void updateBounds(const float* vertexMatrixXCoord);
 	void buildIntersectionData();
 	void updateData(const TriangleGeometryData& data);
+
 	void generateSupportGeometries();
 	void clearSupportGeometries();
+	void generateRaftGeometries();
+	void clearRaftGeometries();
 
 	uint32_t calculateAndSetStride();
 	std::vector<float> prepareColorTrianglesVertexData();
@@ -159,11 +176,14 @@ private:
 	QVector<QVector<QVector3D>> _alphaShapes;
 	float _supportAlphaValue;
 	std::vector<std::shared_ptr<TriangleGeometry>> _supportGeometries;
+	std::vector<std::shared_ptr<TriangleGeometry>> _raftGeometries;
 
 	bool _hasColors = true;
 	bool _isPicked = false;
 	bool _isAssimpReadDone = false;
+
 	bool _isSupportGenerated = false;
+	bool _isRaftGenerated = false;
 
 //	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 //	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
