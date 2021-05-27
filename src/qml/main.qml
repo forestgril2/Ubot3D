@@ -150,7 +150,7 @@ Window {
             delegate: StlModel {
                 id: stlModel
                 isSupportGenerated: supportOptions.isGeneratingSupport
-                supportAlphaValue: supportOptions.alphaValue
+                areRaftsGenerated: raftOptions.isGeneratingRafts
                 inputFile: stlObjectsRepeater.model[index]
 
                 Component.onCompleted: {
@@ -191,14 +191,19 @@ Window {
         }
 
         Repeater3D {
-            id: overhangingTriangles
+            id: debugTriangleEdges
             model: stlObjectsRepeater.model.length
             delegate: Model {
                 visible: true
                 scale: Qt.vector3d(1, 1, 1)
                 geometry: SimplexGeometry {
                     simplexType: SimplexGeometry.Lines
-                    points: stlObjectsRepeater.objectAt(index).geometry.overhangingTriangleVertices
+                    points: stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges
+
+                    onPointsChanged: {
+                        console.log(" ### stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges.length: "
+                                    + stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges.length)
+                    }
                 }
                 materials: [
                     DefaultMaterial {
@@ -206,7 +211,7 @@ Window {
                         lineWidth: 5
                         lighting: DefaultMaterial.NoLighting
                         cullMode: DefaultMaterial.NoCulling
-                        diffuseColor: "red"
+                        diffuseColor: "blue"
                     }
                 ]
             }
@@ -229,7 +234,7 @@ Window {
 
         Repeater3D {
             id: stlRaftGeometries
-            model: (raftOptions.isGeneratingRaft && stlObjectsRepeater.count > 0) ? stlObjectsRepeater.objectAt(0).geometry.raftGeometries : []
+            model: (raftOptions.isGeneratingRafts && stlObjectsRepeater.count > 0) ? stlObjectsRepeater.objectAt(0).geometry.raftGeometries : []
             delegate: StlModel {
                 geometry: stlObjectsRepeater.objectAt(0).geometry.raftGeometries[index]
                 position: stlObjectsRepeater.objectAt(0).position
@@ -238,7 +243,7 @@ Window {
 
             onModelChanged: {
                 console.log(" ### new model with size:" + model.length)
-                console.log(" ### raftOptions.isGeneratingRafts:" + supportOptions.isGeneratingRafts)
+                console.log(" ### raftOptions.isGeneratingRafts:" + raftOptions.isGeneratingRafts)
             }
         }
 
@@ -265,12 +270,12 @@ Window {
 //        }
 
         Repeater3D {
-            id: allModelsAlphaShapes
+            id: allModelsTriangleIslandBoundaries
             model: stlObjectsRepeater.model.length
 
             delegate: Repeater3D {
                 id: triangleIslandBoundaries
-                model: stlObjectsRepeater.objectAt(index).geometry.alphaShapes
+                model: stlObjectsRepeater.objectAt(index).geometry.triangleIslandBoundaries
                 delegate: Model {
                     visible: true
                     scale: Qt.vector3d(1, 1, 1)

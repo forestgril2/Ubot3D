@@ -1,5 +1,7 @@
 #include "SimplexGeometry.h"
 
+#include <iostream>
+
 SimplexGeometry::SimplexGeometry()
 {
 	const uint32_t numPoints = 10000;
@@ -42,6 +44,8 @@ void SimplexGeometry::updateData()
 	addAttribute(QQuick3DGeometry::Attribute::PositionSemantic,
 				 0,
 				 QQuick3DGeometry::Attribute::F32Type);
+
+	update();
 }
 
 SimplexGeometry::SimplexType SimplexGeometry::getSimplexType() const
@@ -64,6 +68,7 @@ QVector<QVector3D> SimplexGeometry::getPoints() const
 
 void SimplexGeometry::setPoints(QVector<QVector3D> newPoints)
 {
+	std::cout << " ### " << __FUNCTION__ << " :" << "" << "," << "" << std::endl;
 	_points = newPoints;
 	emit pointsChanged();
 }

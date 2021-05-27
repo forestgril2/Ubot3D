@@ -37,6 +37,8 @@ QT_BEGIN_NAMESPACE
 
 #undef NDEBUG
 
+using Matrix4 = Eigen::Matrix4f;
+
 static const uint32_t kNumFloatsPerPositionAttribute = 3u;
 
 void assimpErrorLogging(const std::string&& pError)
@@ -50,6 +52,28 @@ static void assimpLogScene(const aiScene* scene)
 	std::cout << "assimpLogScene(), scene->mMeshes[0]->mNumFaces:    " << scene->mMeshes[0]->mNumFaces << std::endl;
 	std::cout << "assimpLogScene(), scene->mMeshes[0]->mNumVertices: " << scene->mMeshes[0]->mNumVertices << std::endl;
 }
+
+static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertices, const std::set<Edge>& edges)
+{
+	std::vector<Vec3> converted;
+	converted.reserve(2*edges.size());
+	for (const Edge& edge : edges)
+	{
+		converted.emplace_back(vertices[edge.first]);
+		converted.emplace_back(vertices[edge.second]);
+	}
+	return converted;
+};
+
+static QVector<QVector3D> convertToQVectors3D(const std::vector<Vec3>& edgeRing)
+{
+	QVector<QVector3D> converted;
+	converted.reserve(int32_t(edgeRing.size()));
+	std::for_each(edgeRing.begin(), edgeRing.end(), [&converted](const Vec3& v) {
+		converted.emplaceBack(*reinterpret_cast<const QVector3D*>(&v));
+	});
+	return converted;
+};
 
 void TriangleGeometry::updateBounds(const float* vertexMatrixXCoord)
 {
@@ -115,7 +139,7 @@ TriangleGeometry::TriangleGeometry() :
 {
 	updateData(TriangleGeometryData());
 	connect(this, &TriangleGeometry::isSupportGeneratedChanged, this, &TriangleGeometry::onIsSupportGeneratedChanged);
-	connect(this, &TriangleGeometry::isRaftGeneratedChanged, this, &TriangleGeometry::onIsRaftGeneratedChanged);
+	connect(this, &TriangleGeometry::areRaftsGeneratedChanged, this, &TriangleGeometry::onAreRaftsGeneratedChanged);
 }
 
 TriangleGeometry::TriangleGeometry(const TriangleGeometryData& data) : TriangleGeometry()
@@ -123,9 +147,9 @@ TriangleGeometry::TriangleGeometry(const TriangleGeometryData& data) : TriangleG
 	updateData(data);
 }
 
-QVector<QVector3D> TriangleGeometry::getOverhangingTriangleVertices() const
+QVector<QVector3D> TriangleGeometry::getDebugTriangleEdges() const
 {
-	return _overhangingTriangleVertices;
+	return _debugTriangleEdges;
 }
 
 QVector<QVector3D> TriangleGeometry::getTriangulationResult() const
@@ -196,13 +220,13 @@ void TriangleGeometry::onIsSupportGeneratedChanged()
 	}
 }
 
-void TriangleGeometry::onIsRaftGeneratedChanged()
+void TriangleGeometry::onAreRaftsGeneratedChanged()
 {
-	std::cout << " ### " << __FUNCTION__ << " _isRaftGenerated:" << _isRaftGenerated << "," << "" << std::endl;
-	if (!_isRaftGenerated && _raftGeometries.empty())
+	std::cout << " ### " << __FUNCTION__ << " _areRaftsGenerated:" << _areRaftsGenerated << "," << "" << std::endl;
+	if (!_areRaftsGenerated && _raftGeometries.empty())
 		return;
 
-	if (_isRaftGenerated)
+	if (_areRaftsGenerated)
 	{
 		generateRaftGeometries();
 	}
@@ -301,68 +325,77 @@ std::vector<float> TriangleGeometry::prepareColorTrianglesVertexData()
 	return ret;
 }
 
-void TriangleGeometry::generateOverhangingVertices()
+void TriangleGeometry::generateDebugTriangleEdges(const std::vector<uint32_t>& debugTriangleIndices)
 {
 	Chronograph chronograph(__FUNCTION__, false);
 
-	_overhangingTriangleVertices.clear();
-	_overhangingTriangleVertices.reserve(qsizetype(_overhangingTriangleIndices.size() * 2));
+	_debugTriangleEdges.clear();
+	_debugTriangleEdges.reserve(qsizetype(debugTriangleIndices.size() * 2));
 
-	for (uint32_t index=0; index<_overhangingTriangleIndices.size(); index+=3)
+	for (uint32_t index=0; index<debugTriangleIndices.size(); index+=3)
 	{// For each triangle, collect triangle side vertices pair-wise.
-		const QVector3D v0 = *reinterpret_cast<const QVector3D*>(&_data.vertices[_overhangingTriangleIndices[index   ]]);
-		const QVector3D v1 = *reinterpret_cast<const QVector3D*>(&_data.vertices[_overhangingTriangleIndices[index +1]]);
-		const QVector3D v2 = *reinterpret_cast<const QVector3D*>(&_data.vertices[_overhangingTriangleIndices[index +2]]);
+		const QVector3D v0 = *reinterpret_cast<const QVector3D*>(&_data.vertices[debugTriangleIndices[index   ]]);
+		const QVector3D v1 = *reinterpret_cast<const QVector3D*>(&_data.vertices[debugTriangleIndices[index +1]]);
+		const QVector3D v2 = *reinterpret_cast<const QVector3D*>(&_data.vertices[debugTriangleIndices[index +2]]);
 
 		std::vector<std::reference_wrapper<const QVector3D>> verticesToPush{v0, v1, v1, v2, v2, v0};
 		for(const QVector3D& v: verticesToPush)
 		{
-			_overhangingTriangleVertices.push_back(v);
+			_debugTriangleEdges.push_back(v);
 		}
 	}
 
-	emit overhangingTriangleVerticesChanged();
+	std::cout << " ### " << __FUNCTION__ << " _debugTriangleEdges.size(): " << _debugTriangleEdges.size() << "," << "" << std::endl;
+	emit debugTriangleEdgesChanged();
+}
+
+std::vector<uint32_t> TriangleGeometry::collectFloorTriangleIndices(const float floorOffsetLimit, const Eigen::Matrix4f& transform)
+{
+	Chronograph chronograph(__FUNCTION__, false);
+	std::vector<uint32_t> floorTriangleIndices;
+	for (uint32_t triangleIndex=0; triangleIndex<_data.indices.size(); triangleIndex += 3)
+	{
+		auto isTransformedVertexAtFloor = [this, &transform, floorOffsetLimit](uint32_t triangleIndex) {
+			const Vec3 v0 = _data.vertices[_data.indices[triangleIndex]];
+			const Eigen::Vector3f transformedVertex0 = (transform * Eigen::Vector4f{v0.x(), v0.y(), v0.z(), 0}).head<3>();
+
+			return std::abs(transformedVertex0.z() - minBounds().z()) <= floorOffsetLimit;
+		};
+
+		if (isTransformedVertexAtFloor(triangleIndex   ) ||
+			isTransformedVertexAtFloor(triangleIndex +1) ||
+			isTransformedVertexAtFloor(triangleIndex +2))
+		{
+			floorTriangleIndices.push_back(_data.indices[triangleIndex   ]);
+			floorTriangleIndices.push_back(_data.indices[triangleIndex +1]);
+			floorTriangleIndices.push_back(_data.indices[triangleIndex +2]);
+		}
+	}
+	std::cout << " ### " << __FUNCTION__ << ", " << floorTriangleIndices.size() << std::endl;
+	return floorTriangleIndices;
 }
 
 void TriangleGeometry::generateSupportGeometries()
 {
 	Chronograph chronograph(__FUNCTION__, true);
-	generateOverhangingVertices();
+//	generateDebugTriangleEdges(_overhangingTriangleIndices);
 
 	TriangleConnectivity triangleConnectivity(_overhangingTriangleIndices);
 	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
 
 	_supportGeometries.clear();
-	_alphaShapes.clear();
+	_triangleIslandBoundaries.clear();
 
 	for (const TriangleIsland& island : triangleIslands)
 	{// Generate a support geometry for each overhanging triangle island.
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
 
-		const auto convertEdgesToVertices = [this](const std::set<Edge>& edges) {
-			std::vector<Vec3> converted;
-			converted.reserve(2*edges.size());
-			std::for_each(edges.begin(), edges.end(), [this, &converted](const Edge& edge) {
-				converted.emplace_back(_data.vertices[edge.first]);
-				converted.emplace_back(_data.vertices[edge.second]);
-			});
-			return converted;
-		};
-
-		const std::vector<Vec3> boundaryEdges = convertEdgesToVertices(island.getEdges());
+		const std::vector<Vec3> boundaryEdges = convertEdgesToVertices(_data.vertices, island.getEdges());
 
 		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, _supportAlphaValue, _minBound.z, boundaryEdges));
 
-		const auto convertToQVectors3D = [](const std::vector<Vec3>& alphaShapeRing) {
-			QVector<QVector3D> converted;
-			converted.reserve(int32_t(alphaShapeRing.size()));
-			std::for_each(alphaShapeRing.begin(), alphaShapeRing.end(), [&converted](const Vec3& v) {
-				converted.emplaceBack(*reinterpret_cast<const QVector3D*>(&v));
-			});
-			return converted;
-		};
 
-		_alphaShapes.emplace_back(convertToQVectors3D(boundaryEdges));
+//		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdges));
 	}
 
 	emit supportGeometriesChanged();
@@ -376,7 +409,27 @@ void TriangleGeometry::clearSupportGeometries()
 
 void TriangleGeometry::generateRaftGeometries()
 {
+	Chronograph chronograph(__FUNCTION__, true);
+	_raftGeometries.clear();
 
+	const std::vector<uint32_t> floorTriangleIndices = collectFloorTriangleIndices();
+	generateDebugTriangleEdges(floorTriangleIndices);
+
+	TriangleConnectivity triangleConnectivity(floorTriangleIndices);
+	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
+
+	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size(): " << triangleIslands.size() << "," << "" << std::endl;
+
+	for (const TriangleIsland& island : triangleIslands)
+	{// Generate a raft geometry for each triangle island at floor level.
+		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
+
+		const std::vector<Vec3> boundaryEdges = convertEdgesToVertices(_data.vertices, island.getEdges());
+		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, _supportAlphaValue, _minBound.z, boundaryEdges));
+		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdges));
+	}
+
+	emit raftGeometriesChanged();
 }
 
 void TriangleGeometry::clearRaftGeometries()
@@ -400,18 +453,18 @@ bool TriangleGeometry::isSupportGenerated() const
 	return _isSupportGenerated;
 }
 
-void TriangleGeometry::setRaftGenerated(bool isGenerated)
+void TriangleGeometry::setRaftsGenerated(bool areGenerated)
 {
-	if (_isRaftGenerated == isGenerated)
+	if (_areRaftsGenerated == areGenerated)
 		return;
 
-	_isRaftGenerated = isGenerated;
-	emit isRaftGeneratedChanged(_isRaftGenerated);
+	_areRaftsGenerated = areGenerated;
+	emit areRaftsGeneratedChanged(_areRaftsGenerated);
 }
 
-bool TriangleGeometry::isRaftGenerated() const
+bool TriangleGeometry::areRaftsGenerated() const
 {
-	return _isRaftGenerated;
+	return _areRaftsGenerated;
 }
 
 QVector<TriangleGeometry*> TriangleGeometry::getSupportGeometries() const
@@ -438,9 +491,9 @@ QVector<TriangleGeometry*> TriangleGeometry::getRaftGeometries() const
 	return geometries;
 }
 
-QVector<QVector<QVector3D> > TriangleGeometry::getAlphaShapes() const
+QVector<QVector<QVector3D> > TriangleGeometry::getTriangleIslandBoundaries() const
 {
-	return _alphaShapes;
+	return _triangleIslandBoundaries;
 }
 
 void TriangleGeometry::setSupportAlphaValue(float value)
@@ -487,7 +540,8 @@ void TriangleGeometry::updateData(const TriangleGeometryData& data)
 	_overhangingTriangleIndices = // These are needed to add color to triangles and generate support geometries.
 			Helpers3D::calculateOverhangingTriangleIndices(_data.vertices, _data.indices, _overhangAngleMax);
 
-	generateOverhangingVertices();
+	generateDebugTriangleEdges(_overhangingTriangleIndices);
+
 	// Watch out! TriangleGeometryData _data.vertices has different byte size than its size multiplied by stride:
 	// prepareColorTrianglesVertexData() does the job of converting simple Vec3 arrays to vertices+colors.
 	setIndexData(QByteArray(reinterpret_cast<const char*>(_data.indices.data()),

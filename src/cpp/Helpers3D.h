@@ -13,6 +13,7 @@
 
 #include <Eigen/Geometry>
 using Vec3 = Eigen::Vector3f;
+using Matrix4 = Eigen::Matrix4f;
 using IndicesToVertices = std::map<Vec3, uint32_t, bool(*)(const Vec3& a, const Vec3& b)>;
 
 struct aiScene;
