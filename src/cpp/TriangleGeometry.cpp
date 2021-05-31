@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <deque>
 #include <iostream>
 #include <iterator>
 #include <string>
@@ -53,20 +54,21 @@ static void assimpLogScene(const aiScene* scene)
 	std::cout << "assimpLogScene(), scene->mMeshes[0]->mNumVertices: " << scene->mMeshes[0]->mNumVertices << std::endl;
 }
 
-static std::vector<Edge> convertBoundariesToEdges(const std::vector<uint32_t>& boundary)
+static std::vector<Edge> convertBoundaryToEdges(const std::vector<uint32_t>& indexBoundary)
 {
 	std::vector<Edge> converted;
-	converted.reserve(boundary.size());
+	converted.reserve(indexBoundary.size());
 
-	for (uint32_t i=1; i<boundary.size(); ++i)
+	for (uint32_t i=1; i<indexBoundary.size(); ++i)
 	{
-		converted.emplace_back(Edge(boundary[i-1], boundary[i]));
+		converted.emplace_back(Edge(indexBoundary[i-1], indexBoundary[i]));
 	}
-	converted.emplace_back(Edge(boundary[boundary.size() -1], boundary[0]));
+	converted.emplace_back(Edge(indexBoundary[indexBoundary.size() -1], indexBoundary[0]));
 	return converted;
 };
 
-static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertices, const std::vector<Edge>& edges)
+static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertices,
+												const std::vector<Edge>& edges)
 {
 	std::vector<Vec3> converted;
 	converted.reserve(2*edges.size());
@@ -87,6 +89,107 @@ static QVector<QVector3D> convertToQVectors3D(const std::vector<Vec3>& edgeRing)
 	});
 	return converted;
 };
+
+static std::list<std::vector<uint32_t>> composeIndexRings(const std::set<Edge>& edges)
+{
+	Chronograph chronograph(__FUNCTION__, true);
+
+	std::list<std::vector<uint32_t>> rings;
+
+	// Copy initial edges. we will remove from it until empty.
+	std::set<Edge> edgesLeft = edges;
+	// We will also keep track of all free edges at their endpoint/vertex indices.
+	std::map<uint32_t, std::set<Edge>> edgesToIndex;
+	for (const Edge& edge : edges)
+	{// Collect edges in the map.
+		edgesToIndex[edge.first].insert(edge);
+		edgesToIndex[edge.second].insert(edge);
+	}
+
+#ifndef NDEBUG
+	for (const auto& [vertex, edges] : edgesToIndex)
+	{// All these sets should start with a size of 2n.
+		if (0 != edges.size() % 2)
+		{
+			std::cout << " ### " << __FUNCTION__ << " ERROR! Impossible thing has happened: there are "
+					  << edges.size() << " edges at one boundary node." << std::endl;
+			exit(-1);
+		}
+		assert(0 == edges.size() % 2);
+	}
+#endif
+
+	// Initialize a boundary with an unresolved edge and keep finding adjacent edges and
+	// adding their indices, until the boundary is closed - when endpoints match.
+	while(!edgesLeft.empty())
+	{
+		std::deque<uint32_t> boundary{edgesLeft.begin()->first, edgesLeft.begin()->second};
+
+		// Initialize edges at both ends with the same edge.
+		Edge edgeFront{std::minmax(boundary.front(), boundary.back())};
+		Edge edgeBack = edgeFront;
+
+		uint32_t indexFront = edgeFront.first;
+		uint32_t indexBack = edgeFront.second;
+
+		// Erase this edge from the set.
+		edgesLeft.erase(edgesLeft.begin());
+
+		// Keep erasing edges from set and from maps,
+		// until boundary edges match (again) or endpoints match.
+		do
+		{
+			// Get edge pairs (sets) at each end(point).
+			std::set<Edge>& edgesAtIndexFront = edgesToIndex.at(indexFront);
+			std::set<Edge>& edgesAtIndexBack = edgesToIndex.at(indexBack);
+			// For each end, there should be two of these edges:
+			// one already erased from the set, and the other, being a new end.
+			assert(2 == edgesAtIndexFront.size());
+			assert(2 == edgesAtIndexBack.size());
+
+			// Erase the edges, which are not in the set anymore.
+			const bool isFrontErased = edgesAtIndexFront.erase(edgeFront);
+			const bool isBackErased = edgesAtIndexBack.erase(edgeBack);
+			assert(isFrontErased);
+			assert(isBackErased);
+
+			edgeFront = *edgesAtIndexFront.begin();
+			edgeBack = *edgesAtIndexBack.begin();
+
+			// Remove both edges as resolved.
+			edgesLeft.erase(edgeFront);
+			edgesLeft.erase(edgeBack);
+
+			// Remove map entry for both indices, as they should have been resolved already.
+			edgesToIndex.erase(indexFront);
+			edgesToIndex.erase(indexBack);
+
+			//Establish new front and back indices.
+			std::set<uint32_t> newIndicesFront({edgeFront.first, edgeFront.second});
+			std::set<uint32_t> newIndicesBack({edgeBack.first, edgeBack.second});
+			newIndicesFront.erase(indexFront);
+			newIndicesBack.erase(indexBack);
+			indexFront = *newIndicesFront.begin();
+			indexBack = *newIndicesBack.begin();
+
+			if (edgeFront == edgeBack)
+				break; // If edges at the end match again, endpoints are final already.
+
+			// Otherwise append new endpoint indices to the boundary.
+			boundary.push_front(indexFront);
+			boundary.push_back(indexBack);
+		} // If boundary limiting points match, a boundary is closed, with all edges connected.
+		while (indexFront != indexBack);
+
+		if (indexFront == indexBack)
+		{// Remove one of the duplicate endpoints.
+			boundary.erase(boundary.begin());
+		}
+
+		rings.emplace_back(std::vector<uint32_t>(boundary.begin(), boundary.end()));
+	}
+	return rings;
+}
 
 void TriangleGeometry::updateBounds(const float* vertexMatrixXCoord)
 {
@@ -403,11 +506,15 @@ void TriangleGeometry::generateSupportGeometries()
 	{// Generate a support geometry for each overhanging triangle island.
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
 
-		const std::vector<Vec3> boundaryEdges = convertEdgesToVertices(_data.vertices, island.getEdges());
+		std::vector<Vec3> boundaryEdgeVertices;
+		std::list<std::vector<uint32_t>> islandBoundaryRings = composeIndexRings(island.getBoundaryEdges());
+		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
+		{
+			const std::vector<Vec3> ringEdgeVertices = convertEdgesToVertices(_data.vertices, convertBoundaryToEdges(ring));
+			std::copy(ringEdgeVertices.begin(), ringEdgeVertices.end(), std::back_inserter(boundaryEdgeVertices));
+		}
 
-		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, _supportAlphaValue, _minBound.z, boundaryEdges));
-
-
+		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, _supportAlphaValue, _minBound.z, boundaryEdgeVertices));
 //		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdges));
 	}
 
@@ -437,17 +544,19 @@ void TriangleGeometry::generateRaftGeometries()
 	{// Generate a raft geometry for each triangle island at floor level.
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
 
-		for (const std::vector<uint32_t>& boundary : island.getBoundaries())
+		const std::set<Edge> islandBoundaryEdges = island.getBoundaryEdges();
+		const std::list<std::vector<uint32_t>> boundaryRings = composeIndexRings(islandBoundaryEdges);
+		for (const std::vector<uint32_t>& ring : boundaryRings)
 		{
-			const std::vector<Vec3> boundaryEdges =
+			const std::vector<Vec3> boundaryEdgeVertices =
 					convertEdgesToVertices(_data.vertices,
-										   convertBoundariesToEdges(boundary));
+										   convertBoundaryToEdges(ring));
 //			_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island,
 //																				  _data.vertices,
 //																				  _supportAlphaValue,
 //																				  _minBound.z,
 //																				  boundaryEdges));
-			_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdges));
+			_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdgeVertices));
 		}
 	}
 

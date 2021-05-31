@@ -32,6 +32,7 @@ CONFIG += ordered
 SUBDIRS += src/cpp src/qml
 
 SOURCES += \
+    src/cpp/Edge.cpp \
     src/cpp/FileImportExport.cpp \
      src/cpp/main.cpp \
     src/cpp/ProcessLauncher.cpp \
@@ -47,6 +48,7 @@ SOURCES += \
 
 
 HEADERS += \
+        src/cpp/Edge.h \
         src/cpp/FileImportExport.h \
         src/cpp/TriangleGeometry.h \
         src/cpp/CommonDefs.h \
