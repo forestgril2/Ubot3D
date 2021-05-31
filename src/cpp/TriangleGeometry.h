@@ -52,7 +52,6 @@ class TriangleGeometry : public QQuick3DGeometry
 
 	Q_PROPERTY(QVector<QVector3D> debugTriangleEdges READ getDebugTriangleEdges NOTIFY debugTriangleEdgesChanged)
 	Q_PROPERTY(QVector<QVector3D> triangulationResult READ getTriangulationResult NOTIFY triangulationResultChanged)
-	Q_PROPERTY(QVector<QVector<QVector3D>> triangleIslandBoundaries READ getTriangleIslandBoundaries NOTIFY supportGeometriesChanged)
 
 	Q_PROPERTY(QVector<TriangleGeometry*> supportGeometries READ getSupportGeometries NOTIFY supportGeometriesChanged)
 	Q_PROPERTY(bool isSupportGenerated READ isSupportGenerated WRITE setSupportGenerated NOTIFY isSupportGeneratedChanged)
@@ -61,6 +60,7 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector<TriangleGeometry*> raftGeometries READ getRaftGeometries NOTIFY raftGeometriesChanged)
 	Q_PROPERTY(bool areRaftsGenerated READ areRaftsGenerated WRITE setRaftsGenerated NOTIFY areRaftsGeneratedChanged)
 
+	Q_PROPERTY(QVector<QVector<QVector3D>> triangleIslandBoundaries READ getTriangleIslandBoundaries NOTIFY raftGeometriesChanged)
 //	Q_PROPERTY(QMatrix4x4 sceneTransform READ _sceneTransform WRITE setSceneTransform)
 
 public:

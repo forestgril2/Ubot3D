@@ -53,7 +53,20 @@ static void assimpLogScene(const aiScene* scene)
 	std::cout << "assimpLogScene(), scene->mMeshes[0]->mNumVertices: " << scene->mMeshes[0]->mNumVertices << std::endl;
 }
 
-static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertices, const std::set<Edge>& edges)
+static std::vector<Edge> convertBoundariesToEdges(const std::vector<uint32_t>& boundary)
+{
+	std::vector<Edge> converted;
+	converted.reserve(boundary.size());
+
+	for (uint32_t i=1; i<boundary.size(); ++i)
+	{
+		converted.emplace_back(Edge(boundary[i-1], boundary[i]));
+	}
+	converted.emplace_back(Edge(boundary[boundary.size() -1], boundary[0]));
+	return converted;
+};
+
+static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertices, const std::vector<Edge>& edges)
 {
 	std::vector<Vec3> converted;
 	converted.reserve(2*edges.size());
@@ -424,9 +437,18 @@ void TriangleGeometry::generateRaftGeometries()
 	{// Generate a raft geometry for each triangle island at floor level.
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
 
-		const std::vector<Vec3> boundaryEdges = convertEdgesToVertices(_data.vertices, island.getEdges());
-		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, _supportAlphaValue, _minBound.z, boundaryEdges));
-		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdges));
+		for (const std::vector<uint32_t>& boundary : island.getBoundaries())
+		{
+			const std::vector<Vec3> boundaryEdges =
+					convertEdgesToVertices(_data.vertices,
+										   convertBoundariesToEdges(boundary));
+//			_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island,
+//																				  _data.vertices,
+//																				  _supportAlphaValue,
+//																				  _minBound.z,
+//																				  boundaryEdges));
+			_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdges));
+		}
 	}
 
 	emit raftGeometriesChanged();

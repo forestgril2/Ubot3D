@@ -12,7 +12,61 @@ using TriangleShared = std::shared_ptr<Triangle>;
 using Triangles = std::vector<TriangleShared>;
 using TrianglesList = std::vector<TriangleShared>;
 using TrianglesSet = std::set<TriangleShared, bool(*)(const TriangleShared&, const TriangleShared&)>;
-using Edge = std::pair<uint32_t, uint32_t>;
+
+class Edge
+{
+public:
+	Edge(const Edge& other)
+	{
+		*this = other;
+	}
+	Edge(uint32_t f, uint32_t s)
+	{
+		first = f;
+		second = s;
+	}
+	Edge(const std::pair<uint32_t, uint32_t>& pair)
+	{
+		_endpoints = pair;
+	}
+	Edge(const std::initializer_list<uint32_t>& list)
+	{
+		assert(2 == list.size());
+		first = *list.begin();
+		second = *std::rbegin(list);
+	}
+
+	Edge& operator=(const Edge& other)
+	{
+		_endpoints = other._endpoints;
+		return *this;
+	}
+	bool operator==(const Edge& other) const
+	{
+		return _endpoints == other._endpoints;
+	}
+	bool operator!=(const Edge& other) const
+	{
+		return _endpoints != other._endpoints;
+	}
+
+	bool operator<(const Edge& other) const
+	{
+		return _endpoints < other._endpoints;
+	}
+
+	uint32_t& first = _endpoints.first;
+	uint32_t& second = _endpoints.second;
+
+	friend std::ostream& operator<<(std::ostream& stream, const Edge& edge)
+	{
+		stream << "Edge[" << edge.first << "," << edge.second << "]";
+		return stream;
+	}
+
+private:
+	std::pair<uint32_t, uint32_t> _endpoints;
+};
 
 class Triangle
 {
@@ -34,7 +88,7 @@ public:
 	const std::set<Edge>& getBoundaryEdges() const;
 
 	// An edge is denoted by a vertex opposite to it, but we specify it with two adjacent vertices.
-	bool specifyInteriorEdge(const std::pair<uint32_t, uint32_t>& edge);
+	bool specifyInteriorEdge(const Edge& edge);
 
 	friend std::ostream& operator<<(std::ostream& stream, const Triangle& triangle)
 	{
@@ -43,12 +97,10 @@ public:
 			   << ", "  << triangle._vertexIndices[triangle._firstIndexPos +1]
 			   << ", "  << triangle._vertexIndices[triangle._firstIndexPos +2] << "] " << std::endl;
 
-		auto edgesIt = triangle._boundaryEdges.begin();
 		stream << ", boundary edges: " << std::endl << "[";
-		while (edgesIt != triangle._boundaryEdges.end())
+		for (const auto& edge : triangle._boundaryEdges)
 		{
-			stream << "[" << edgesIt->first << "," << edgesIt->second << "],";
-			++edgesIt;
+			stream << edge << ",";
 		}
 		stream << "]" << std::endl;
 		return stream;
@@ -80,14 +132,15 @@ public:
 	TriangleIsland(TriangleShared& initialTriangle, uint32_t& trianglesLeft);
 	Triangles& getTriangles();
 	const Triangles& getTriangles() const;
-	const std::set<Edge>& getEdges() const;
+	const std::vector<Edge>& getEdges() const;
+	const std::vector<std::vector<uint32_t>>& getBoundaries() const;
 	std::vector<uint32_t> getTriangleIndices() const;
 
 private:
-	void calculateBoundaries();
+	void calculateBoundaryRings();
 
 	Triangles _triangles;
-	std::set<Edge> _edges;
+	std::vector<Edge> _edges;
 	std::vector<std::vector<uint32_t>> _boundaries; // Polygons on the edges of the island.
 	uint32_t _myNumber;
 	uint32_t _numFailedInsertions = 0;

@@ -96,9 +96,10 @@ void TriangleConnectivity::composeTriangleNeighbourhoodAtVertex(TriangleShared t
 		return; // This means that the neighbourhood has already been resolved at the other "neighbour" triangle
 
 	// If a vertex is already mapped to the "neighbour" for the second time in this triangle round,
-	// report common edge resolution, by filling fill a valid common edge data.
+	// report common edge resolution, by filling a valid common edge data.
 	const uint32_t previousIndex = neighbourIt->second.first.first;
-	neighbourIt->second = {std::minmax(previousIndex, vertexIndex), true};
+	neighbourIt->second.first = Edge(std::minmax(previousIndex, vertexIndex));
+	neighbourIt->second.second = /* isValid */ true;
 }
 
 void TriangleConnectivity::specifyCommonTriangleEdge(TriangleShared triangle, TriangleShared neighbour, const Edge& validCommonEdge)
@@ -244,7 +245,7 @@ std::pair<TrianglesSet::iterator, bool> Triangle::addNeighbour(TriangleShared& n
 	return _neighbours.insert(neighbour);
 }
 
-bool Triangle::specifyInteriorEdge(const std::pair<uint32_t, uint32_t>& edge)
+bool Triangle::specifyInteriorEdge(const Edge& edge)
 {
 	auto edgeIt = _boundaryEdges.find(edge);
 	if (edgeIt == _boundaryEdges.end())
@@ -317,7 +318,7 @@ TriangleIsland::TriangleIsland(TriangleShared& initialTriangle, uint32_t& triang
 		withNeighboursToAdd.clear();
 	}
 
-	calculateBoundaries();
+	calculateBoundaryRings();
 }
 
 Triangles& TriangleIsland::getTriangles()
@@ -330,9 +331,14 @@ const Triangles& TriangleIsland::getTriangles() const
 	return _triangles;
 }
 
-const std::set<Edge>& TriangleIsland::getEdges() const
+const std::vector<Edge>& TriangleIsland::getEdges() const
 {
 	return _edges;
+}
+
+const std::vector<std::vector<uint32_t>>& TriangleIsland::getBoundaries() const
+{
+	return _boundaries;
 }
 
 std::vector<uint32_t> TriangleIsland::getTriangleIndices() const
@@ -348,70 +354,126 @@ std::vector<uint32_t> TriangleIsland::getTriangleIndices() const
 	return islandTriangleIndices;
 }
 
-void TriangleIsland::calculateBoundaries()
+void TriangleIsland::calculateBoundaryRings()
 {
 	Chronograph chronograph(__FUNCTION__, true);
 
-	// The key in this map are boundary limiting points. If they match, the boundary is closed, with all edges connected.
+	// If boundary limiting points match, a boundary is closed, with all edges connected.
 	std::vector<std::list<uint32_t>> boundaries;
+
+	// Start with all edges, we currently have, collected from all triangles.
 	std::set<Edge> edgesLeft;
-
-	// We will also use a mapping of all free edges to their vertices;
-	std::map<uint32_t, std::set<Edge>> edgesToVertex;
-
-	// Initialize the maps with separate edges.
-	for(const TriangleShared &triangle : _triangles)
+	// We will also keep track of all free edges at their endpoint/vertex indices.
+	std::map<uint32_t, std::set<Edge>> edgesToIndex;
+	// Collect edges in the set and the map.
+	for(const TriangleShared& triangle : _triangles)
 	{
-		for (const auto &edge : triangle->getBoundaryEdges())
+		for (const auto& edge : triangle->getBoundaryEdges())
 		{
 			edgesLeft.insert(edge);
-			edgesToVertex[edge.first].insert(edge);
-			edgesToVertex[edge.second].insert(edge);
+			std::cout << " ### " << __FUNCTION__ << " Adding edge: " << edge << std::endl;
+			edgesToIndex[edge.first].insert(edge);
+			edgesToIndex[edge.second].insert(edge);
 		}
 	}
 
-	for (const auto& [vertex, edges] : edgesToVertex)
-	{// All these sets should start wita a size of 2n.
+#ifndef NDEBUG
+	for (const auto& [vertex, edges] : edgesToIndex)
+	{// All these sets should start with a size of 2n.
 		if (0 != edges.size() % 2)
 		{
-			std::cout << " ### " << __FUNCTION__ << " ERROR! Impossible thing has happened: there are " << edges.size() << " edges at one boundary node." << std::endl;
+			std::cout << " ### " << __FUNCTION__ << " ERROR! Impossible thing has happened: there are "
+					  << edges.size() << " edges at one boundary node." << std::endl;
 			exit(-1);
 		}
 		assert(0 == edges.size() % 2);
 	}
+#endif
 
-	_edges = edgesLeft;
+	// Initialize a boundary with an unresolved edge and keep finding adjacent edges and
+	// adding their indices, until the boundary is closed - when endpoints match.
+	while(!edgesLeft.empty())
+	{
+		std::list<uint32_t> boundary{edgesLeft.begin()->first, edgesLeft.begin()->second};
 
-//	auto edgesIt = edgesLeft.begin();
-//	while(edgesIt != edgesLeft.end())
-//	{// Initialize a boundary with an edge and keep finding adjacent edges, adding their vertices, until the boundary is closed.
-//		std::list<uint32_t> boundary{edgesIt->first, edgesIt->second};
-//		edgesLeft.erase(*edgesIt);
+		// Initialize edges at both ends with the same edge.
+		Edge edgeFront{std::minmax(boundary.front(), boundary.back())};
+		Edge edgeBack = edgeFront;
 
-//		Edge edgeFront = std::minmax(boundary.front(), boundary.back());
-//		Edge edgeBack = edgeFront;
+		uint32_t indexFront = edgeFront.first;
+		uint32_t indexBack = edgeFront.second;
 
-//		auto [vertexFront, vertexBack] = edgeFront;
+		// Erase this edge from the set.
+		edgesLeft.erase(edgesLeft.begin());
 
-//		while (vertexFront != vertexBack)
-//		{
-//			auto& edgesAtVertexFront = edgesToVertex.at(vertexFront);
-//			auto& edgesAtVertexBack = edgesToVertex.at(vertexBack);
+		// Keep erasing edges from set and from maps,
+		// until boundary edges match (again) or endpoints match.
+		do
+		{
+			// Get edge pairs (sets) at each end(point).
+			std::set<Edge>& edgesAtIndexFront = edgesToIndex.at(indexFront);
+			std::set<Edge>& edgesAtIndexBack = edgesToIndex.at(indexBack);
+			// For each end, there should be two of these edges:
+			// one already erased from the set, and the other, being a new end.
+			assert(2 == edgesAtIndexFront.size());
+			assert(2 == edgesAtIndexBack.size());
 
-//			edgesAtVertexFront.erase(edgeFront);
-//			edgesAtVertexBack.erase(edgeBack);
+			// Erase the edges, which are not in the set anymore.
+			const bool isFrontErased = edgesAtIndexFront.erase(edgeFront);
+			const bool isBackErased = edgesAtIndexBack.erase(edgeBack);
 
-//			edgeFront = *edgesAtVertexFront.begin();
-//			edgeBack = *edgesAtVertexBack.begin();
+			if (!isFrontErased)
+			{
+				std::cout << " ### " << __FUNCTION__ << " ERROR! Impossible thing has happened: " <<
+							 " there is no such edge in map anymore" << std::endl;
+				exit(-1);
+			}
+			if (!isBackErased)
+			{
+				std::cout << " ### " << __FUNCTION__ << " ERROR! Impossible thing has happened: "
+						  << "there is no such edge in map anymore" << std::endl;
+				exit(-1);
+			}
 
-//			edgesLeft.erase(edgeFront);
-//			edgesLeft.erase(edgeBack);
+			edgeFront = *edgesAtIndexFront.begin();
+			edgeBack = *edgesAtIndexBack.begin();
 
-//			// Now edge sets at limiting vertices are left with only one edge per set - the exterior/not connected ones.
+			// Remove both edges as resolved.
+			edgesLeft.erase(edgeFront);
+			edgesLeft.erase(edgeBack);
 
-////			boundary.
-//		}
+			// Remove map entry for both indices, as they should have been resolved already.
+			edgesToIndex.erase(indexFront);
+			edgesToIndex.erase(indexBack);
 
-//		++edgesIt;
-//	}
+			//Establish new front and back indices.
+			std::set<uint32_t> newIndicesFront({edgeFront.first, edgeFront.second});
+			std::set<uint32_t> newIndicesBack({edgeBack.first, edgeBack.second});
+			newIndicesFront.erase(indexFront);
+			newIndicesBack.erase(indexBack);
+			indexFront = *newIndicesFront.begin();
+			indexBack = *newIndicesBack.begin();
+
+			if (edgeFront == edgeBack)
+				break;
+
+			// Append these indices to the boundary.
+			boundary.push_front(indexFront);
+			boundary.push_back(indexBack);
+		}
+		while (indexFront != indexBack);
+
+		if (indexFront == indexBack)
+		{// Remove one of the endpoints.
+			boundary.erase(boundary.begin());
+		}
+
+		boundaries.push_back(boundary);
+	}
+
+	_boundaries.clear();
+	for (const auto& boundary : boundaries)
+	{// Rewrite boundary ring indices to collection of vectors with edge pair indices in order.
+		_boundaries.push_back(std::vector<uint32_t>(boundary.begin(), boundary.end()));
+	}
 }
