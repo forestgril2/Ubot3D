@@ -17,8 +17,8 @@ public:
 	bool operator!=(const Edge& other) const;
 	bool operator<(const Edge& other) const;
 
-	uint32_t& first = _endpoints.first;
-	uint32_t& second = _endpoints.second;
+	uint32_t& first = _endNodes.first;
+	uint32_t& second = _endNodes.second;
 
 	friend std::ostream& operator<<(std::ostream& stream, const Edge& edge)
 	{
@@ -27,5 +27,5 @@ public:
 	}
 
 private:
-	std::pair<uint32_t, uint32_t> _endpoints;
+	std::pair<uint32_t, uint32_t> _endNodes;
 };

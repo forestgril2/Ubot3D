@@ -90,25 +90,30 @@ static QVector<QVector3D> convertToQVectors3D(const std::vector<Vec3>& edgeRing)
 	return converted;
 };
 
-static std::list<std::vector<uint32_t>> composeIndexRings(const std::set<Edge>& edges)
-{
+static std::list<std::vector<uint32_t>> composeNodeRings(const std::set<Edge>& edges)
+{//TODO: Currently will crash for non-closed boundaries.
+ //      Extend to get graph rings and connections to/between rings.
 	Chronograph chronograph(__FUNCTION__, true);
 
+	// Having a set of TriangleIsland boundary Edges, defined as indices==nodes on their ends,
+	// find rings by connecting edges by matching indices.
 	std::list<std::vector<uint32_t>> rings;
 
-	// Copy initial edges. we will remove from it until empty.
+	// Copy initial edges. We will remove each resolved/matched edge from it until empty.
 	std::set<Edge> edgesLeft = edges;
-	// We will also keep track of all free edges at their endpoint/vertex indices.
-	std::map<uint32_t, std::set<Edge>> edgesToIndex;
-	for (const Edge& edge : edges)
-	{// Collect edges in the map.
-		edgesToIndex[edge.first].insert(edge);
-		edgesToIndex[edge.second].insert(edge);
+
+	// We will also keep track of all edges left at their end-nodes.
+	std::map<uint32_t, std::set<Edge>> edgesLeftAtNodes;
+	for (const Edge& edge : edgesLeft)
+	{
+		edgesLeftAtNodes[edge.first].insert(edge);
+		edgesLeftAtNodes[edge.second].insert(edge);
 	}
 
 #ifndef NDEBUG
-	for (const auto& [vertex, edges] : edgesToIndex)
-	{// All these sets should start with a size of 2n.
+	for (const auto& [vertex, edges] : edgesLeftAtNodes)
+	{// All these sets should start with a size of 2n, as every index is
+	 // a node with as many "ingoing" as "outgoing" edges.
 		if (0 != edges.size() % 2)
 		{
 			std::cout << " ### " << __FUNCTION__ << " ERROR! Impossible thing has happened: there are "
@@ -119,69 +124,74 @@ static std::list<std::vector<uint32_t>> composeIndexRings(const std::set<Edge>& 
 	}
 #endif
 
-	// Initialize a boundary with an unresolved edge and keep finding adjacent edges and
-	// adding their indices, until the boundary is closed - when endpoints match.
+	// Initialize a boundary with any edge and keep finding adjacent edges and
+	// adding their end-nodes, until the boundary is closed - when end-nodes match.
 	while(!edgesLeft.empty())
 	{
 		std::deque<uint32_t> boundary{edgesLeft.begin()->first, edgesLeft.begin()->second};
 
-		// Initialize edges at both ends with the same edge.
-		Edge edgeFront{std::minmax(boundary.front(), boundary.back())};
-		Edge edgeBack = edgeFront;
+		// Initialize edges at both end-nodes as the same edge.
+		Edge frontEdge{std::minmax(boundary.front(), boundary.back())};
+		Edge backEdge = frontEdge;
 
-		uint32_t indexFront = edgeFront.first;
-		uint32_t indexBack = edgeFront.second;
+		uint32_t frontNode = frontEdge.first;
+		uint32_t backNode = frontEdge.second;
 
 		// Erase this edge from the set.
 		edgesLeft.erase(edgesLeft.begin());
 
 		// Keep erasing edges from set and from maps,
-		// until boundary edges match (again) or endpoints match.
+		// until boundary edges match (again) or endnodes match.
 		do
 		{
-			// Get edge pairs (sets) at each end(point).
-			std::set<Edge>& edgesAtIndexFront = edgesToIndex.at(indexFront);
-			std::set<Edge>& edgesAtIndexBack = edgesToIndex.at(indexBack);
-			// For each end, there should be two of these edges:
-			// one already erased from the set, and the other, being a new end.
-			assert(2 == edgesAtIndexFront.size());
-			assert(2 == edgesAtIndexBack.size());
+			{// Get sets of incoming-outgoing edge pairs at each end-node.
+				std::set<Edge>& edgesAtFrontNode = edgesLeftAtNodes.at(frontNode);
+				std::set<Edge>& edgesAtBackNode = edgesLeftAtNodes.at(backNode);
+				// For each node, there should always be 2n of these edges:
+				// one already erased from the set, and the rest, being candidates for a new end.
+				assert(0 == edgesAtFrontNode.size() % 2);
+				assert(0 == edgesAtBackNode.size() % 2);
 
-			// Erase the edges, which are not in the set anymore.
-			const bool isFrontErased = edgesAtIndexFront.erase(edgeFront);
-			const bool isBackErased = edgesAtIndexBack.erase(edgeBack);
-			assert(isFrontErased);
-			assert(isBackErased);
+				const bool isFrontErased = edgesAtFrontNode.erase(frontEdge);
+				const bool isBackErased = edgesAtBackNode.erase(backEdge);
+				assert(isFrontErased);
+				assert(isBackErased);
 
-			edgeFront = *edgesAtIndexFront.begin();
-			edgeBack = *edgesAtIndexBack.begin();
+				frontEdge = *edgesAtFrontNode.begin();
+				backEdge = *edgesAtBackNode.begin();
 
-			// Remove both edges as resolved.
-			edgesLeft.erase(edgeFront);
-			edgesLeft.erase(edgeBack);
+				edgesLeft.erase(frontEdge);
+				edgesLeft.erase(backEdge);
 
-			// Remove map entry for both indices, as they should have been resolved already.
-			edgesToIndex.erase(indexFront);
-			edgesToIndex.erase(indexBack);
+				// Remove map entry for both indices, in case all edges are removed from respective sets there.
+				if (edgesLeftAtNodes.at(frontNode).empty())
+				{
+					edgesLeftAtNodes.erase(frontNode);
+				}
+				if (edgesLeftAtNodes.at(backNode).empty())
+				{
+					edgesLeftAtNodes.erase(backNode);
+				}
+			}
 
-			//Establish new front and back indices.
-			std::set<uint32_t> newIndicesFront({edgeFront.first, edgeFront.second});
-			std::set<uint32_t> newIndicesBack({edgeBack.first, edgeBack.second});
-			newIndicesFront.erase(indexFront);
-			newIndicesBack.erase(indexBack);
-			indexFront = *newIndicesFront.begin();
-			indexBack = *newIndicesBack.begin();
+			//Establish new front and back nodes.
+			std::set<uint32_t> frontEdgeNodes({frontEdge.first, frontEdge.second});
+			std::set<uint32_t> backEdgeNodes({backEdge.first, backEdge.second});
+			frontEdgeNodes.erase(frontNode);
+			backEdgeNodes.erase(backNode);
+			frontNode = *frontEdgeNodes.begin();
+			backNode = *backEdgeNodes.begin();
 
-			if (edgeFront == edgeBack)
+			if (frontEdge == backEdge)
 				break; // If edges at the end match again, endpoints are final already.
 
-			// Otherwise append new endpoint indices to the boundary.
-			boundary.push_front(indexFront);
-			boundary.push_back(indexBack);
-		} // If boundary limiting points match, a boundary is closed, with all edges connected.
-		while (indexFront != indexBack);
+			// Otherwise append new end-nodes to the boundary.
+			boundary.push_front(frontNode);
+			boundary.push_back(backNode);
+		} // If boundary limiting nodes match, a boundary is closed, with all edges connected.
+		while (frontNode != backNode);
 
-		if (indexFront == indexBack)
+		if (frontNode == backNode)
 		{// Remove one of the duplicate endpoints.
 			boundary.erase(boundary.begin());
 		}
@@ -507,14 +517,18 @@ void TriangleGeometry::generateSupportGeometries()
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
 
 		std::vector<Vec3> boundaryEdgeVertices;
-		std::list<std::vector<uint32_t>> islandBoundaryRings = composeIndexRings(island.getBoundaryEdges());
+		std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRings(island.getBoundaryEdges());
 		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
 		{
 			const std::vector<Vec3> ringEdgeVertices = convertEdgesToVertices(_data.vertices, convertBoundaryToEdges(ring));
 			std::copy(ringEdgeVertices.begin(), ringEdgeVertices.end(), std::back_inserter(boundaryEdgeVertices));
 		}
 
-		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, _supportAlphaValue, _minBound.z, boundaryEdgeVertices));
+		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island,
+																			  _data.vertices,
+																			  _supportAlphaValue,
+																			  _minBound.z,
+																			  boundaryEdgeVertices));
 //		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdges));
 	}
 
@@ -545,7 +559,7 @@ void TriangleGeometry::generateRaftGeometries()
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
 
 		const std::set<Edge> islandBoundaryEdges = island.getBoundaryEdges();
-		const std::list<std::vector<uint32_t>> boundaryRings = composeIndexRings(islandBoundaryEdges);
+		const std::list<std::vector<uint32_t>> boundaryRings = composeNodeRings(islandBoundaryEdges);
 		for (const std::vector<uint32_t>& ring : boundaryRings)
 		{
 			const std::vector<Vec3> boundaryEdgeVertices =
