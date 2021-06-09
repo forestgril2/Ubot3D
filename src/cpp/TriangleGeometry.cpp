@@ -128,11 +128,11 @@ static std::list<std::vector<uint32_t>> composeNodeRings(const std::set<Edge>& e
 	// adding their end-nodes, until the boundary is closed - when end-nodes match.
 	while(!edgesLeft.empty())
 	{
+		// Initialize edges at both boundary end-nodes as the same edge.
 		std::deque<uint32_t> boundary{edgesLeft.begin()->first, edgesLeft.begin()->second};
-
-		// Initialize edges at both end-nodes as the same edge.
 		Edge frontEdge{std::minmax(boundary.front(), boundary.back())};
 		Edge backEdge = frontEdge;
+		std::cout << " ### " << __FUNCTION__ << " Starting with frontEdge,backEdge:" << frontEdge << "," << backEdge << std::endl;
 
 		uint32_t frontNode = frontEdge.first;
 		uint32_t backNode = frontEdge.second;
@@ -144,16 +144,28 @@ static std::list<std::vector<uint32_t>> composeNodeRings(const std::set<Edge>& e
 		// until boundary edges match (again) or endnodes match.
 		do
 		{
-			{// Get sets of incoming-outgoing edge pairs at each end-node.
+			{// Establish a new pair of front/back ring edges.
 				std::set<Edge>& edgesAtFrontNode = edgesLeftAtNodes.at(frontNode);
 				std::set<Edge>& edgesAtBackNode = edgesLeftAtNodes.at(backNode);
-				// For each node, there should always be 2n of these edges:
-				// one already erased from the set, and the rest, being candidates for a new end.
-				assert(0 == edgesAtFrontNode.size() % 2);
-				assert(0 == edgesAtBackNode.size() % 2);
+
+				std::cout << " ### " << __FUNCTION__ << " edgesAtFrontNode: " << std::endl;
+				for(const Edge& edge: edgesAtFrontNode)
+				{
+					std::cout << edge << ",";
+				}
+				std::cout << std::endl;
+
+				std::cout << " ### " << __FUNCTION__ << " edgesAtBackNode: " << std::endl;
+				for(const Edge& edge: edgesAtBackNode)
+				{
+					std::cout << edge << ",";
+				}
+				std::cout << std::endl;
 
 				const bool isFrontErased = edgesAtFrontNode.erase(frontEdge);
 				const bool isBackErased = edgesAtBackNode.erase(backEdge);
+				std::cout << " ### " << __FUNCTION__ << " isFrontErased, isBackErased : " << isFrontErased << "," << isBackErased << std::endl;
+
 				assert(isFrontErased);
 				assert(isBackErased);
 
@@ -174,7 +186,7 @@ static std::list<std::vector<uint32_t>> composeNodeRings(const std::set<Edge>& e
 				}
 			}
 
-			//Establish new front and back nodes.
+			//Establish a new pair of front/back nodes.
 			std::set<uint32_t> frontEdgeNodes({frontEdge.first, frontEdge.second});
 			std::set<uint32_t> backEdgeNodes({backEdge.first, backEdge.second});
 			frontEdgeNodes.erase(frontNode);
@@ -183,7 +195,7 @@ static std::list<std::vector<uint32_t>> composeNodeRings(const std::set<Edge>& e
 			backNode = *backEdgeNodes.begin();
 
 			if (frontEdge == backEdge)
-				break; // If edges at the end match again, endpoints are final already.
+				break; // If edges at the end match again, end-nodes are final already.
 
 			// Otherwise append new end-nodes to the boundary.
 			boundary.push_front(frontNode);

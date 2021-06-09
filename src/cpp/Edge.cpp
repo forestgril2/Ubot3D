@@ -16,7 +16,7 @@ Edge::Edge(uint32_t f, uint32_t s)
 
 Edge::Edge(const std::pair<uint32_t, uint32_t>& pair)
 {
-	_endpoints = pair;
+	_endNodes = pair;
 }
 
 Edge::Edge(const std::initializer_list<uint32_t>& list)
@@ -28,21 +28,21 @@ Edge::Edge(const std::initializer_list<uint32_t>& list)
 
 Edge& Edge::operator=(const Edge& other)
 {
-	_endpoints = other._endpoints;
+	_endNodes = other._endNodes;
 	return *this;
 }
 
 bool Edge::operator==(const Edge& other) const
 {
-	return _endpoints == other._endpoints;
+	return _endNodes == other._endNodes;
 }
 
 bool Edge::operator!=(const Edge& other) const
 {
-	return _endpoints != other._endpoints;
+	return _endNodes != other._endNodes;
 }
 
 bool Edge::operator<(const Edge& other) const
 {
-	return _endpoints < other._endpoints;
+	return _endNodes < other._endNodes;
 }
