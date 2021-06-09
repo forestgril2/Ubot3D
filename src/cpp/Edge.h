@@ -17,6 +17,8 @@ public:
 	bool operator!=(const Edge& other) const;
 	bool operator<(const Edge& other) const;
 
+	Edge inverted() const;
+
 	uint32_t& first = _endNodes.first;
 	uint32_t& second = _endNodes.second;
 

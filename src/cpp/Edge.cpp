@@ -46,3 +46,8 @@ bool Edge::operator<(const Edge& other) const
 {
 	return _endNodes < other._endNodes;
 }
+
+Edge Edge::inverted() const
+{
+	return Edge(second, first);
+}

@@ -104,5 +104,5 @@ private:
 	const std::vector<uint32_t>& _indices;
 	void composeTriangleNeighbourhoodAtVertex(TriangleShared thisTriangle, TriangleShared neighbour, uint32_t vertexIndex,
 											  std::map<TriangleShared, std::pair<Edge, bool> >& edgesAtNewNeighbours);
-	void specifyCommonTriangleEdge(TriangleShared triangle, TriangleShared neighbour, const Edge& validCommonEdge);
+	void specifyCommonTriangleEdge(TriangleShared triangle, TriangleShared neighbour, const Edge& edge);
 };

@@ -63,8 +63,10 @@ std::map<uint32_t, std::set<TriangleShared>> TriangleConnectivity::getTrianglesA
 	return trianglesAtVertex;
 }
 
-void TriangleConnectivity::composeTriangleNeighbourhoodAtVertex(TriangleShared thisTriangle, TriangleShared neighbour,
-					uint32_t vertexIndex, std::map<TriangleShared, std::pair<Edge, bool>>& edgesAtNewNeighbours)
+void TriangleConnectivity::composeTriangleNeighbourhoodAtVertex(TriangleShared thisTriangle,
+																TriangleShared neighbour,
+																uint32_t vertexIndex,
+																std::map<TriangleShared, std::pair<Edge, bool>>& edgesAtNewNeighbours)
 {
 //	if (thisTriangle->_firstIndexPos == 168633 || neighbour->_firstIndexPos == 168633)
 //	{
@@ -103,11 +105,11 @@ void TriangleConnectivity::composeTriangleNeighbourhoodAtVertex(TriangleShared t
 	neighbourIt->second.second = /* isValid */ true;
 }
 
-void TriangleConnectivity::specifyCommonTriangleEdge(TriangleShared triangle, TriangleShared neighbour, const Edge& validCommonEdge)
+void TriangleConnectivity::specifyCommonTriangleEdge(TriangleShared triangle, TriangleShared neighbour, const Edge& edge)
 {
 	bool isSuccessful = true;
-	isSuccessful &= triangle->specifyInteriorEdge(validCommonEdge);
-	isSuccessful &= neighbour->specifyInteriorEdge(validCommonEdge);
+	isSuccessful &= triangle->specifyInteriorEdge(edge);
+	isSuccessful &= neighbour->specifyInteriorEdge(edge);
 
 	if (!isSuccessful)
 	{
@@ -123,20 +125,21 @@ void TriangleConnectivity::setupTriangleNeighboursAndEdges()
 	// Every triangle has 3 vertices, but the same vertex may be common to many triangles.
 	const std::map<uint32_t, std::set<TriangleShared>> trianglesAtVertex = getTrianglesAtVertices();
 
-	for (TriangleShared triangle : _triangles)
+	for (TriangleShared masterTriangle : _triangles)
 	{// For every triangle
-		// Remember, which new triangles were added in this triangle round. Map to them vertices/edges, at which they were added.
+		// Remember, which new triangles were added in round of this triangle - the "masterTriangle".
+		// Map to them vertices and edges, at which they were added.
 		std::map<TriangleShared, std::pair<Edge, bool>> edgesToNewNeighbours;
 
-		for (const uint32_t vertexIndex : triangle->getVertexIndices())
-		{// For every vertex in triangle.
+		for (const uint32_t vertexIndex : masterTriangle->getVertexIndices())
+		{// For every vertex in master triangle.
 			for (TriangleShared neighbour : trianglesAtVertex.at(vertexIndex))
 			{// For every neighbour triangle incident to this vertex.
-				if (neighbour == triangle)
-					continue; // Skip the triangle in question.
+				if (neighbour == masterTriangle)
+					continue; // Skip the masterTriangle at this vertex.
 
-				// Setup neighbourhood of: this triangle and the neighbour at this vertex.
-				composeTriangleNeighbourhoodAtVertex(triangle, neighbour, vertexIndex, edgesToNewNeighbours);
+				// Setup neighbourhood of: masterTriangle and the neighbour at this vertex.
+				composeTriangleNeighbourhoodAtVertex(masterTriangle, neighbour, vertexIndex, edgesToNewNeighbours);
 
 				const auto edgeAtNeighbourIt = edgesToNewNeighbours.find(neighbour);
 				if (edgeAtNeighbourIt == edgesToNewNeighbours.end())
@@ -154,7 +157,7 @@ void TriangleConnectivity::setupTriangleNeighboursAndEdges()
 					std::cout << " ### " << __FUNCTION__ << " SPECIFY EDGE neighbour:" << *neighbour << "," << "" << std::endl;
 				}
 				#endif
-				specifyCommonTriangleEdge(triangle, neighbour, validCommonEdge);
+				specifyCommonTriangleEdge(masterTriangle, neighbour, validCommonEdge);
 			}
 		}
 	}
@@ -250,12 +253,16 @@ bool Triangle::specifyInteriorEdge(const Edge& edge)
 {
 	auto edgeIt = _boundaryEdges.find(edge);
 	if (edgeIt == _boundaryEdges.end())
-	{
-		std::cout << " ### " << __FUNCTION__ << " ERROR: No such edge in boundaries anymore: [" << edge.first << "," << edge.second << "]" << std::endl;
-		std::cout << " ### " << __FUNCTION__ << " Triangle at: " << _firstIndexPos << ", vertex indices: [" << _vertexIndices[_firstIndexPos] << ","
-				  << _vertexIndices[_firstIndexPos +1] << "," << _vertexIndices[_firstIndexPos +2] << "]" << std::endl;
+	{// Try in different order of nodes.
+		edgeIt = _boundaryEdges.find(edge.inverted());
+		if (edgeIt == _boundaryEdges.end())
+		{
+			std::cout << " ### " << __FUNCTION__ << " ERROR: No such edge in boundaries anymore: [" << edge.first << "," << edge.second << "]" << std::endl;
+			std::cout << " ### " << __FUNCTION__ << " Triangle at: " << _firstIndexPos << ", vertex indices: [" << _vertexIndices[_firstIndexPos] << ","
+					  << _vertexIndices[_firstIndexPos +1] << "," << _vertexIndices[_firstIndexPos +2] << "]" << std::endl;
 
-		return false;
+			return false;
+		}
 	}
 	assert(edgeIt != _boundaryEdges.end());
 
@@ -276,8 +283,8 @@ std::set<Edge> Triangle::calculateEdges()
 
 	std::set<Edge> edges;
 	edges.insert({i0,i1});
-	edges.insert({i0,i2});
 	edges.insert({i1,i2});
+	edges.insert({i2,i0});
 	return edges;
 }
 

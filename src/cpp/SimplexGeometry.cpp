@@ -68,7 +68,7 @@ QVector<QVector3D> SimplexGeometry::getPoints() const
 
 void SimplexGeometry::setPoints(QVector<QVector3D> newPoints)
 {
-	std::cout << " ### " << __FUNCTION__ << " :" << "" << "," << "" << std::endl;
+//	std::cout << " ### " << __FUNCTION__ << " :" << "" << "," << "" << std::endl;
 	_points = newPoints;
 	emit pointsChanged();
 }
