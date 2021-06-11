@@ -151,11 +151,11 @@ void TriangleConnectivity::setupTriangleNeighboursAndEdges()
 				// The two triangles share a common interior edge - one, which is not an island boundary.
 				const Edge& validCommonEdge = edgeAtNeighbourIt->second.first;
 				#ifndef NDEBUG
-				if ((triangle->_firstIndexPos == 168633 || neighbour->_firstIndexPos == 168633) && Edge{259782,259785} == validCommonEdge)
-				{
-					std::cout << " ### " << __FUNCTION__ << " SPECIFY EDGE triangle:"  << *triangle << "," << "" << std::endl;
-					std::cout << " ### " << __FUNCTION__ << " SPECIFY EDGE neighbour:" << *neighbour << "," << "" << std::endl;
-				}
+//				if ((masterTriangle->_firstIndexPos == 168633 || neighbour->_firstIndexPos == 168633) && Edge{259782,259785} == validCommonEdge)
+//				{
+//					std::cout << " ### " << __FUNCTION__ << " SPECIFY EDGE triangle:"  << *masterTriangle << "," << "" << std::endl;
+//					std::cout << " ### " << __FUNCTION__ << " SPECIFY EDGE neighbour:" << *neighbour << "," << "" << std::endl;
+//				}
 				#endif
 				specifyCommonTriangleEdge(masterTriangle, neighbour, validCommonEdge);
 			}

@@ -243,32 +243,32 @@ Window {
 //            }
 //        }
 
-//        Repeater3D {
-//            id: debugTriangleEdges
-//            model: stlObjectsRepeater.model.length
-//            delegate: Model {
-//                visible: true
-//                scale: Qt.vector3d(1, 1, 1)
-//                geometry: SimplexGeometry {
-//                    simplexType: SimplexGeometry.Lines
-//                    points: stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges
+        Repeater3D {
+            id: debugTriangleEdges
+            model: stlObjectsRepeater.model.length
+            delegate: Model {
+                visible: true
+                scale: Qt.vector3d(1, 1, 1)
+                geometry: SimplexGeometry {
+                    simplexType: SimplexGeometry.Lines
+                    points: stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges
 
-//                    onPointsChanged: {
-//                        console.log(" ### stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges.length: "
-//                                    + stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges.length)
-//                    }
-//                }
-//                materials: [
-//                    DefaultMaterial {
-//                        pointSize: 5
-//                        lineWidth: 5
-//                        lighting: DefaultMaterial.NoLighting
-//                        cullMode: DefaultMaterial.NoCulling
-//                        diffuseColor: "blue"
-//                    }
-//                ]
-//            }
-//        }
+                    onPointsChanged: {
+                        console.log(" ### stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges.length: "
+                                        + stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges.length)
+                    }
+                }
+                materials: [
+                    DefaultMaterial {
+                        pointSize: 5
+                        lineWidth: 5
+                        lighting: DefaultMaterial.NoLighting
+                        cullMode: DefaultMaterial.NoCulling
+                        diffuseColor: "blue"
+                    }
+                ]
+            }
+        }
 
         Repeater3D {
             id: allModelsTriangleIslandBoundaries

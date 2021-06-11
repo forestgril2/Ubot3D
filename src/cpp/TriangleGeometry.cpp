@@ -8,6 +8,7 @@
 #include <deque>
 #include <iostream>
 #include <iterator>
+#include <stack>
 #include <string>
 
 // ASSIMP LIBRARY INCLUDE
@@ -41,6 +42,67 @@ QT_BEGIN_NAMESPACE
 using Matrix4 = Eigen::Matrix4f;
 
 static const uint32_t kNumFloatsPerPositionAttribute = 3u;
+
+static std::list<std::vector<uint32_t>> composeNodeRingsX2(const std::set<Edge>& edges)
+{
+	std::list<std::vector<uint32_t>> cycles;
+	std::set<uint32_t> nodes;
+	for(auto const& e : edges) nodes.insert(e.first), nodes.insert(e.second);
+
+	uint32_t node;
+	while(!nodes.empty())
+	{
+		node = *nodes.begin();
+		nodes.erase(node);
+
+		auto stack = std::stack<uint32_t>({node});
+
+		std::map<uint32_t, uint32_t> path = {{node, node}};
+		std::map<uint32_t, std::set<uint32_t>> visited; visited[node];
+
+		while (!stack.empty())
+		{
+			auto topNode = stack.top(); stack.pop();
+
+			for(auto const& edge : edges)
+			{
+				uint32_t nbr;
+				if(edge.second == topNode) nbr = edge.first;
+				else if(edge.first == topNode) nbr = edge.second;
+				else continue;
+
+				if(visited.find(nbr) == visited.end())
+				{
+					path[nbr] = topNode;
+					stack.push(nbr);
+					visited[nbr] = {topNode};
+				}
+				else if(nbr == topNode)
+				{
+					cycles.push_back({topNode});
+				}
+				else if(visited[topNode].find(nbr) == visited[topNode].end())
+				{
+					auto cycle = std::vector<uint32_t>{nbr, topNode};
+					while(visited[nbr].find(path[topNode]) == visited[nbr].end())
+					{
+						if(path[topNode] == path[path[topNode]])
+							break;
+						cycle.push_back(path[topNode]);
+						path[topNode] = path[path[topNode]];
+					}
+					cycle.push_back(path[topNode]);
+					cycles.push_back(cycle);
+					visited[nbr].insert(topNode);
+				}
+			}
+		}
+
+		for(auto const& p : path) nodes.erase(p.first);
+	}
+
+	return cycles;
+}
 
 void assimpErrorLogging(const std::string&& pError)
 {
@@ -111,105 +173,93 @@ static std::list<std::vector<uint32_t>> composeNodeRings(const std::set<Edge>& e
 	}
 
 #ifndef NDEBUG
-	for (const auto& [vertex, edges] : edgesLeftAtNodes)
+	for (const auto& [node, edges] : edgesLeftAtNodes)
 	{// All these sets should start with a size of 2n, as every index is
 	 // a node with as many "ingoing" as "outgoing" edges.
 		if (0 != edges.size() % 2)
 		{
 			std::cout << " ### " << __FUNCTION__ << " ERROR! Impossible thing has happened: there are "
-					  << edges.size() << " edges at one boundary node." << std::endl;
+												 << edges.size() << " edges at one boundary node."
+												 << std::endl;
 			exit(-1);
 		}
 		assert(0 == edges.size() % 2);
 	}
 #endif
 
-	// Initialize a boundary with any edge and keep finding adjacent edges and
-	// adding their end-nodes, until the boundary is closed - when end-nodes match.
+	// Initialize a boundary with a random starting edge and keep finding adjacent edges
+	// in the same edge direction. Adding end-nodes to boundary, until the boundary is closed
+	// This happens, when end-nodes match.
 	while(!edgesLeft.empty())
 	{
-		// Initialize edges at both boundary end-nodes as the same edge.
-		std::deque<uint32_t> boundary{edgesLeft.begin()->first, edgesLeft.begin()->second};
-		Edge frontEdge{std::minmax(boundary.front(), boundary.back())};
-		Edge backEdge = frontEdge;
-		std::cout << " ### " << __FUNCTION__ << " Starting with frontEdge,backEdge:" << frontEdge << "," << backEdge << std::endl;
-
-		uint32_t frontNode = frontEdge.first;
-		uint32_t backNode = frontEdge.second;
+		// Remember the starting edge.
+		const Edge startEdge = *edgesLeft.begin();
+		// The boundary at start are just front/back nodes of the starting edge.
+		std::deque<uint32_t> boundary{startEdge.first, startEdge.second};
+		// The back edge is the same as start edge in the beginning.
+		Edge backEdge = startEdge;
+		std::cout << " ### " << __FUNCTION__ << " Starting with startEdge:" << startEdge << std::endl;
 
 		// Erase this edge from the set.
-		edgesLeft.erase(edgesLeft.begin());
-
-		// Keep erasing edges from set and from maps,
-		// until boundary edges match (again) or endnodes match.
-		do
+		const bool isStartEdgeRemovedFromSet = edgesLeft.erase(startEdge);
+		assert(isStartEdgeRemovedFromSet);
+		// Remove the edge from map entry for front node as well.
+		std::cout << " ### " << __FUNCTION__ << " edgesAtStartNode: " << std::endl;
+		std::set<Edge>& edgesLeftAtFrontNode = edgesLeftAtNodes.at(boundary.front());
+		for(const Edge& edge: edgesLeftAtFrontNode)
 		{
-			{// Establish a new pair of front/back ring edges.
-				std::set<Edge>& edgesAtFrontNode = edgesLeftAtNodes.at(frontNode);
-				std::set<Edge>& edgesAtBackNode = edgesLeftAtNodes.at(backNode);
+			std::cout << edge << std::endl;
+		}
+		std::cout << std::endl;
+		const bool isStartEdgeRemovedFromMapEntry = edgesLeftAtFrontNode.erase(startEdge);
+		assert(isStartEdgeRemovedFromMapEntry);
 
-				std::cout << " ### " << __FUNCTION__ << " edgesAtFrontNode: " << std::endl;
-				for(const Edge& edge: edgesAtFrontNode)
-				{
-					std::cout << edge << ",";
-				}
-				std::cout << std::endl;
-
+		while(true)
+		{// Keep erasing edges from set and from maps until back boundary node matches the front boundary node.
+			{
+				// Establish a new back edge.
+				std::set<Edge>& edgesAtBackNode = edgesLeftAtNodes.at(boundary.back());
 				std::cout << " ### " << __FUNCTION__ << " edgesAtBackNode: " << std::endl;
 				for(const Edge& edge: edgesAtBackNode)
 				{
-					std::cout << edge << ",";
+					std::cout << edge << std::endl;
 				}
 				std::cout << std::endl;
 
-				const bool isFrontErased = edgesAtFrontNode.erase(frontEdge);
-				const bool isBackErased = edgesAtBackNode.erase(backEdge);
-				std::cout << " ### " << __FUNCTION__ << " isFrontErased, isBackErased : " << isFrontErased << "," << isBackErased << std::endl;
-
-				assert(isFrontErased);
-				assert(isBackErased);
-
-				frontEdge = *edgesAtFrontNode.begin();
-				backEdge = *edgesAtBackNode.begin();
-
-				edgesLeft.erase(frontEdge);
-				edgesLeft.erase(backEdge);
-
-				// Remove map entry for both indices, in case all edges are removed from respective sets there.
-				if (edgesLeftAtNodes.at(frontNode).empty())
+				for (const Edge& edgeAtBackCandidate : edgesAtBackNode)
 				{
-					edgesLeftAtNodes.erase(frontNode);
+					if (edgeAtBackCandidate.first != backEdge.second)
+						continue;
+
+					// Use the first, which has the same direction.
+					backEdge = edgeAtBackCandidate;
+					break;
 				}
-				if (edgesLeftAtNodes.at(backNode).empty())
-				{
-					edgesLeftAtNodes.erase(backNode);
+
+				// Now consider this one visited. Erase from the edges left and from the set<edge>
+				// at this node in map<node: set<edge>>.
+				const bool isBackErasedFromEdgesLeft = edgesLeft.erase(backEdge);
+				assert(isBackErasedFromEdgesLeft);
+				edgesAtBackNode.erase(backEdge);
+
+				if (edgesLeftAtNodes.at(boundary.back()).empty())
+				{// If all edges in this node have been visited, remove the node whole map entry.
+					edgesLeftAtNodes.erase(boundary.back());
 				}
 			}
 
-			//Establish a new pair of front/back nodes.
-			std::set<uint32_t> frontEdgeNodes({frontEdge.first, frontEdge.second});
-			std::set<uint32_t> backEdgeNodes({backEdge.first, backEdge.second});
-			frontEdgeNodes.erase(frontNode);
-			backEdgeNodes.erase(backNode);
-			frontNode = *frontEdgeNodes.begin();
-			backNode = *backEdgeNodes.begin();
+			// If new back edge second node matches boundary front node, break.
+			if (backEdge.second == boundary.front())
+				break;
 
-			if (frontEdge == backEdge)
-				break; // If edges at the end match again, end-nodes are final already.
-
-			// Otherwise append new end-nodes to the boundary.
-			boundary.push_front(frontNode);
-			boundary.push_back(backNode);
-		} // If boundary limiting nodes match, a boundary is closed, with all edges connected.
-		while (frontNode != backNode);
-
-		if (frontNode == backNode)
-		{// Remove one of the duplicate endpoints.
-			boundary.erase(boundary.begin());
+			// Otherwise append a new back node to the boundary.
+			boundary.push_back(backEdge.second);
 		}
-
+		std::cout << " ### " << __FUNCTION__ << " RING CLOSED" << "" << "," << "" << std::endl;
 		rings.emplace_back(std::vector<uint32_t>(boundary.begin(), boundary.end()));
 	}
+
+	std::cout << " ### " << __FUNCTION__ << " returning ring of size: " << rings.size() << "," << "" << std::endl;
 	return rings;
 }
 
@@ -483,7 +533,7 @@ void TriangleGeometry::generateDebugTriangleEdges(const std::vector<uint32_t>& d
 		}
 	}
 
-	std::cout << " ### " << __FUNCTION__ << " _debugTriangleEdges.size(): " << _debugTriangleEdges.size() << "," << "" << std::endl;
+//	std::cout << " ### " << __FUNCTION__ << " _debugTriangleEdges.size(): " << _debugTriangleEdges.size() << "," << "" << std::endl;
 	emit debugTriangleEdgesChanged();
 }
 
@@ -524,12 +574,36 @@ void TriangleGeometry::generateSupportGeometries()
 	_supportGeometries.clear();
 	_triangleIslandBoundaries.clear();
 
+	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
+	uint32_t numBoundaries = 0;
+
 	for (const TriangleIsland& island : triangleIslands)
 	{// Generate a support geometry for each overhanging triangle island.
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
 
 		std::vector<Vec3> boundaryEdgeVertices;
-		std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRings(island.getBoundaryEdges());
+		const std::set<Edge> edges = island.getBoundaryEdges();
+
+
+//		std::ofstream stream("C:\\Users\\Grzegorz Ilnicki\\Desktop\\JOB\\Ubot3D\\edges.txt", std::ios_base::app);
+
+//		if (!stream.is_open())
+//		{
+//			std::cout << " ### " << __FUNCTION__ << " ERROR: cannot open file for writing: " << std::endl;
+//		}
+
+//		for (const Edge& edge : edges)
+//		{
+//			stream << edge << std::endl;
+//		}
+//		stream.close();
+
+//		std::ifstream in("C:\\Users\\Grzegorz Ilnicki\\Desktop\\JOB\\Ubot3D\\edges.txt");
+
+
+//		std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRings(edges);
+		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsX2(edges);
+		numBoundaries += islandBoundaryRings.size();
 		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
 		{
 			const std::vector<Vec3> ringEdgeVertices = convertEdgesToVertices(_data.vertices, convertBoundaryToEdges(ring));
@@ -541,8 +615,9 @@ void TriangleGeometry::generateSupportGeometries()
 																			  _supportAlphaValue,
 																			  _minBound.z,
 																			  boundaryEdgeVertices));
-//		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdges));
+		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdgeVertices));
 	}
+	std::cout << " ### " << __FUNCTION__ << " numBoundaries:" << numBoundaries << "," << "" << std::endl;
 
 	emit supportGeometriesChanged();
 }
@@ -582,7 +657,7 @@ void TriangleGeometry::generateRaftGeometries()
 //																				  _supportAlphaValue,
 //																				  _minBound.z,
 //																				  boundaryEdges));
-			_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdgeVertices));
+//			_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdgeVertices));
 		}
 	}
 

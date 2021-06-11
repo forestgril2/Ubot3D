@@ -24,7 +24,15 @@ public:
 
 	friend std::ostream& operator<<(std::ostream& stream, const Edge& edge)
 	{
-		stream << "Edge[" << edge.first << "," << edge.second << "]";
+		stream << edge.first << "," << edge.second;
+		return stream;
+	}
+
+	friend std::istream& operator>>(std::istream& stream, const Edge& edge)
+	{
+		char c;
+		stream >> edge.first >> c >> edge.second;
+		std::cout << edge << std::endl;
 		return stream;
 	}
 
