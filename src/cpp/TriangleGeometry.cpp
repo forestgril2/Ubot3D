@@ -43,11 +43,15 @@ using Matrix4 = Eigen::Matrix4f;
 
 static const uint32_t kNumFloatsPerPositionAttribute = 3u;
 
-static std::list<std::vector<uint32_t>> composeNodeRingsX2(const std::set<Edge>& edges)
+static std::list<std::vector<uint32_t>> composeNodeRingsV1(const std::set<Edge>& edges)
 {
-	std::list<std::vector<uint32_t>> cycles;
+	std::list<std::vector<uint32_t>> rings;
 	std::set<uint32_t> nodes;
-	for(auto const& e : edges) nodes.insert(e.first), nodes.insert(e.second);
+	for(auto const& e : edges)
+	{
+		nodes.insert(e.first);
+		nodes.insert(e.second);
+	}
 
 	uint32_t node;
 	while(!nodes.empty())
@@ -55,21 +59,22 @@ static std::list<std::vector<uint32_t>> composeNodeRingsX2(const std::set<Edge>&
 		node = *nodes.begin();
 		nodes.erase(node);
 
-		auto stack = std::stack<uint32_t>({node});
+		std::stack<uint32_t> stack({node});
 
 		std::map<uint32_t, uint32_t> path = {{node, node}};
 		std::map<uint32_t, std::set<uint32_t>> visited; visited[node];
 
 		while (!stack.empty())
 		{
-			auto topNode = stack.top(); stack.pop();
+			const uint32_t topNode = stack.top();
+			stack.pop();
 
 			for(auto const& edge : edges)
 			{
-				uint32_t nbr;
-				if(edge.second == topNode) nbr = edge.first;
-				else if(edge.first == topNode) nbr = edge.second;
-				else continue;
+				if (edge.second != topNode && edge.first != topNode)
+					continue;
+
+				const uint32_t nbr = ((edge.first == topNode) ? edge.second : edge.first);
 
 				if(visited.find(nbr) == visited.end())
 				{
@@ -79,29 +84,35 @@ static std::list<std::vector<uint32_t>> composeNodeRingsX2(const std::set<Edge>&
 				}
 				else if(nbr == topNode)
 				{
-					cycles.push_back({topNode});
+					rings.push_back({topNode});
 				}
 				else if(visited[topNode].find(nbr) == visited[topNode].end())
 				{
-					auto cycle = std::vector<uint32_t>{nbr, topNode};
+					std::vector<uint32_t> ring({nbr, topNode});
+
 					while(visited[nbr].find(path[topNode]) == visited[nbr].end())
 					{
 						if(path[topNode] == path[path[topNode]])
 							break;
-						cycle.push_back(path[topNode]);
+
+						ring.push_back(path[topNode]);
 						path[topNode] = path[path[topNode]];
 					}
-					cycle.push_back(path[topNode]);
-					cycles.push_back(cycle);
+
+					ring.push_back(path[topNode]);
+					rings.push_back(ring);
 					visited[nbr].insert(topNode);
 				}
 			}
 		}
 
-		for(auto const& p : path) nodes.erase(p.first);
+		for(const auto& p : path)
+		{
+			nodes.erase(p.first);
+		}
 	}
 
-	return cycles;
+	return rings;
 }
 
 void assimpErrorLogging(const std::string&& pError)
@@ -152,7 +163,7 @@ static QVector<QVector3D> convertToQVectors3D(const std::vector<Vec3>& edgeRing)
 	return converted;
 };
 
-static std::list<std::vector<uint32_t>> composeNodeRings(const std::set<Edge>& edges)
+static std::list<std::vector<uint32_t>> composeNodeRingsV0(const std::set<Edge>& edges)
 {//TODO: Currently will crash for non-closed boundaries.
  //      Extend to get graph rings and connections to/between rings.
 	Chronograph chronograph(__FUNCTION__, true);
@@ -602,7 +613,7 @@ void TriangleGeometry::generateSupportGeometries()
 
 
 //		std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRings(edges);
-		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsX2(edges);
+		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV1(edges);
 		numBoundaries += islandBoundaryRings.size();
 		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
 		{
@@ -646,7 +657,7 @@ void TriangleGeometry::generateRaftGeometries()
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
 
 		const std::set<Edge> islandBoundaryEdges = island.getBoundaryEdges();
-		const std::list<std::vector<uint32_t>> boundaryRings = composeNodeRings(islandBoundaryEdges);
+		const std::list<std::vector<uint32_t>> boundaryRings = composeNodeRingsV0(islandBoundaryEdges);
 		for (const std::vector<uint32_t>& ring : boundaryRings)
 		{
 			const std::vector<Vec3> boundaryEdgeVertices =
@@ -891,10 +902,10 @@ QVariantMap TriangleGeometry::getPick(const QVector3D& origin,
 									   return (origin - intersection.scenePosition).lengthSquared();
 								 });
 
-		const QVector3D intersection = intersections[static_cast<uint32_t>(
-										   std::distance(distancesToOrigin.begin(),
-														 std::min_element(distancesToOrigin.begin(),
-																		  distancesToOrigin.end())))].scenePosition;
+		const QVector3D intersection =
+				intersections[static_cast<uint32_t>(
+					std::distance(distancesToOrigin.begin(),std::min_element(distancesToOrigin.begin(),distancesToOrigin.end()))
+				)].scenePosition;
 
 		return QVariantMap{{"intersection", intersection}, {"isHit", true}};
 	}
