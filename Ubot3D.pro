@@ -32,6 +32,7 @@ CONFIG += ordered
 SUBDIRS += src/cpp src/qml
 
 SOURCES += \
+    $$PWD/../clipper/cpp/clipper.cpp \
     src/cpp/Edge.cpp \
     src/cpp/FileImportExport.cpp \
      src/cpp/main.cpp \
@@ -48,6 +49,7 @@ SOURCES += \
 
 
 HEADERS += \
+        $$PWD/../clipper/cpp/clipper.hpp \
         src/cpp/Edge.h \
         src/cpp/FileImportExport.h \
         src/cpp/TriangleGeometry.h \
@@ -102,6 +104,7 @@ win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/Debug/ -lassimp-vc142-mtd# -L$$PWD/../gpr/build/ -lmsys-gpr
 else:unix: LIBS += -L$$PWD/../assimp-5.0.1/build/code/ -lassimp-vc142-mtd
 
+INCLUDEPATH += $$PWD/../clipper/cpp
 INCLUDEPATH += D:/Programy/CGAL/include
 INCLUDEPATH += D:/Programy/boost_1_75_0
 INCLUDEPATH += $$PWD/../eigen

@@ -28,6 +28,9 @@
 //#include <D:\Projects\qt6\qtquick3d\src\utils\qssgoption_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrenderlayer_p.h>
 
+
+#include <clipper.hpp>
+
 #include <Chronograph.h>
 #include <Helpers3D.h>
 #include <TriangleConnectivity.h>
@@ -141,13 +144,16 @@ static std::vector<Edge> convertBoundaryToEdges(const std::vector<uint32_t>& ind
 };
 
 static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertices,
-												const std::vector<Edge>& edges)
+												const std::vector<Edge>& edges,
+												const bool isDuplicatingSecondVertex = true)
 {
 	std::vector<Vec3> converted;
 	converted.reserve(2*edges.size());
 	for (const Edge& edge : edges)
 	{
 		converted.emplace_back(vertices[edge.first]);
+		if (!isDuplicatingSecondVertex)
+			continue;
 		converted.emplace_back(vertices[edge.second]);
 	}
 	return converted;
@@ -155,13 +161,16 @@ static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertice
 
 // TODO: Duplicating code, use template here.
 static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertices,
-												const std::set<Edge>& edges)
+												const std::set<Edge>& edges,
+												const bool isDuplicatingSecondVertex = true)
 {
 	std::vector<Vec3> converted;
 	converted.reserve(2*edges.size());
 	for (const Edge& edge : edges)
 	{
 		converted.emplace_back(vertices[edge.first]);
+		if (!isDuplicatingSecondVertex)
+			continue;
 		converted.emplace_back(vertices[edge.second]);
 	}
 	return converted;
@@ -645,16 +654,44 @@ void TriangleGeometry::generateRaftGeometries()
 		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
 		{
 			const std::vector<Vec3> ringEdgeVertices =
-					convertEdgesToVertices(_data.vertices,
-										   convertBoundaryToEdges(ring));
+					convertEdgesToVertices(_data.vertices, convertBoundaryToEdges(ring), false);
 			std::copy(ringEdgeVertices.begin(), ringEdgeVertices.end(), std::back_inserter(boundaryEdgeVertices));
 		}
 
+		// Create polygon path for clipper and offset it to enlarge/shrink the boundary.
+		ClipperLib::Path clipperBoundary;
+		const float raftOffset = 1;
+		static const uint32_t kClipperIntMultiplier = 100000;
 		for (Vec3& vertex : boundaryEdgeVertices)
 		{
-			vertex.z() = 0;
+			vertex *= kClipperIntMultiplier;
+			ClipperLib::IntPoint clipperPoint(int32_t(std::round(vertex.x())), int32_t(std::round(vertex.y())));
+			clipperBoundary << clipperPoint;
+			std::cout << " ### " << __FUNCTION__ << " vertex,clipperPoint:" << vertex << "," << clipperPoint << std::endl;
 		}
-		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdgeVertices));
+
+		ClipperLib::Paths solutionPaths;
+		ClipperLib::ClipperOffset clipperOffsetter;
+		clipperOffsetter.AddPath(clipperBoundary, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
+		clipperOffsetter.Execute(solutionPaths, kClipperIntMultiplier*raftOffset);
+
+		for (const ClipperLib::Path& clipperPath : solutionPaths)
+		{
+			std::vector<Vec3> newOffsettedBoundary;
+			newOffsettedBoundary.reserve(clipperPath.size());
+			for (const ClipperLib::IntPoint& clipperPoint : clipperPath)
+			{
+				newOffsettedBoundary.emplace_back(Vec3{float(double(clipperPoint.X)/kClipperIntMultiplier),
+													   float(double(clipperPoint.Y)/kClipperIntMultiplier), 0.0f});
+			}
+			_triangleIslandBoundaries.emplace_back(convertToQVectors3D(newOffsettedBoundary));
+
+			_raftGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island,
+																			   _data.vertices,
+																			   _supportAlphaValue,
+																			   1,
+																			   newOffsettedBoundary));
+		}
 	}
 
 	emit raftGeometriesChanged();
