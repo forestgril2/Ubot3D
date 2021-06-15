@@ -153,6 +153,20 @@ static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertice
 	return converted;
 };
 
+// TODO: Duplicating code, use template here.
+static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertices,
+												const std::set<Edge>& edges)
+{
+	std::vector<Vec3> converted;
+	converted.reserve(2*edges.size());
+	for (const Edge& edge : edges)
+	{
+		converted.emplace_back(vertices[edge.first]);
+		converted.emplace_back(vertices[edge.second]);
+	}
+	return converted;
+};
+
 static QVector<QVector3D> convertToQVectors3D(const std::vector<Vec3>& edgeRing)
 {
 	QVector<QVector3D> converted;
@@ -586,49 +600,17 @@ void TriangleGeometry::generateSupportGeometries()
 	_triangleIslandBoundaries.clear();
 
 	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
-	uint32_t numBoundaries = 0;
 
 	for (const TriangleIsland& island : triangleIslands)
 	{// Generate a support geometry for each overhanging triangle island.
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
-
-		std::vector<Vec3> boundaryEdgeVertices;
-		const std::set<Edge> edges = island.getBoundaryEdges();
-
-
-//		std::ofstream stream("C:\\Users\\Grzegorz Ilnicki\\Desktop\\JOB\\Ubot3D\\edges.txt", std::ios_base::app);
-
-//		if (!stream.is_open())
-//		{
-//			std::cout << " ### " << __FUNCTION__ << " ERROR: cannot open file for writing: " << std::endl;
-//		}
-
-//		for (const Edge& edge : edges)
-//		{
-//			stream << edge << std::endl;
-//		}
-//		stream.close();
-
-//		std::ifstream in("C:\\Users\\Grzegorz Ilnicki\\Desktop\\JOB\\Ubot3D\\edges.txt");
-
-
-//		std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRings(edges);
-		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV1(edges);
-		numBoundaries += islandBoundaryRings.size();
-		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
-		{
-			const std::vector<Vec3> ringEdgeVertices = convertEdgesToVertices(_data.vertices, convertBoundaryToEdges(ring));
-			std::copy(ringEdgeVertices.begin(), ringEdgeVertices.end(), std::back_inserter(boundaryEdgeVertices));
-		}
-
+		const std::vector<Vec3> edgeVertices = convertEdgesToVertices(_data.vertices, island.getBoundaryEdges());
 		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island,
 																			  _data.vertices,
 																			  _supportAlphaValue,
 																			  _minBound.z,
-																			  boundaryEdgeVertices));
-		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdgeVertices));
+																			  edgeVertices));
 	}
-	std::cout << " ### " << __FUNCTION__ << " numBoundaries:" << numBoundaries << "," << "" << std::endl;
 
 	emit supportGeometriesChanged();
 }
@@ -637,6 +619,7 @@ void TriangleGeometry::clearSupportGeometries()
 {
 	_supportGeometries.clear();
 	emit supportGeometriesChanged();
+	emit raftGeometriesChanged();
 }
 
 void TriangleGeometry::generateRaftGeometries()
@@ -656,20 +639,22 @@ void TriangleGeometry::generateRaftGeometries()
 	{// Generate a raft geometry for each triangle island at floor level.
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
 
+		std::vector<Vec3> boundaryEdgeVertices;
 		const std::set<Edge> islandBoundaryEdges = island.getBoundaryEdges();
-		const std::list<std::vector<uint32_t>> boundaryRings = composeNodeRingsV0(islandBoundaryEdges);
-		for (const std::vector<uint32_t>& ring : boundaryRings)
+		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV1(islandBoundaryEdges);
+		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
 		{
-			const std::vector<Vec3> boundaryEdgeVertices =
+			const std::vector<Vec3> ringEdgeVertices =
 					convertEdgesToVertices(_data.vertices,
 										   convertBoundaryToEdges(ring));
-//			_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island,
-//																				  _data.vertices,
-//																				  _supportAlphaValue,
-//																				  _minBound.z,
-//																				  boundaryEdges));
-//			_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdgeVertices));
+			std::copy(ringEdgeVertices.begin(), ringEdgeVertices.end(), std::back_inserter(boundaryEdgeVertices));
 		}
+
+		for (Vec3& vertex : boundaryEdgeVertices)
+		{
+			vertex.z() = 0;
+		}
+		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(boundaryEdgeVertices));
 	}
 
 	emit raftGeometriesChanged();
