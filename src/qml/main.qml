@@ -213,11 +213,6 @@ Window {
                 position: stlObjectsRepeater.objectAt(0).position
                 rotation: stlObjectsRepeater.objectAt(0).rotation
             }
-
-            onModelChanged: {
-                console.log(" ### new model with size:" + model.length)
-                console.log(" ### supportOptions.isGeneratingSupport:" + supportOptions.isGeneratingSupport)
-            }
         }
 
         Repeater3D {
@@ -227,11 +222,6 @@ Window {
                 geometry: stlObjectsRepeater.objectAt(0).geometry.raftGeometries[index]
                 position: stlObjectsRepeater.objectAt(0).position
                 rotation: stlObjectsRepeater.objectAt(0).rotation
-            }
-
-            onModelChanged: {
-                console.log(" ### new model with size:" + model.length)
-                console.log(" ### raftOptions.isGeneratingRafts:" + raftOptions.isGeneratingRafts)
             }
         }
 
@@ -266,11 +256,6 @@ Window {
                 geometry: SimplexGeometry {
                     simplexType: SimplexGeometry.Lines
                     points: stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges
-
-                    onPointsChanged: {
-                        console.log(" ### stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges.length: "
-                                        + stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges.length)
-                    }
                 }
                 materials: [
                     DefaultMaterial {
@@ -308,10 +293,7 @@ Window {
                         }
                     ]
                 }
-                onModelChanged: console.log(" ### triangleIslandBoundaries:" + model.length)
             }
-
-            onModelChanged: console.log(" ### allModels triangleIslandBoundaries:" + model.length)
         }
 
         PickArea {
