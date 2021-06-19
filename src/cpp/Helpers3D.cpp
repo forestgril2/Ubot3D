@@ -515,7 +515,10 @@ std::vector<uint32_t> Helpers3D::calculateOverhangingTriangleIndices(const std::
 	{
 		static const auto isTriangleOverhanging = [](const Vec3& v0, const Vec3& v1, const Vec3& v2, float maxOverhangAngle)
 		{// Calculate based on vertices.
-			return (((v1-v0).cross(v2-v0)).normalized()).dot(Vec3{0,0,1}) < std::cosf(float(M_PI) - maxOverhangAngle);
+			static const float minOverhangingCrossAngleArea = 0.0001f;
+			float cross = (v1-v0).cross(v2-v0).norm();
+			const bool isOverhanging = (((v1-v0).cross(v2-v0)).normalized()).dot(Vec3{0,0,1}) < std::cosf(float(M_PI) - maxOverhangAngle);
+			return isOverhanging && (cross >= minOverhangingCrossAngleArea);
 		};
 
 		const uint32_t i0 = *pi++;

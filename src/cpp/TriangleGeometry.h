@@ -60,7 +60,7 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(float raftOffset READ getRaftOffset WRITE setRaftOffset NOTIFY raftOffsetChanged)
 	Q_PROPERTY(bool areRaftsGenerated READ areRaftsGenerated WRITE setRaftsGenerated NOTIFY areRaftsGeneratedChanged)
 
-	Q_PROPERTY(QVector<QVector<QVector3D>> triangleIslandBoundaries READ getTriangleIslandBoundaries NOTIFY raftGeometriesChanged)
+	Q_PROPERTY(QVector<QVector<QVector3D>> triangleIslandBoundaries READ getTriangleIslandBoundaries NOTIFY triangleIslandBoundariesChanged)
 //	Q_PROPERTY(QMatrix4x4 sceneTransform READ _sceneTransform WRITE setSceneTransform)
 
 public:
@@ -134,6 +134,8 @@ signals:
 	void areRaftsGeneratedChanged(bool isGenerated);
 	void raftOffsetChanged(float);
 
+	void triangleIslandBoundariesChanged();
+
 private:
 	bool importModelFromFile(const std::string& pFile);
 	void reloadAssimpScene();
@@ -145,6 +147,7 @@ private:
 	void generateSupportGeometries();
 	void clearSupportGeometries();
 	void generateRaftGeometries();
+	void generateRaftGeometriesAllTogether();
 	void clearRaftGeometries();
 
 	uint32_t calculateAndSetStride();

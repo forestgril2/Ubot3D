@@ -379,6 +379,10 @@ TriangleGeometry::TriangleGeometry() :
 	connect(this, &TriangleGeometry::isSupportGeneratedChanged, this, &TriangleGeometry::onIsSupportGeneratedChanged);
 	connect(this, &TriangleGeometry::areRaftsGeneratedChanged, this, &TriangleGeometry::onAreRaftsGeneratedChanged);
 	connect(this, &TriangleGeometry::raftOffsetChanged, this, &TriangleGeometry::onRaftOffsetChanged);
+
+	// Re-draw debug data each time support or rafts are generated.
+	connect(this, &TriangleGeometry::raftGeometriesChanged, this, &TriangleGeometry::triangleIslandBoundariesChanged);
+	connect(this, &TriangleGeometry::supportGeometriesChanged, this, &TriangleGeometry::triangleIslandBoundariesChanged);
 }
 
 TriangleGeometry::TriangleGeometry(const TriangleGeometryData& data) : TriangleGeometry()
@@ -623,7 +627,7 @@ std::vector<uint32_t> TriangleGeometry::collectFloorTriangleIndices(const float 
 void TriangleGeometry::generateSupportGeometries()
 {
 	Chronograph chronograph(__FUNCTION__, true);
-//	generateDebugTriangleEdges(_overhangingTriangleIndices);
+	generateDebugTriangleEdges(_overhangingTriangleIndices);
 
 	TriangleConnectivity triangleConnectivity(_overhangingTriangleIndices);
 	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
@@ -637,12 +641,13 @@ void TriangleGeometry::generateSupportGeometries()
 	{// Generate a support geometry for each overhanging triangle island.
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
 		const std::vector<Vec3> edgeVertices = getEdgeVertices(_data.vertices,
-																	  island.getBoundaryEdges(),
-																	  /*isDuplicatingSecondVertex*/ true);
+															   island.getBoundaryEdges(),
+															   /*isDuplicatingSecondVertex*/ true);
 		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island,
 																			  _data.vertices,
 																			  _minBound.z,
 																			  edgeVertices));
+		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(edgeVertices));
 	}
 
 	emit supportGeometriesChanged();
@@ -656,6 +661,67 @@ void TriangleGeometry::clearSupportGeometries()
 }
 
 void TriangleGeometry::generateRaftGeometries()
+{
+	Chronograph chronograph(__FUNCTION__, true);
+	_raftGeometries.clear();
+	_triangleIslandBoundaries.clear();
+
+	const std::vector<uint32_t> floorTriangleIndices = collectFloorTriangleIndices();
+	generateDebugTriangleEdges(floorTriangleIndices);
+
+	TriangleConnectivity triangleConnectivity(floorTriangleIndices);
+	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
+
+
+	ClipperLib::Paths offsetPathsResult;
+	ClipperLib::ClipperOffset clipperOffsetter;
+	static const uint32_t kClipperIntMultiplier = 1000;
+
+	for (const TriangleIsland& island : triangleIslands)
+	{// Generate a raft geometry for each triangle island at floor level.
+		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
+
+		std::vector<Vec3> boundaryEdgeVertices;
+		const std::set<Edge> islandBoundaryEdges = island.getBoundaryEdges();
+		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV1(islandBoundaryEdges);
+		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
+		{
+			const std::vector<Vec3> ringEdgeVertices =
+					getEdgeVertices(_data.vertices, convertBoundaryToEdges(ring), false);
+			std::copy(ringEdgeVertices.begin(), ringEdgeVertices.end(), std::back_inserter(boundaryEdgeVertices));
+		}
+
+		// Create polygon path for clipper and enlarge/shrink the boundary by a specified offset.
+		ClipperLib::Path clipperBoundary;
+		for (Vec3& vertex : boundaryEdgeVertices)
+		{
+			vertex *= kClipperIntMultiplier;
+			ClipperLib::IntPoint clipperPoint(int32_t(std::round(vertex.x())), int32_t(std::round(vertex.y())));
+			clipperBoundary << clipperPoint;
+		}
+
+		clipperOffsetter.AddPath(clipperBoundary, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
+	}
+
+	clipperOffsetter.Execute(offsetPathsResult, kClipperIntMultiplier * double(_raftOffset));
+
+	for (const ClipperLib::Path& clipperPath : offsetPathsResult)
+	{
+		std::vector<Vec3> offsetBoundary;
+		offsetBoundary.reserve(clipperPath.size());
+		for (const ClipperLib::IntPoint& clipperPoint : clipperPath)
+		{
+			offsetBoundary.emplace_back(Vec3{float(double(clipperPoint.X)/kClipperIntMultiplier),
+											 float(double(clipperPoint.Y)/kClipperIntMultiplier), 0.0f});
+		}
+		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(generateRingEdgeVertices(offsetBoundary)));
+//		_raftGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, 1, offsetBoundary));
+	}
+
+	emit raftGeometriesChanged();
+}
+
+void TriangleGeometry::generateRaftGeometriesAllTogether()
 {
 	Chronograph chronograph(__FUNCTION__, true);
 	_raftGeometries.clear();
@@ -709,7 +775,7 @@ void TriangleGeometry::generateRaftGeometries()
 											 float(double(clipperPoint.Y)/kClipperIntMultiplier), 0.0f});
 		}
 		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(generateRingEdgeVertices(offsetBoundary)));
-//		_raftGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, 1, offsetBoundary));
+		//		_raftGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, 1, offsetBoundary));
 	}
 
 	emit raftGeometriesChanged();

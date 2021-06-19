@@ -91,7 +91,6 @@ Window {
         signal pickedModelsChanged()
         onPickedModelsChanged: {
             selectedObjects = QmlHelpers.getSelectedModels(stlObjectsRepeater)
-            console.log(" ### selectedObjects.length:" + selectedObjects.length)
         }
 
         SceneBase {
