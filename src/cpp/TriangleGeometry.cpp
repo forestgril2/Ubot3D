@@ -176,6 +176,24 @@ static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertice
 	return converted;
 };
 
+//template <typename T>
+//static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertices,
+//												const T<Edge>& edges,
+//												const bool isDuplicatingSecondVertex = true)
+//{
+//	std::vector<Vec3> converted;
+//	converted.reserve(2*edges.size());
+//	for (const Edge& edge : edges)
+//	{
+//		converted.emplace_back(vertices[edge.first]);
+//		if (!isDuplicatingSecondVertex)
+//			continue;
+//		converted.emplace_back(vertices[edge.second]);
+//	}
+//	return converted;
+//};
+
+
 static QVector<QVector3D> convertToQVectors3D(const std::vector<Vec3>& edgeRing)
 {
 	QVector<QVector3D> converted;
@@ -362,6 +380,7 @@ TriangleGeometry::TriangleGeometry() :
 	updateData(TriangleGeometryData());
 	connect(this, &TriangleGeometry::isSupportGeneratedChanged, this, &TriangleGeometry::onIsSupportGeneratedChanged);
 	connect(this, &TriangleGeometry::areRaftsGeneratedChanged, this, &TriangleGeometry::onAreRaftsGeneratedChanged);
+	connect(this, &TriangleGeometry::raftOffsetChanged, this, &TriangleGeometry::onRaftOffsetChanged);
 }
 
 TriangleGeometry::TriangleGeometry(const TriangleGeometryData& data) : TriangleGeometry()
@@ -444,7 +463,6 @@ void TriangleGeometry::onIsSupportGeneratedChanged()
 
 void TriangleGeometry::onAreRaftsGeneratedChanged()
 {
-	std::cout << " ### " << __FUNCTION__ << " _areRaftsGenerated:" << _areRaftsGenerated << "," << "" << std::endl;
 	if (!_areRaftsGenerated && _raftGeometries.empty())
 		return;
 
@@ -456,6 +474,14 @@ void TriangleGeometry::onAreRaftsGeneratedChanged()
 	{
 		clearRaftGeometries();
 	}
+}
+
+void TriangleGeometry::onRaftOffsetChanged()
+{
+	if (!_areRaftsGenerated)
+		return;
+
+	generateRaftGeometries();
 }
 
 QVector3D TriangleGeometry::minBounds() const
@@ -635,6 +661,7 @@ void TriangleGeometry::generateRaftGeometries()
 {
 	Chronograph chronograph(__FUNCTION__, true);
 	_raftGeometries.clear();
+	_triangleIslandBoundaries.clear();
 
 	const std::vector<uint32_t> floorTriangleIndices = collectFloorTriangleIndices();
 	generateDebugTriangleEdges(floorTriangleIndices);
@@ -660,7 +687,6 @@ void TriangleGeometry::generateRaftGeometries()
 
 		// Create polygon path for clipper and offset it to enlarge/shrink the boundary.
 		ClipperLib::Path clipperBoundary;
-		const float raftOffset = 1;
 		static const uint32_t kClipperIntMultiplier = 100000;
 		for (Vec3& vertex : boundaryEdgeVertices)
 		{
@@ -673,24 +699,19 @@ void TriangleGeometry::generateRaftGeometries()
 		ClipperLib::Paths solutionPaths;
 		ClipperLib::ClipperOffset clipperOffsetter;
 		clipperOffsetter.AddPath(clipperBoundary, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
-		clipperOffsetter.Execute(solutionPaths, kClipperIntMultiplier*raftOffset);
+		clipperOffsetter.Execute(solutionPaths, kClipperIntMultiplier * double(_raftOffset));
 
 		for (const ClipperLib::Path& clipperPath : solutionPaths)
 		{
-			std::vector<Vec3> newOffsettedBoundary;
-			newOffsettedBoundary.reserve(clipperPath.size());
+			std::vector<Vec3> offsetBoundary;
+			offsetBoundary.reserve(clipperPath.size());
 			for (const ClipperLib::IntPoint& clipperPoint : clipperPath)
 			{
-				newOffsettedBoundary.emplace_back(Vec3{float(double(clipperPoint.X)/kClipperIntMultiplier),
-													   float(double(clipperPoint.Y)/kClipperIntMultiplier), 0.0f});
+				offsetBoundary.emplace_back(Vec3{float(double(clipperPoint.X)/kClipperIntMultiplier),
+												 float(double(clipperPoint.Y)/kClipperIntMultiplier), 0.0f});
 			}
-			_triangleIslandBoundaries.emplace_back(convertToQVectors3D(newOffsettedBoundary));
-
-			_raftGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island,
-																			   _data.vertices,
-																			   _supportAlphaValue,
-																			   1,
-																			   newOffsettedBoundary));
+			_triangleIslandBoundaries.emplace_back(convertToQVectors3D(offsetBoundary));
+			_raftGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, _supportAlphaValue, 1, offsetBoundary));
 		}
 	}
 
@@ -730,6 +751,22 @@ void TriangleGeometry::setRaftsGenerated(bool areGenerated)
 bool TriangleGeometry::areRaftsGenerated() const
 {
 	return _areRaftsGenerated;
+}
+
+float TriangleGeometry::getRaftOffset() const
+{
+	return _raftOffset;
+}
+
+void TriangleGeometry::setRaftOffset(float offset)
+{
+	std::cout << " ### " << __FUNCTION__ << " offset:" << offset << "," << "" << std::endl;
+	if (approximatelyEqual(offset, _raftOffset, 0.00001f))
+		return;
+
+	std::cout << " ### " << __FUNCTION__ << " CHANGING offset:" << offset << "," << "" << std::endl;
+	_raftOffset = offset;
+	emit raftOffsetChanged(_raftOffset);
 }
 
 QVector<TriangleGeometry*> TriangleGeometry::getSupportGeometries() const

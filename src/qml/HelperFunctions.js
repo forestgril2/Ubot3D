@@ -34,12 +34,12 @@ function getSelectedModelIndices(modelsListContainer) {
     return selectedIndices
 }
 
-function getSelectedModels(modelsListContainer) {
+function getSelectedModels(modelListContainer) {
     var selectedModels = []
-    var selectedModelIndices = getSelectedModelIndices(modelsListContainer)
+    var selectedModelIndices = getSelectedModelIndices(modelListContainer)
     for (var i=0; i<selectedModelIndices.length; i++)
     {
-        selectedModels.push(modelsListContainer.objectAt(selectedModelIndices[i]))
+        selectedModels.push(modelListContainer.objectAt(selectedModelIndices[i]))
     }
     return selectedModels
 }

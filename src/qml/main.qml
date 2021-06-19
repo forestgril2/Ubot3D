@@ -11,8 +11,8 @@ import "HelperFunctions.js" as QmlHelpers
 Window {
     id: window
 
-    width: 1280
-    height: 720
+    width: 2000
+    height: 1200
     visible: true
     color: "#848895"
 
@@ -40,7 +40,16 @@ Window {
 
     RaftOptions {
         id: raftOptions
-//        floorVertices: view3d.selectedObjects[0]
+        // TODO: Only all OR specified models should change rafts, currently all do.
+//        onRaftOffsetChanged: {
+//            var models = QmlHelpers.getSelectedModels(stlObjectsRepeater);
+//            console.log(" ### setting raft models:" + models.length)
+//            for (var i=0; i<models.lenght; i++) {
+//                var model = models[i]
+//                console.log(" ### setting raft offset:" + raftOffset)
+//                model.ratfOffset = raftOffset
+//            }
+//        }
     }
 
     Popup {
@@ -151,6 +160,7 @@ Window {
                 id: stlModel
                 isSupportGenerated: supportOptions.isGeneratingSupport
                 areRaftsGenerated: raftOptions.isGeneratingRafts
+                raftOffset: raftOptions.raftOffset
                 inputFile: stlObjectsRepeater.model[index]
 
                 Component.onCompleted: {

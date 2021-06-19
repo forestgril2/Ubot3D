@@ -58,6 +58,7 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(float supportAlphaValue READ getSupportAlphaValue WRITE setSupportAlphaValue)
 
 	Q_PROPERTY(QVector<TriangleGeometry*> raftGeometries READ getRaftGeometries NOTIFY raftGeometriesChanged)
+	Q_PROPERTY(float raftOffset READ getRaftOffset WRITE setRaftOffset NOTIFY raftOffsetChanged)
 	Q_PROPERTY(bool areRaftsGenerated READ areRaftsGenerated WRITE setRaftsGenerated NOTIFY areRaftsGeneratedChanged)
 
 	Q_PROPERTY(QVector<QVector<QVector3D>> triangleIslandBoundaries READ getTriangleIslandBoundaries NOTIFY raftGeometriesChanged)
@@ -77,9 +78,13 @@ public:
 
 	void setSupportGenerated(bool isGenerated);
 	bool isSupportGenerated() const;
+	void setSupportAlphaValue(float value);
+	float getSupportAlphaValue() const;
 
 	void setRaftsGenerated(bool isGenerated);
 	bool areRaftsGenerated() const;
+	float getRaftOffset() const;
+	void setRaftOffset (float offset);
 
 	Q_INVOKABLE QVariantMap getPick(const QVector3D& origin,
 									const QVector3D& direction,
@@ -91,8 +96,6 @@ public:
 	QVector<TriangleGeometry*> getRaftGeometries() const;
 	QVector<QVector<QVector3D>> getTriangleIslandBoundaries() const;
 
-	void setSupportAlphaValue(float value);
-	float getSupportAlphaValue() const;
 
 	const aiScene* getAssimpScene() const;
 
@@ -112,6 +115,7 @@ public slots:
 	void setMaxBounds(const QVector3D& maxBounds);
 	void onIsSupportGeneratedChanged();
 	void onAreRaftsGeneratedChanged();
+	void onRaftOffsetChanged();
 
 signals:
 	void normalsChanged();
@@ -128,8 +132,10 @@ signals:
 
 	void supportGeometriesChanged();
 	void isSupportGeneratedChanged(bool isGenerated);
+
 	void raftGeometriesChanged();
 	void areRaftsGeneratedChanged(bool isGenerated);
+	void raftOffsetChanged(float);
 
 private:
 	bool importModelFromFile(const std::string& pFile);
@@ -186,6 +192,7 @@ private:
 
 	bool _isSupportGenerated = false;
 	bool _areRaftsGenerated = false;
+	float _raftOffset = 0.0;
 
 //	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 //	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;

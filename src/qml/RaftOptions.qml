@@ -57,7 +57,7 @@ Window {
         Slider {
             id: raftOffsetSlider
             from: 0.1
-            to: 50
+            to: 5
             orientation: Qt.Horizontal
             width: 200
         }
