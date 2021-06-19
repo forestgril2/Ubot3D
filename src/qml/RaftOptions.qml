@@ -12,6 +12,7 @@ Window {
     id: raftOptions
 
     property alias raftOffset: raftOffsetSlider.value
+    property alias raftHeight: raftHeightSlider.value
 
     property bool isGeneratingRafts: raftSwitch.position === 1
     property bool areRafstExported: raftExportSwitch.position === 1
@@ -84,8 +85,8 @@ Window {
 
         Slider {
             id: raftHeightSlider
-            from: 0.1
-            to: 5
+            from: 0.0
+            to: 20
             orientation: Qt.Horizontal
             width: 200
         }

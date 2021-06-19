@@ -7,16 +7,19 @@ Model {
     property alias isSupportGenerated: geometry.isSupportGenerated
     property alias areRaftsGenerated: geometry.areRaftsGenerated
     property alias raftOffset: geometry.raftOffset
+    property double raftHeight: 0
 
     property bool isPicked: false
     property bool isSnappedToFloor: false
     property vector3d modelCenter
 
+    property double initialZ: 0
+
     objectName: "STL geometry"
     pickable: true
-    rotation: Qt.quaternion(0,0,0,0)//modelControls.commonRotationCheckBox.checked ?
-                                    // rootModel.geometry.getRotationFromAxisAndAngle(Qt.vector3d(0,0,1), modelControls.pointModelRotationSlider.value) :
-    // Qt.quaternion(0,0,0,0)
+    rotation: Qt.quaternion(0,0,0,0)
+
+    z: initialZ + raftHeight
 
     geometry: TriangleGeometry {
         id: geometry
@@ -27,10 +30,6 @@ Model {
 //            isSnappedToFloor = false;
             snapToFloor()
         }
-
-//        onTriangleIslandsChanged: {
-//            console.log(" ### geometry.triangleIslands.size():" + geometry.triangleIslands.length)
-//        }
     }
 
     materials: [
@@ -41,14 +40,18 @@ Model {
         }
     ]
 
+    onRaftHeightChanged: {
+        stlModel.position.z
+    }
+
     function snapToFloor()
     {
-//        console.log(" ### snapToFloor:" + "")
         if (isSnappedToFloor)
             return
 
         move(Qt.vector3d(0,0, -stlModel.geometry.minBounds.z))
         isSnappedToFloor = true
+        initialZ = stlModel.position.z
 
     }
 

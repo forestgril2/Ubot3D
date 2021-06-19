@@ -165,6 +165,7 @@ Window {
                 isSupportGenerated: supportOptions.isGeneratingSupport
                 areRaftsGenerated: raftOptions.isGeneratingRafts
                 raftOffset: raftOptions.raftOffset
+                raftHeight: raftOptions.raftHeight
                 inputFile: stlObjectsRepeater.model[index]
 
                 Component.onCompleted: {
