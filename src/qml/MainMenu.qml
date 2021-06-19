@@ -46,7 +46,7 @@ MenuBar {
 			MenuItem{
 				text: qsTr("Exit")
                 onTriggered: {
-                    window.close()
+                    root.close()
                 }
 			}
 		},

@@ -55,7 +55,6 @@ class TriangleGeometry : public QQuick3DGeometry
 
 	Q_PROPERTY(QVector<TriangleGeometry*> supportGeometries READ getSupportGeometries NOTIFY supportGeometriesChanged)
 	Q_PROPERTY(bool isSupportGenerated READ isSupportGenerated WRITE setSupportGenerated NOTIFY isSupportGeneratedChanged)
-	Q_PROPERTY(float supportAlphaValue READ getSupportAlphaValue WRITE setSupportAlphaValue)
 
 	Q_PROPERTY(QVector<TriangleGeometry*> raftGeometries READ getRaftGeometries NOTIFY raftGeometriesChanged)
 	Q_PROPERTY(float raftOffset READ getRaftOffset WRITE setRaftOffset NOTIFY raftOffsetChanged)
@@ -78,8 +77,6 @@ public:
 
 	void setSupportGenerated(bool isGenerated);
 	bool isSupportGenerated() const;
-	void setSupportAlphaValue(float value);
-	float getSupportAlphaValue() const;
 
 	void setRaftsGenerated(bool isGenerated);
 	bool areRaftsGenerated() const;
@@ -182,7 +179,6 @@ private:
 	QVector<QVector3D> _debugTriangleEdges;
 	QVector<QVector3D> _triangulationResult;
 	QVector<QVector<QVector3D>> _triangleIslandBoundaries;
-	float _supportAlphaValue;
 	std::vector<std::shared_ptr<TriangleGeometry>> _supportGeometries;
 	std::vector<std::shared_ptr<TriangleGeometry>> _raftGeometries;
 

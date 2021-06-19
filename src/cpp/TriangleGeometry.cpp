@@ -143,12 +143,13 @@ static std::vector<Edge> convertBoundaryToEdges(const std::vector<uint32_t>& ind
 	return converted;
 };
 
+template <typename EdgeContainer>
 static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertices,
-												const std::vector<Edge>& edges,
+												const EdgeContainer& edges,
 												const bool isDuplicatingSecondVertex = true)
 {
 	std::vector<Vec3> converted;
-	converted.reserve(2*edges.size());
+	converted.reserve((isDuplicatingSecondVertex ? 2 : 1) * edges.size());
 	for (const Edge& edge : edges)
 	{
 		converted.emplace_back(vertices[edge.first]);
@@ -158,41 +159,6 @@ static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertice
 	}
 	return converted;
 };
-
-// TODO: Duplicating code, use template here.
-static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertices,
-												const std::set<Edge>& edges,
-												const bool isDuplicatingSecondVertex = true)
-{
-	std::vector<Vec3> converted;
-	converted.reserve(2*edges.size());
-	for (const Edge& edge : edges)
-	{
-		converted.emplace_back(vertices[edge.first]);
-		if (!isDuplicatingSecondVertex)
-			continue;
-		converted.emplace_back(vertices[edge.second]);
-	}
-	return converted;
-};
-
-//template <typename T>
-//static std::vector<Vec3> convertEdgesToVertices(const std::vector<Vec3>& vertices,
-//												const T<Edge>& edges,
-//												const bool isDuplicatingSecondVertex = true)
-//{
-//	std::vector<Vec3> converted;
-//	converted.reserve(2*edges.size());
-//	for (const Edge& edge : edges)
-//	{
-//		converted.emplace_back(vertices[edge.first]);
-//		if (!isDuplicatingSecondVertex)
-//			continue;
-//		converted.emplace_back(vertices[edge.second]);
-//	}
-//	return converted;
-//};
-
 
 static QVector<QVector3D> convertToQVectors3D(const std::vector<Vec3>& edgeRing)
 {
@@ -639,10 +605,11 @@ void TriangleGeometry::generateSupportGeometries()
 	for (const TriangleIsland& island : triangleIslands)
 	{// Generate a support geometry for each overhanging triangle island.
 		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
-		const std::vector<Vec3> edgeVertices = convertEdgesToVertices(_data.vertices, island.getBoundaryEdges());
+		const std::vector<Vec3> edgeVertices = convertEdgesToVertices(_data.vertices,
+																	  island.getBoundaryEdges(),
+																	  /*isDuplicatingSecondVertex*/ true);
 		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island,
 																			  _data.vertices,
-																			  _supportAlphaValue,
 																			  _minBound.z,
 																			  edgeVertices));
 	}
@@ -687,13 +654,13 @@ void TriangleGeometry::generateRaftGeometries()
 
 		// Create polygon path for clipper and offset it to enlarge/shrink the boundary.
 		ClipperLib::Path clipperBoundary;
-		static const uint32_t kClipperIntMultiplier = 100000;
+		static const uint32_t kClipperIntMultiplier = 1000;
 		for (Vec3& vertex : boundaryEdgeVertices)
 		{
 			vertex *= kClipperIntMultiplier;
 			ClipperLib::IntPoint clipperPoint(int32_t(std::round(vertex.x())), int32_t(std::round(vertex.y())));
 			clipperBoundary << clipperPoint;
-			std::cout << " ### " << __FUNCTION__ << " vertex,clipperPoint:" << vertex << "," << clipperPoint << std::endl;
+			std::cout << " ### " << __FUNCTION__ << " vertex, clipperPoint:" << vertex << "," << clipperPoint << std::endl;
 		}
 
 		ClipperLib::Paths solutionPaths;
@@ -711,7 +678,7 @@ void TriangleGeometry::generateRaftGeometries()
 												 float(double(clipperPoint.Y)/kClipperIntMultiplier), 0.0f});
 			}
 			_triangleIslandBoundaries.emplace_back(convertToQVectors3D(offsetBoundary));
-			_raftGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, _supportAlphaValue, 1, offsetBoundary));
+			_raftGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, 1, offsetBoundary));
 		}
 	}
 
@@ -760,11 +727,9 @@ float TriangleGeometry::getRaftOffset() const
 
 void TriangleGeometry::setRaftOffset(float offset)
 {
-	std::cout << " ### " << __FUNCTION__ << " offset:" << offset << "," << "" << std::endl;
 	if (approximatelyEqual(offset, _raftOffset, 0.00001f))
 		return;
 
-	std::cout << " ### " << __FUNCTION__ << " CHANGING offset:" << offset << "," << "" << std::endl;
 	_raftOffset = offset;
 	emit raftOffsetChanged(_raftOffset);
 }
@@ -796,19 +761,6 @@ QVector<TriangleGeometry*> TriangleGeometry::getRaftGeometries() const
 QVector<QVector<QVector3D> > TriangleGeometry::getTriangleIslandBoundaries() const
 {
 	return _triangleIslandBoundaries;
-}
-
-void TriangleGeometry::setSupportAlphaValue(float value)
-{
-	if (value == _supportAlphaValue)
-		return;
-
-	_supportAlphaValue = value;
-}
-
-float TriangleGeometry::getSupportAlphaValue() const
-{
-	return _supportAlphaValue;
 }
 
 TriangleGeometryData TriangleGeometry::prepareDataFromAssimpScene()

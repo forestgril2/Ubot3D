@@ -201,7 +201,6 @@ int Helpers3D::drawTriangulation(const QVector<QVector3D>& points)
 
 std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedTriangleIsland(const TriangleIsland& modelIsland,
 																		   const std::vector<Vec3>& modelVertices,
-																		   float alphaValue,
 																		   float modelFloorLevel,
 																		   const std::vector<Vec3>& boundaryEdges)
 {// Get (top) triangle island points, get it casted to floor, connect both.
@@ -268,24 +267,17 @@ std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedTriangleIsland(const
 		}
 	}
 
-	// IslandAlphaShapeRing has Z set to floorLevel to be found in the maps.
-//	const std::vector<Vec3> islandAlphaShapeRing = Helpers3D::computeAlphaShapeSegments(floorVertices, alphaValue, modelFloorLevel);
-//	if (alphaShape)
-//	{
-//		*alphaShape = islandAlphaShapeRing;
-//	}
-
-	std::vector<Vec3> islandAlphaShapeRing;
-	islandAlphaShapeRing.reserve(boundaryEdges.size());
+	std::vector<Vec3> islandBoundaryRing;
+	islandBoundaryRing.reserve(boundaryEdges.size());
 	for (const Vec3& edgeVertex : boundaryEdges)
 	{
 		Vec3 adjustedFloorVertex = edgeVertex;
 		adjustedFloorVertex.z() = modelFloorLevel;
-		islandAlphaShapeRing.emplace_back(adjustedFloorVertex);
+		islandBoundaryRing.emplace_back(adjustedFloorVertex);
 	}
 
 	// Reserve for top, bottom and side triangles.
-	supportGeometryIndices.reserve(2*islandTriangleIndices.size() + 6*islandAlphaShapeRing.size());
+	supportGeometryIndices.reserve(2*islandTriangleIndices.size() + 6*islandBoundaryRing.size());
 	for (uint32_t triangleVertexIndex : islandTriangleIndices)
 	{// Generate triangle indices for top:
 		supportGeometryIndices.push_back(indicesToUniqueVertices[modelVertices[triangleVertexIndex]]);
@@ -298,10 +290,10 @@ std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedTriangleIsland(const
 		supportGeometryIndices.push_back(indicesToUniqueVertices[floorVertex]);
 	}
 
-	for(uint32_t i=0; i<islandAlphaShapeRing.size(); i+=2)
+	for(uint32_t i=0; i<islandBoundaryRing.size(); i+=2)
 	{// Generate side triangles.
-		const Vec3& prevAlphaPoint = islandAlphaShapeRing[i];
-		const Vec3& alphaPoint = islandAlphaShapeRing[i+1];
+		const Vec3& prevAlphaPoint = islandBoundaryRing[i];
+		const Vec3& alphaPoint = islandBoundaryRing[i+1];
 		const uint32_t floorLeft = indicesToUniqueVertices[prevAlphaPoint];
 		const uint32_t topLeft = topIndicesToFloorVertices[prevAlphaPoint];
 		const uint32_t floorRight = indicesToUniqueVertices[alphaPoint];

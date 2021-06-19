@@ -6,7 +6,6 @@ Model {
     property alias inputFile: geometry.inputFile
     property alias isSupportGenerated: geometry.isSupportGenerated
     property alias areRaftsGenerated: geometry.areRaftsGenerated
-    property alias supportAlphaValue: geometry.supportAlphaValue
     property alias raftOffset: geometry.raftOffset
 
     property bool isPicked: false

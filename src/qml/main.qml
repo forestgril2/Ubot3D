@@ -9,7 +9,7 @@ import customgeometry 1.0
 import "HelperFunctions.js" as QmlHelpers
 
 Window {
-    id: window
+    id: root
 
     width: 2000
     height: 1200
@@ -35,11 +35,15 @@ Window {
 
     SupportOptions {
         id: supportOptions
+        x: root.x + 100
+        y: root.y + 100
         supportVertices: view3d.selectedObjects[0]
     }
 
     RaftOptions {
         id: raftOptions
+        x: root.x + 100
+        y: root.y + 100
         // TODO: Only all OR specified models should change rafts, currently all do.
 //        onRaftOffsetChanged: {
 //            var models = QmlHelpers.getSelectedModels(stlObjectsRepeater);

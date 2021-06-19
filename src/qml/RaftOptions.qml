@@ -89,9 +89,4 @@ Window {
             width: 200
         }
     }
-
-    Component.onCompleted: {
-        console.log(" ### isGeneratingTafts:" + isGeneratingRafts)
-        console.log(" ### areRafstExported:" + areRafstExported)
-    }
 }
