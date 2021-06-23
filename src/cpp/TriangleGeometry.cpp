@@ -229,10 +229,10 @@ static std::list<std::vector<uint32_t>> composeNodeRingsV0(const std::set<Edge>&
 
 	// We will also keep track of all edges left at their end-nodes.
 	std::map<uint32_t, std::set<Edge>> edgesLeftAtNodes;
-	std::cout << " ### " << __FUNCTION__ << " All edges: " << std::endl;
+//	std::cout << " ### " << __FUNCTION__ << " All edges: " << std::endl;
 	for (const Edge& edge : edgesLeft)
 	{
-		std::cout << edge << std::endl;
+//		std::cout << edge << std::endl;
 		edgesLeftAtNodes[edge.first].insert(edge);
 		edgesLeftAtNodes[edge.second].insert(edge);
 	}
@@ -260,9 +260,9 @@ static std::list<std::vector<uint32_t>> composeNodeRingsV0(const std::set<Edge>&
 		Edge currEdge = *edgesLeft.begin();
 		// The boundary at start are just front/back nodes of the starting edge.
 		std::deque<uint32_t> boundary{currEdge.first, currEdge.second};
-		std::cout << " ### " << __FUNCTION__ << " Starting Edge:" << currEdge << std::endl;
+//		std::cout << " ### " << __FUNCTION__ << " Starting Edge:" << currEdge << std::endl;
 		// Remove the edge from map entry for front node.
-		std::cout << " ### " << __FUNCTION__ << " edges at front node: " << std::endl;
+//		std::cout << " ### " << __FUNCTION__ << " edges at front node: " << std::endl;
 		std::set<Edge>& edgesLeftAtFrontNode = edgesLeftAtNodes.at(boundary.front());
 		for(const Edge& edge: edgesLeftAtFrontNode)
 		{
@@ -283,7 +283,7 @@ static std::list<std::vector<uint32_t>> composeNodeRingsV0(const std::set<Edge>&
 			assert(isCurrNodeErased);
 
 			// Establish a new "current" edge.
-			std::cout << " ### " << __FUNCTION__ << " edges at current node: " << std::endl;
+//			std::cout << " ### " << __FUNCTION__ << " edges at current node: " << std::endl;
 			for(const Edge& edge: edgesLeftAtCurrNode)
 			{
 				std::cout << edge << std::endl;
@@ -330,11 +330,11 @@ static std::list<std::vector<uint32_t>> composeNodeRingsV0(const std::set<Edge>&
 			// Otherwise append a new back node to the boundary.
 			boundary.push_back(currEdge.second);
 		}
-		std::cout << " ### " << __FUNCTION__ << " RING CLOSED" << "" << "," << "" << std::endl;
+//		std::cout << " ### " << __FUNCTION__ << " RING CLOSED" << "" << "," << "" << std::endl;
 		rings.emplace_back(std::vector<uint32_t>(boundary.begin(), boundary.end()));
 	}
 
-	std::cout << " ### " << __FUNCTION__ << " returning ring of size: " << rings.size() << "," << "" << std::endl;
+//	std::cout << " ### " << __FUNCTION__ << " returning ring of size: " << rings.size() << "," << "" << std::endl;
 	return rings;
 }
 
@@ -709,7 +709,7 @@ void TriangleGeometry::generateRaftGeometries()
 
 		std::vector<Vec3> boundaryEdgeVertices;
 		const std::set<Edge> islandBoundaryEdges = island.getBoundaryEdges();
-		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV0(islandBoundaryEdges);
+		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV1(islandBoundaryEdges);
 		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
 		{
 			const std::vector<Vec3> ringEdgeVertices =
@@ -747,65 +747,65 @@ void TriangleGeometry::generateRaftGeometries()
 	emit raftGeometriesChanged();
 }
 
-void TriangleGeometry::generateRaftGeometriesAllTogether()
-{
-	Chronograph chronograph(__FUNCTION__, true);
-	_raftGeometries.clear();
-	_triangleIslandBoundaries.clear();
+//void TriangleGeometry::generateRaftGeometriesAllTogether()
+//{
+//	Chronograph chronograph(__FUNCTION__, true);
+//	_raftGeometries.clear();
+//	_triangleIslandBoundaries.clear();
 
-	const std::vector<uint32_t> floorTriangleIndices = collectFloorTriangleIndices();
-	generateDebugTriangleEdges(floorTriangleIndices);
+//	const std::vector<uint32_t> floorTriangleIndices = collectFloorTriangleIndices();
+//	generateDebugTriangleEdges(floorTriangleIndices);
 
-	TriangleConnectivity triangleConnectivity(floorTriangleIndices);
-	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
+//	TriangleConnectivity triangleConnectivity(floorTriangleIndices);
+//	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
 
-	ClipperLib::Paths offsetPathsResult;
-	ClipperLib::ClipperOffset clipperOffsetter;
-	static const uint32_t kClipperIntMultiplier = 1000;
+//	ClipperLib::Paths offsetPathsResult;
+//	ClipperLib::ClipperOffset clipperOffsetter;
+//	static const uint32_t kClipperIntMultiplier = 1000;
 
-	for (const TriangleIsland& island : triangleIslands)
-	{// Generate a raft geometry for each triangle island at floor level.
-		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
+//	for (const TriangleIsland& island : triangleIslands)
+//	{// Generate a raft geometry for each triangle island at floor level.
+//		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
 
-		std::vector<Vec3> boundaryEdgeVertices;
-		const std::set<Edge> islandBoundaryEdges = island.getBoundaryEdges();
-		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV0(islandBoundaryEdges);
-		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
-		{
-			const std::vector<Vec3> ringEdgeVertices =
-					getEdgeVertices(_data.vertices, convertBoundaryToEdges(ring), false);
-			std::copy(ringEdgeVertices.begin(), ringEdgeVertices.end(), std::back_inserter(boundaryEdgeVertices));
-		}
+//		std::vector<Vec3> boundaryEdgeVertices;
+//		const std::set<Edge> islandBoundaryEdges = island.getBoundaryEdges();
+//		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV0(islandBoundaryEdges);
+//		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
+//		{
+//			const std::vector<Vec3> ringEdgeVertices =
+//					getEdgeVertices(_data.vertices, convertBoundaryToEdges(ring), false);
+//			std::copy(ringEdgeVertices.begin(), ringEdgeVertices.end(), std::back_inserter(boundaryEdgeVertices));
+//		}
 
-		// Create polygon path for clipper and enlarge/shrink the boundary by a specified offset.
-		ClipperLib::Path clipperBoundary;
-		for (Vec3& vertex : boundaryEdgeVertices)
-		{
-			vertex *= kClipperIntMultiplier;
-			ClipperLib::IntPoint clipperPoint(int32_t(std::round(vertex.x())), int32_t(std::round(vertex.y())));
-			clipperBoundary << clipperPoint;
-		}
+//		// Create polygon path for clipper and enlarge/shrink the boundary by a specified offset.
+//		ClipperLib::Path clipperBoundary;
+//		for (Vec3& vertex : boundaryEdgeVertices)
+//		{
+//			vertex *= kClipperIntMultiplier;
+//			ClipperLib::IntPoint clipperPoint(int32_t(std::round(vertex.x())), int32_t(std::round(vertex.y())));
+//			clipperBoundary << clipperPoint;
+//		}
 
-		clipperOffsetter.AddPath(clipperBoundary, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
-	}
+//		clipperOffsetter.AddPath(clipperBoundary, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
+//	}
 
-	clipperOffsetter.Execute(offsetPathsResult, kClipperIntMultiplier * double(_raftOffset));
+//	clipperOffsetter.Execute(offsetPathsResult, kClipperIntMultiplier * double(_raftOffset));
 
-	for (const ClipperLib::Path& clipperPath : offsetPathsResult)
-	{
-		std::vector<Vec3> offsetBoundary;
-		offsetBoundary.reserve(clipperPath.size());
-		for (const ClipperLib::IntPoint& clipperPoint : clipperPath)
-		{
-			offsetBoundary.emplace_back(Vec3{float(double(clipperPoint.X)/kClipperIntMultiplier),
-											 float(double(clipperPoint.Y)/kClipperIntMultiplier), 0.0f});
-		}
-		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(generateRingEdgeVertices(offsetBoundary)));
-		//		_raftGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, 1, offsetBoundary));
-	}
+//	for (const ClipperLib::Path& clipperPath : offsetPathsResult)
+//	{
+//		std::vector<Vec3> offsetBoundary;
+//		offsetBoundary.reserve(clipperPath.size());
+//		for (const ClipperLib::IntPoint& clipperPoint : clipperPath)
+//		{
+//			offsetBoundary.emplace_back(Vec3{float(double(clipperPoint.X)/kClipperIntMultiplier),
+//											 float(double(clipperPoint.Y)/kClipperIntMultiplier), 0.0f});
+//		}
+//		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(generateRingEdgeVertices(offsetBoundary)));
+//		//		_raftGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, 1, offsetBoundary));
+//	}
 
-	emit raftGeometriesChanged();
-}
+//	emit raftGeometriesChanged();
+//}
 
 void TriangleGeometry::clearRaftGeometries()
 {

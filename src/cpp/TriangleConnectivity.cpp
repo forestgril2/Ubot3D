@@ -278,8 +278,6 @@ std::set<Edge> Triangle::composeEdges()
 	const uint32_t i1 = indices[1];
 	const uint32_t i2 = indices[2];
 
-	std::cout << " ### " << __FUNCTION__ << " indices: " << i0 << "," << i1 << "," << i2 << std::endl;
-
 	std::set<Edge> edges;
 	edges.insert({i0,i1});
 	edges.insert({i1,i2});
