@@ -170,14 +170,14 @@ static aiScene* generateTransformedGeometryScene(const TriangleGeometry* geometr
 
 	aiNode *root = new aiNode();                        // deleted: Version.cpp:143
 	root->mNumMeshes = 1;
-	root->mMeshes = new unsigned [] { 0 };              // deleted: scene.cpp:77
+    root->mMeshes = new unsigned [1] { 0 };              // deleted: scene.cpp:77
 
 	// pack mesh(es), material, and root node into a new minimal aiScene
 
 	scene->mNumMeshes = 1;
-	scene->mMeshes = new aiMesh * [] { mesh };            // deleted: Version.cpp:151
+    scene->mMeshes = new aiMesh * [1] { mesh };            // deleted: Version.cpp:151
 	scene->mNumMaterials = 1;
-	scene->mMaterials = new aiMaterial * [] { material }; // deleted: Version.cpp:158
+    scene->mMaterials = new aiMaterial * [1] { material }; // deleted: Version.cpp:158
 	scene->mRootNode = root;
 
 	return scene;

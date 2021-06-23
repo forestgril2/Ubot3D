@@ -1,7 +1,7 @@
 #QT += quick3d-private quick3druntimerender-private gui quick3dassetimport-private gui-private quick core quick3d quick3dutils-private qml core-private quick3dassetimport
 QT += quick3d quickcontrols2 qml widgets xml
 
-CONFIG += c++20
+CONFIG += c++2a
 
 #QTPLUGIN += assetimporters
 
@@ -32,7 +32,6 @@ CONFIG += ordered
 SUBDIRS += src/cpp src/qml
 
 SOURCES += \
-    $$PWD/../clipper/cpp/clipper.cpp \
     src/cpp/Edge.cpp \
     src/cpp/FileImportExport.cpp \
      src/cpp/main.cpp \
@@ -49,7 +48,6 @@ SOURCES += \
 
 
 HEADERS += \
-        $$PWD/../clipper/cpp/clipper.hpp \
         src/cpp/Edge.h \
         src/cpp/FileImportExport.h \
         src/cpp/TriangleGeometry.h \
@@ -102,24 +100,70 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/release/ -lassimp-vc142-mtd
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/Debug/ -lassimp-vc142-mtd# -L$$PWD/../gpr/build/ -lmsys-gpr
-else:unix: LIBS += -L$$PWD/../assimp-5.0.1/build/code/ -lassimp-vc142-mtd
 
-INCLUDEPATH += $$PWD/../clipper/cpp
-INCLUDEPATH += D:/Programy/CGAL/include
-INCLUDEPATH += D:/Programy/boost_1_75_0
-INCLUDEPATH += $$PWD/../eigen
-INCLUDEPATH += $$PWD/../glm
-INCLUDEPATH += $$PWD/../gpr/src
-INCLUDEPATH += $$PWD/src/cpp
-DEPENDPATH += $$PWD/../gpr/src
-INCLUDEPATH += $$PWD/../assimp-5.0.1/include
-INCLUDEPATH += $$PWD/../assimp-5.0.1/build/include
-DEPENDPATH += $$PWD/../assimp-5.0.1/include
-DEPENDPATH += $$PWD/../assimp-5.0.1/build/include
+
+unix {
+
+CGAL_INCLUDEPATH=/usr/include/CGAL
+BOOST_INCLUDEPATH=/usr/include/boost
+ASSIMP_INCLUDEPATH=/usr/include/assimp
+CLIPPER_INCLUDEPATH=/usr/include/polyclipping
+
+EIGEN_PATH=$$PWD/../eigen
+GLM_PATH=$$PWD/../glm
+GPR_PATH=$$PWD/../gpr/src
+
+INCLUDEPATH += \
+$$[QT_INSTALL_HEADERS]/QtQuick3DRuntimeRender/$$[QT_VERSION]/ \
+$$[QT_INSTALL_HEADERS]/QtQuick3DUtils/$$[QT_VERSION]/ \
+$$[QT_INSTALL_HEADERS]/QtQuick3DAssetImport/$$[QT_VERSION]/ \
+$$[QT_INSTALL_HEADERS]/QtGui/$$[QT_VERSION] \
+$$[QT_INSTALL_HEADERS]/QtGui/$$[QT_VERSION]/QtGui
+
+QT_SRC=$$[QT_INSTALL_PREFIX]/../Src
+HEADERS += $$QT_SRC/qtquick3d/src/runtimerender/qssgrenderray_p.h
+SOURCES += $$QT_SRC/qtquick3d/src/runtimerender/qssgrenderray.cpp
+
+LIBS += -lpolyclipping -lassimp
+}
+
+win32 {
+CLIPPER_INCLUDEPATH=$$PWD/../clipper/cpp/
+CGAL_INCLUDEPATH=D:/Programy/CGAL/include
+BOOST_INCLUDEPATH=D:/Programy/boost_1_75_0
+ASSIMP_PATH=$$PWD/../assimp-5.0.1
+EIGEN_PATH=$$PWD/../eigen
+GLM_PATH=$$PWD/../glm
+GPR_PATH=$$PWD/../gpr/src
+
+INCLUDEPATH += $$ASSIMP_PATH/include
+INCLUDEPATH += $$ASSIMP_PATH/build/include
+
+DEPENDPATH += $$ASSIMP_PATH/include
+DEPENDPATH += $$ASSIMP_PATH/build/include
 
 INCLUDEPATH += D:\Projects\qt6-build-release-a80e52\qtbase\include\QtQuick3DUtils\6.0.1
 INCLUDEPATH += D:\Projects\qt6-build-release-a80e52\qtbase\include\QtGui\6.0.1
 INCLUDEPATH += D:\Projects\qt6-build-release-a80e52\qtbase\include\QtQuick3DAssetImport\6.0.1
+
+HEADERS += $$PWD/../clipper/cpp/clipper.hpp
+SOURCES += $$PWD/../clipper/cpp/clipper.cpp
+}
+
+
+INCLUDEPATH += $$PWD/src/cpp
+INCLUDEPATH += $$ASSIMP_INCLUDEPATH
+INCLUDEPATH += $$CLIPPER_INCLUDEPATH
+INCLUDEPATH += $$BOOST_INCLUDEPATH
+INCLUDEPATH += $$EIGEN_PATH
+INCLUDEPATH += $$GLM_PATH
+INCLUDEPATH += $$GPR_PATH
+INCLUDEPATH += $$CGAL_INCLUDEPATH
+
+DEPENDPATH += $$GPR_PATH
+DEPENDPATH += $$ASSIMP_INCLUDEPATH
+
+
 
 #QT += quick3dassetimport-private quick3dutils-private shadertools-private quick-private
 

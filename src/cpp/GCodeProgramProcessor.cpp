@@ -2,7 +2,7 @@
 
 #include <gcode_program.h>
 #include <parser.h>
-
+#include <cfloat>
 #include <Helpers3D.h>
 
 // That would be around 10GB GCode probably.
@@ -61,9 +61,9 @@ bool GCodeProgramProcessor::isNewLayerComment(const std::string& comment)
 {// First layer has bed level (0.0f), like all preparation steps. We return true only for layers 1+
 	return
 			// Cura format ;FLAVOR:Marlin
-			(comment._Starts_with("LAYER:") && (0 != comment.compare("LAYER:0")))
+            (comment.starts_with("LAYER:") && (0 != comment.compare("LAYER:0")))
 			||// Ubot3D format
-			(comment._Starts_with("layer"));
+            (comment.starts_with("layer"));
 }
 
 bool GCodeProgramProcessor::isNewPathPoint() const

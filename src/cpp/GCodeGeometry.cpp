@@ -17,6 +17,8 @@
 #include <GCodeProgramProcessor.h>
 #include <Helpers3D.h>
 
+#include <cmath>
+#include <cfloat>
 
 #include <Eigen/Geometry>
 
@@ -530,7 +532,8 @@ void GCodeGeometry::generate()
 				const Vector3f nextDirection = (nextPoint - currPoint).head<3>().normalized();
 
 				const Vector3f turnAxis = prevDirection.cross(nextDirection).normalized();
-				const float turnAngle = std::acosf(prevDirection.dot(nextDirection));
+
+                const float turnAngle = std::acos(static_cast<float>(prevDirection.dot(nextDirection)));
 				if (!approximatelyEqual(turnAngle, 0, FLT_EPSILON))
 				{
 					//TODO: Watch out - HACKING a bit.

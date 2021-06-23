@@ -10,6 +10,7 @@
 #include <iterator>
 #include <stack>
 #include <string>
+#include <cfloat>
 
 // ASSIMP LIBRARY INCLUDE
 #include <assimp/scene.h>
@@ -22,8 +23,20 @@
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrendernode_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrendermesh_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshutilities.cpp>
+
+#ifdef _MSC_VER
 #include <D:\Projects\qt6-a80e52\qtquick3d\src\runtimerender\qssgrenderray_p.h>
 #include <D:\Projects\qt6-a80e52\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
+#include <QtQuick3DAssetImport/private/qssgmeshbvhbuilder_p.h>
+#else
+#include <QtQuick3DRuntimeRender/private/qssgrenderbuffermanager_p.h>
+#include <QtQuick3DRuntimeRender/private/qssgrenderray_p.h>
+#endif
+
+
+#include <QtQuick3DUtils/private/qssgmeshbvh_p.h>
+//qssgmeshbvhbuilder_p.h
+
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrendermodel_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\utils\qssgoption_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrenderlayer_p.h>
