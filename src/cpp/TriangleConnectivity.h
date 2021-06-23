@@ -30,7 +30,7 @@ public:
 	TrianglesSet& getNeighbours();
 	std::pair<TrianglesSet::iterator, bool> addNeighbour(TriangleShared& neighbour);
 	uint32_t getVertexIndex(uint32_t i) const;
-	std::set<uint32_t> getVertexIndices() const;
+	std::vector<uint32_t> getVertexIndices() const;
 
 	const std::set<Edge>& getBoundaryEdges() const;
 
@@ -58,7 +58,7 @@ public:
 	#endif
 
 private:
-	std::set<Edge> calculateEdges();
+	std::set<Edge> composeEdges();
 
 	TrianglesSet _neighbours; // TODO: may profile for speed with a std::vector<uint32_t>, as recursiveAdd() discards duplicates anyway.
 	uint32_t _firstIndexPos; // position of the first index of this triangle in the vertex array (which is in  3's)

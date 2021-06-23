@@ -11,8 +11,8 @@ import "HelperFunctions.js" as QmlHelpers
 Window {
     id: root
 
-    width: 2000
-    height: 1200
+    width: 1920
+    height: 1280
     visible: true
     color: "#848895"
 

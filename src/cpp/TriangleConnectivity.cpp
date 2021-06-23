@@ -183,7 +183,7 @@ uint32_t Triangle::getVertexIndex(uint32_t i) const
 	return _vertexIndices[_firstIndexPos + i];
 }
 
-std::set<uint32_t> Triangle::getVertexIndices() const
+std::vector<uint32_t> Triangle::getVertexIndices() const
 {
 	return {_vertexIndices[_firstIndexPos], _vertexIndices[_firstIndexPos +1], _vertexIndices[_firstIndexPos +2]};
 }
@@ -197,7 +197,7 @@ Triangle::Triangle(uint32_t pos, const std::vector<uint32_t>& indices) :
 	_neighbours(compareTriangles),
 	_firstIndexPos(pos),
 	_vertexIndices(indices),
-	_edges(calculateEdges()),
+	_edges(composeEdges()),
 	_boundaryEdges(_edges),
 	_isAdded(false)
 {
@@ -271,15 +271,14 @@ bool Triangle::specifyInteriorEdge(const Edge& edge)
 	return true;
 }
 
-std::set<Edge> Triangle::calculateEdges()
+std::set<Edge> Triangle::composeEdges()
 {
-	const std::set<uint32_t> indices = getVertexIndices();
-	auto indicesIt = indices.begin();
-	const uint32_t i0 = *indicesIt;
-	++indicesIt;
-	const uint32_t i1 = *indicesIt;
-	++indicesIt;
-	const uint32_t i2 = *indicesIt;
+	const std::vector<uint32_t> indices = getVertexIndices();
+	const uint32_t i0 = indices[0];
+	const uint32_t i1 = indices[1];
+	const uint32_t i2 = indices[2];
+
+	std::cout << " ### " << __FUNCTION__ << " indices: " << i0 << "," << i1 << "," << i2 << std::endl;
 
 	std::set<Edge> edges;
 	edges.insert({i0,i1});

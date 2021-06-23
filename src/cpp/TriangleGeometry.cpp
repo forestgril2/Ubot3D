@@ -212,12 +212,14 @@ static std::list<std::vector<uint32_t>> composeNodeRingsV0(const std::set<Edge>&
 	std::list<std::vector<uint32_t>> rings;
 
 	// Copy initial edges. We will remove each resolved/matched edge from it until empty.
-	std::set<Edge> edgesLeft = edges;
+	std::set<Edge> edgesLeft(edges);
 
 	// We will also keep track of all edges left at their end-nodes.
 	std::map<uint32_t, std::set<Edge>> edgesLeftAtNodes;
+	std::cout << " ### " << __FUNCTION__ << " All edges: " << std::endl;
 	for (const Edge& edge : edgesLeft)
 	{
+		std::cout << edge << std::endl;
 		edgesLeftAtNodes[edge.first].insert(edge);
 		edgesLeftAtNodes[edge.second].insert(edge);
 	}
@@ -238,72 +240,82 @@ static std::list<std::vector<uint32_t>> composeNodeRingsV0(const std::set<Edge>&
 #endif
 
 	// Initialize a boundary with a random starting edge and keep finding adjacent edges
-	// in the same edge direction. Adding end-nodes to boundary, until the boundary is closed
+	// in the same edge direction. Add back edge nodes to boundary, until the boundary is closed
 	// This happens, when end-nodes match.
 	while(!edgesLeft.empty())
 	{
-		// Remember the starting edge.
-		const Edge startEdge = *edgesLeft.begin();
+		Edge currEdge = *edgesLeft.begin();
 		// The boundary at start are just front/back nodes of the starting edge.
-		std::deque<uint32_t> boundary{startEdge.first, startEdge.second};
-		// The back edge is the same as start edge in the beginning.
-		Edge backEdge = startEdge;
-		std::cout << " ### " << __FUNCTION__ << " Starting with startEdge:" << startEdge << std::endl;
-
-		// Erase this edge from the set.
-		const bool isStartEdgeRemovedFromSet = edgesLeft.erase(startEdge);
-		assert(isStartEdgeRemovedFromSet);
-		// Remove the edge from map entry for front node as well.
-		std::cout << " ### " << __FUNCTION__ << " edgesAtStartNode: " << std::endl;
+		std::deque<uint32_t> boundary{currEdge.first, currEdge.second};
+		std::cout << " ### " << __FUNCTION__ << " Starting Edge:" << currEdge << std::endl;
+		// Remove the edge from map entry for front node.
+		std::cout << " ### " << __FUNCTION__ << " edges at front node: " << std::endl;
 		std::set<Edge>& edgesLeftAtFrontNode = edgesLeftAtNodes.at(boundary.front());
 		for(const Edge& edge: edgesLeftAtFrontNode)
 		{
 			std::cout << edge << std::endl;
 		}
 		std::cout << std::endl;
-		const bool isStartEdgeRemovedFromMapEntry = edgesLeftAtFrontNode.erase(startEdge);
-		assert(isStartEdgeRemovedFromMapEntry);
+		edgesLeftAtFrontNode.erase(currEdge);
 
 		while(true)
 		{// Keep erasing edges from set and from maps until back boundary node matches the front boundary node.
+			std::set<Edge>& edgesLeftAtCurrNode = edgesLeftAtNodes.at(boundary.back());
+			const bool isBackNodeErased = edgesLeftAtCurrNode.erase(currEdge);
+			assert(isBackNodeErased);
+
+			// Consider the current edge fully visited, as it was removed from its both map-nodes.
+			// Erase it from the edges left.
+			const bool isCurrNodeErased = edgesLeft.erase(currEdge);
+			assert(isCurrNodeErased);
+
+			// Establish a new "current" edge.
+			std::cout << " ### " << __FUNCTION__ << " edges at current node: " << std::endl;
+			for(const Edge& edge: edgesLeftAtCurrNode)
 			{
-				// Establish a new back edge.
-				std::set<Edge>& edgesAtBackNode = edgesLeftAtNodes.at(boundary.back());
-				std::cout << " ### " << __FUNCTION__ << " edgesAtBackNode: " << std::endl;
-				for(const Edge& edge: edgesAtBackNode)
-				{
-					std::cout << edge << std::endl;
-				}
-				std::cout << std::endl;
+				std::cout << edge << std::endl;
+			}
+			std::cout << std::endl;
 
-				for (const Edge& edgeAtBackCandidate : edgesAtBackNode)
-				{
-					if (edgeAtBackCandidate.first != backEdge.second)
-						continue;
+			Edge newEdge{0,0};
+			for (const Edge& newEdgeCandidate : edgesLeftAtCurrNode)
+			{// Make sure, the ordering is correct to accept a candidate.
+				if (newEdgeCandidate.first != currEdge.second)
+					continue;
 
-					// Use the first, which has the same direction.
-					backEdge = edgeAtBackCandidate;
-					break;
-				}
+				// Use the first, which has the same direction.
+				newEdge = newEdgeCandidate;
+				break;
+			}
+			assert(newEdge != Edge(0,0));
+			assert(newEdge != currEdge);
+			currEdge = newEdge;
 
-				// Now consider this one visited. Erase from the edges left and from the set<edge>
-				// at this node in map<node: set<edge>>.
-				const bool isBackErasedFromEdgesLeft = edgesLeft.erase(backEdge);
-				assert(isBackErasedFromEdgesLeft);
-				edgesAtBackNode.erase(backEdge);
-
-				if (edgesLeftAtNodes.at(boundary.back()).empty())
-				{// If all edges in this node have been visited, remove the node whole map entry.
-					edgesLeftAtNodes.erase(boundary.back());
-				}
+			if (edgesLeftAtNodes.at(boundary.back()).empty())
+			{// If all edges in this node have been visited, remove its whole map entry.
+				edgesLeftAtNodes.erase(boundary.back());
 			}
 
-			// If new back edge second node matches boundary front node, break.
-			if (backEdge.second == boundary.front())
+
+			if (currEdge.second == boundary.front())
+			{// If new current edge second node matches boundary front node, remove the edge and break.
+				bool wasLastEdgeRemovedFromFrontNode = edgesLeftAtFrontNode.erase(currEdge);
+				assert(wasLastEdgeRemovedFromFrontNode);
+
+				// Erase also from the set.
+				bool wasLastEdgeRemovedFromSet = edgesLeft.erase(currEdge);
+				assert(wasLastEdgeRemovedFromSet );
+
+				if (edgesLeftAtFrontNode.empty())
+				{// If all edges in this node have been visited, remove its whole map entry.
+					edgesLeftAtNodes.erase(boundary.front());
+				}
+
 				break;
+			}
 
 			// Otherwise append a new back node to the boundary.
-			boundary.push_back(backEdge.second);
+			boundary.push_back(currEdge.second);
 		}
 		std::cout << " ### " << __FUNCTION__ << " RING CLOSED" << "" << "," << "" << std::endl;
 		rings.emplace_back(std::vector<uint32_t>(boundary.begin(), boundary.end()));
@@ -349,10 +361,11 @@ bool TriangleGeometry::importModelFromFile(const std::string& pFile)
 	// Usually - if speed is not the most important aspect for you - you'll
 	// probably to request more postprocessing than we do in this example.
 	_scene = importer.ReadFile(pFile,
-							  aiProcess_CalcTangentSpace |
+//							  aiProcess_CalcTangentSpace |
 							  aiProcess_Triangulate |
 //							  aiProcess_JoinIdenticalVertices
-							  aiProcess_FixInfacingNormals
+							  aiProcess_FixInfacingNormals |
+							  aiProcess_ValidateDataStructure
 //							  aiProcess_ImproveCacheLocality
 //							  aiProcess_SortByPType
 							   );
@@ -683,7 +696,7 @@ void TriangleGeometry::generateRaftGeometries()
 
 		std::vector<Vec3> boundaryEdgeVertices;
 		const std::set<Edge> islandBoundaryEdges = island.getBoundaryEdges();
-		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV1(islandBoundaryEdges);
+		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV0(islandBoundaryEdges);
 		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
 		{
 			const std::vector<Vec3> ringEdgeVertices =
@@ -743,7 +756,7 @@ void TriangleGeometry::generateRaftGeometriesAllTogether()
 
 		std::vector<Vec3> boundaryEdgeVertices;
 		const std::set<Edge> islandBoundaryEdges = island.getBoundaryEdges();
-		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV1(islandBoundaryEdges);
+		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV0(islandBoundaryEdges);
 		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
 		{
 			const std::vector<Vec3> ringEdgeVertices =
