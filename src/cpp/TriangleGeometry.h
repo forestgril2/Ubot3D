@@ -152,7 +152,7 @@ private:
 
 	uint32_t calculateAndSetStride();
 	std::vector<float> prepareColorTrianglesVertexData();
-	void generateDebugTriangleEdges(const std::vector<uint32_t>& debugTriangleIndices);
+	void generateDebugTriangleEdges(const std::vector<Vec3>& vertices, const std::vector<uint32_t>& indices);
 	std::vector<uint32_t> collectFloorTriangleIndices(const float floorOffsetLimit = 0.025f,
 													  const Eigen::Matrix4f& transform = Eigen::Matrix4f::Identity());
 

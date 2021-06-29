@@ -46,6 +46,7 @@
 
 #include <Chronograph.h>
 #include <Helpers3D.h>
+#include <PolygonTriangulation.h>
 #include <TriangleConnectivity.h>
 
 #include <fstream>
@@ -284,11 +285,11 @@ static std::list<std::vector<uint32_t>> composeNodeRingsV0(const std::set<Edge>&
 
 			// Establish a new "current" edge.
 //			std::cout << " ### " << __FUNCTION__ << " edges at current node: " << std::endl;
-			for(const Edge& edge: edgesLeftAtCurrNode)
-			{
-				std::cout << edge << std::endl;
-			}
-			std::cout << std::endl;
+//			for(const Edge& edge: edgesLeftAtCurrNode)
+//			{
+//				std::cout << edge << std::endl;
+//			}
+//			std::cout << std::endl;
 
 			Edge newEdge{0,0};
 			for (const Edge& newEdgeCandidate : edgesLeftAtCurrNode)
@@ -601,18 +602,18 @@ std::vector<float> TriangleGeometry::prepareColorTrianglesVertexData()
 	return ret;
 }
 
-void TriangleGeometry::generateDebugTriangleEdges(const std::vector<uint32_t>& debugTriangleIndices)
+void TriangleGeometry::generateDebugTriangleEdges(const std::vector<Vec3>& vertices, const std::vector<uint32_t>& indices)
 {
 	Chronograph chronograph(__FUNCTION__, false);
 
 	_debugTriangleEdges.clear();
-	_debugTriangleEdges.reserve(qsizetype(debugTriangleIndices.size() * 2));
+	_debugTriangleEdges.reserve(qsizetype(indices.size() * 2));
 
-	for (uint32_t index=0; index<debugTriangleIndices.size(); index+=3)
+	for (uint32_t index=0; index<indices.size(); index+=3)
 	{// For each triangle, collect triangle side vertices pair-wise.
-		const QVector3D v0 = *reinterpret_cast<const QVector3D*>(&_data.vertices[debugTriangleIndices[index   ]]);
-		const QVector3D v1 = *reinterpret_cast<const QVector3D*>(&_data.vertices[debugTriangleIndices[index +1]]);
-		const QVector3D v2 = *reinterpret_cast<const QVector3D*>(&_data.vertices[debugTriangleIndices[index +2]]);
+		const QVector3D v0 = *reinterpret_cast<const QVector3D*>(&vertices[indices[index   ]]);
+		const QVector3D v1 = *reinterpret_cast<const QVector3D*>(&vertices[indices[index +1]]);
+		const QVector3D v2 = *reinterpret_cast<const QVector3D*>(&vertices[indices[index +2]]);
 
 		std::vector<std::reference_wrapper<const QVector3D>> verticesToPush{v0, v1, v1, v2, v2, v0};
 		for(const QVector3D& v: verticesToPush)
@@ -653,7 +654,7 @@ std::vector<uint32_t> TriangleGeometry::collectFloorTriangleIndices(const float 
 void TriangleGeometry::generateSupportGeometries()
 {
 	Chronograph chronograph(__FUNCTION__, true);
-	generateDebugTriangleEdges(_overhangingTriangleIndices);
+	generateDebugTriangleEdges(_data.vertices, _overhangingTriangleIndices);
 
 	TriangleConnectivity triangleConnectivity(_overhangingTriangleIndices);
 	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
@@ -693,7 +694,7 @@ void TriangleGeometry::generateRaftGeometries()
 	_triangleIslandBoundaries.clear();
 
 	const std::vector<uint32_t> floorTriangleIndices = collectFloorTriangleIndices();
-	generateDebugTriangleEdges(floorTriangleIndices);
+	generateDebugTriangleEdges(_data.vertices, floorTriangleIndices);
 
 	TriangleConnectivity triangleConnectivity(floorTriangleIndices);
 	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
@@ -731,18 +732,34 @@ void TriangleGeometry::generateRaftGeometries()
 
 	clipperOffsetter.Execute(offsetPathsResult, kClipperIntMultiplier * double(_raftOffset));
 
+	TriangleGeometryData raftData;
+	std::list<std::vector<uint32_t>> offsetRings;
+	uint32_t ringNodeCount = 0;
+
 	for (const ClipperLib::Path& clipperPath : offsetPathsResult)
 	{
 		std::vector<Vec3> offsetBoundary;
+		offsetRings.push_back({});
+		offsetRings.back().reserve(clipperPath.size());
+		std::vector<uint32_t>& boundaryNodes = offsetRings.back();
+
 		offsetBoundary.reserve(clipperPath.size());
 		for (const ClipperLib::IntPoint& clipperPoint : clipperPath)
 		{
 			offsetBoundary.emplace_back(Vec3{float(double(clipperPoint.X)/kClipperIntMultiplier),
 											 float(double(clipperPoint.Y)/kClipperIntMultiplier), 0.0f});
+
+			raftData.vertices.emplace_back(offsetBoundary.back());
+			boundaryNodes.push_back(ringNodeCount++);
 		}
+
 		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(generateRingEdgeVertices(offsetBoundary)));
 //		_raftGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, 1, offsetBoundary));
 	}
+
+	PolygonTriangulation t(raftData.vertices, offsetRings);
+	generateDebugTriangleEdges(t.getMesh().vertices, t.getMesh().indices);
+
 
 	emit raftGeometriesChanged();
 }
@@ -916,7 +933,7 @@ void TriangleGeometry::updateData(const TriangleGeometryData& data)
 	_overhangingTriangleIndices = // These are needed to add color to triangles and generate support geometries.
 			Helpers3D::calculateOverhangingTriangleIndices(_data.vertices, _data.indices, _overhangAngleMax);
 
-	generateDebugTriangleEdges(_overhangingTriangleIndices);
+	generateDebugTriangleEdges(_data.vertices, _overhangingTriangleIndices);
 
 	// Watch out! TriangleGeometryData _data.vertices has different byte size than its size multiplied by stride:
 	// prepareColorTrianglesVertexData() does the job of converting simple Vec3 arrays to vertices+colors.

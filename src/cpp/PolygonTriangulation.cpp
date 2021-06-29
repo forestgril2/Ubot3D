@@ -32,11 +32,10 @@ typedef CDT::Point                                                Point;
 typedef CGAL::Polygon_2<K>                                        Polygon_2;
 typedef CDT::Face_handle                                          Face_handle;
 
-void
-mark_domains(CDT& ct,
-			 Face_handle start,
-			 int index,
-			 std::list<CDT::Edge>& border )
+void mark_domains(CDT& ct,
+				  Face_handle start,
+				  int index,
+				  std::list<CDT::Edge>& border )
 {
   if(start->info().nesting_level != -1){
 	return;
@@ -65,8 +64,7 @@ mark_domains(CDT& ct,
 //level of 0. Then we recursively consider the non-explored facets incident
 //to constrained edges bounding the former set and increase the nesting level by 1.
 //Facets in the domain are those with an odd nesting level.
-void
-mark_domains(CDT& cdt)
+void mark_domains(CDT& cdt)
 {
   for(CDT::Face_handle f : cdt.all_face_handles()){
 	f->info().nesting_level = -1;
@@ -86,27 +84,33 @@ mark_domains(CDT& cdt)
 PolygonTriangulation::PolygonTriangulation(const std::vector<Vec3>& vertices,
 										   const std::list<std::vector<uint32_t>>& nodeRings)
 {
-
-	Polygon_2 polygon1;
-	polygon1.push_back(Point(0,0));
-	polygon1.push_back(Point(2,0));
-	polygon1.push_back(Point(2,2));
-	polygon1.push_back(Point(0,2));
-	Polygon_2 polygon2;
-	polygon2.push_back(Point(0.5,0.5));
-	polygon2.push_back(Point(1.5,0.5));
-	polygon2.push_back(Point(1.5,1.5));
-	polygon2.push_back(Point(0.5,1.5));
-	//Insert the polygons into a constrained triangulation
 	CDT cdt;
-	cdt.insert_constraint(polygon1.vertices_begin(), polygon1.vertices_end(), true);
-	cdt.insert_constraint(polygon2.vertices_begin(), polygon2.vertices_end(), true);
+
+	for(const auto& nodeRing : nodeRings)
+	{
+		Polygon_2 polygon1;
+		for (uint32_t node : nodeRing)
+		{
+			const Vec3& vertex = vertices[node];
+			polygon1.push_back(Point(vertex.x(), vertex.y()));
+		}
+		//Insert the polygon into a constrained triangulation
+		cdt.insert_constraint(polygon1.vertices_begin(), polygon1.vertices_end(), true);
+	}
+
 	//Mark facets that are inside the domain bounded by the polygon
 	mark_domains(cdt);
-	int count=0;
+	uint32_t indices = 0u;
 	for (Face_handle f : cdt.finite_face_handles())
 	{
-		if ( f->info().in_domain() ) ++count;
+		if (f->info().in_domain())
+		{
+			for (uint32_t i=0; i<3; i++)
+			{
+				Point vertex = f->vertex(int(i))->point();
+				_mesh.vertices.push_back({float(vertex.x()), float(vertex.y()), 0.0f});
+				_mesh.indices.push_back(indices++);
+			}
+		}
 	}
-	std::cout << "There are " << count << " facets in the domain." << std::endl;
 }
