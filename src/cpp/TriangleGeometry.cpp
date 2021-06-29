@@ -670,10 +670,10 @@ void TriangleGeometry::generateSupportGeometries()
 		const std::vector<Vec3> edgeVertices = getEdgeVertices(_data.vertices,
 															   island.getBoundaryEdges(),
 															   /*isDuplicatingSecondVertex*/ true);
-		_supportGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island,
-																			  _data.vertices,
-																			  _minBound.z,
-																			  edgeVertices));
+		_supportGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(island.getTriangleIndices(),
+																		  _data.vertices,
+																		  _minBound.z,
+																		  edgeVertices));
 		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(edgeVertices));
 	}
 
@@ -747,7 +747,8 @@ void TriangleGeometry::generateRaftGeometries()
 		for (const ClipperLib::IntPoint& clipperPoint : clipperPath)
 		{
 			offsetBoundary.emplace_back(Vec3{float(double(clipperPoint.X)/kClipperIntMultiplier),
-											 float(double(clipperPoint.Y)/kClipperIntMultiplier), 0.0f});
+											 float(double(clipperPoint.Y)/kClipperIntMultiplier),
+											 _minBound.z + _raftHeight});
 
 			raftData.vertices.emplace_back(offsetBoundary.back());
 			boundaryNodes.push_back(ringNodeCount++);
@@ -760,6 +761,10 @@ void TriangleGeometry::generateRaftGeometries()
 	PolygonTriangulation t(raftData.vertices, offsetRings);
 	generateDebugTriangleEdges(t.getMesh().vertices, t.getMesh().indices);
 
+	_raftGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(t.getMesh().indices,
+																   t.getMesh().vertices,
+																   _minBound.z,
+																   t.getMesh().vertices));
 
 	emit raftGeometriesChanged();
 }
@@ -871,6 +876,20 @@ void TriangleGeometry::setRaftOffset(float offset)
 
 	_raftOffset = offset;
 	emit raftOffsetChanged(_raftOffset);
+}
+
+float TriangleGeometry::getRaftHeight() const
+{
+	return _raftHeight;
+}
+
+void TriangleGeometry::setRaftHeight(float height)
+{
+	if (approximatelyEqual(height, _raftHeight, 0.00001f))
+		return;
+
+	_raftOffset = height;
+	emit raftHeightChanged(_raftHeight);
 }
 
 QVector<TriangleGeometry*> TriangleGeometry::getSupportGeometries() const

@@ -58,6 +58,7 @@ class TriangleGeometry : public QQuick3DGeometry
 
 	Q_PROPERTY(QVector<TriangleGeometry*> raftGeometries READ getRaftGeometries NOTIFY raftGeometriesChanged)
 	Q_PROPERTY(float raftOffset READ getRaftOffset WRITE setRaftOffset NOTIFY raftOffsetChanged)
+	Q_PROPERTY(float raftHeight READ getRaftHeight WRITE setRaftHeight NOTIFY raftHeightChanged)
 	Q_PROPERTY(bool areRaftsGenerated READ areRaftsGenerated WRITE setRaftsGenerated NOTIFY areRaftsGeneratedChanged)
 
 	Q_PROPERTY(QVector<QVector<QVector3D>> triangleIslandBoundaries READ getTriangleIslandBoundaries NOTIFY triangleIslandBoundariesChanged)
@@ -82,6 +83,8 @@ public:
 	bool areRaftsGenerated() const;
 	float getRaftOffset() const;
 	void setRaftOffset (float offset);
+	float getRaftHeight() const;
+	void setRaftHeight (float height);
 
 	Q_INVOKABLE QVariantMap getPick(const QVector3D& origin,
 									const QVector3D& direction,
@@ -133,6 +136,7 @@ signals:
 	void raftGeometriesChanged();
 	void areRaftsGeneratedChanged(bool isGenerated);
 	void raftOffsetChanged(float);
+	void raftHeightChanged(float);
 
 	void triangleIslandBoundariesChanged();
 
@@ -195,6 +199,7 @@ private:
 	bool _isSupportGenerated = false;
 	bool _areRaftsGenerated = false;
 	float _raftOffset = 0.0;
+	float _raftHeight = 0.0;
 
 //	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::MeshSubset> m_subsets;
 //	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;

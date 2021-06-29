@@ -41,10 +41,10 @@ public:
 															const QVector3D& planeCoord);
 	static Q_INVOKABLE QVector3D getRotatedVector(const QQuaternion& q, const QVector3D v);
 
-	static std::shared_ptr<TriangleGeometry> computeExtrudedTriangleIsland(const TriangleIsland& modelIsland,
-																		   const std::vector<Vec3>& modelVertices,
-																		   float modelFloorLevel = 0,
-																		   const std::vector<Vec3>& boundaryEdges = {});
+	static std::shared_ptr<TriangleGeometry> computeExtrudedPlanarMesh(const std::vector<uint32_t>& meshTriangleIndices,
+																	   const std::vector<Vec3>& vertices,
+																	   float modelFloorLevel = 0,
+																	   const std::vector<Vec3>& boundaryEdges = {});
 
 	// TODO: CGAL related - extract to CGAL class or whatever.
 	static std::vector<Vec3> computeConvexHull(const std::vector<Vec3>& points);

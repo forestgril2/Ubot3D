@@ -199,20 +199,18 @@ int Helpers3D::drawTriangulation(const QVector<QVector3D>& points)
   return EXIT_SUCCESS;
 }
 
-std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedTriangleIsland(const TriangleIsland& modelIsland,
-																		   const std::vector<Vec3>& modelVertices,
-																		   float modelFloorLevel,
-																		   const std::vector<Vec3>& boundaryEdges)
+std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedPlanarMesh(const std::vector<uint32_t>& meshTriangleIndices,
+																	   const std::vector<Vec3>& vertices,
+																	   float modelFloorLevel,
+																	   const std::vector<Vec3>& boundaryEdges)
 {// Get (top) triangle island points, get it casted to floor, connect both.
 	TriangleGeometryData returnData;
 
 	std::vector<Vec3>& uniqueSupportPointsArray = returnData.vertices;
 	std::vector<uint32_t>& supportGeometryIndices = returnData.indices;
 
-	// These point to vertex indices in the model, for which the island was generated.
-	const std::vector<uint32_t> islandTriangleIndices = modelIsland.getTriangleIndices();
 	// Create a set of unique indices.
-	const std::set<uint32_t> islandUniqueIndices(islandTriangleIndices.begin(), islandTriangleIndices.end());
+	const std::set<uint32_t> islandUniqueIndices(meshTriangleIndices.begin(), meshTriangleIndices.end());
 	const uint32_t numIslandUniqueIndices = uint32_t(islandUniqueIndices.size());
 
 	// Collect island vertices casted to floor here.
@@ -230,7 +228,7 @@ std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedTriangleIsland(const
 	uint32_t currSupportIndex = 0;
 	for (uint32_t index : islandUniqueIndices)
 	{// Build a map of indices to top vertices and fill support array with top vertices.
-		const Vec3& topVertex = modelVertices[index];
+		const Vec3& topVertex = vertices[index];
 
 		auto it = indicesToUniqueVertices.find(topVertex);
 		if (it == indicesToUniqueVertices.end())
@@ -277,14 +275,14 @@ std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedTriangleIsland(const
 	}
 
 	// Reserve for top, bottom and side triangles.
-	supportGeometryIndices.reserve(2*islandTriangleIndices.size() + 6*islandBoundaryRing.size());
-	for (uint32_t triangleVertexIndex : islandTriangleIndices)
+	supportGeometryIndices.reserve(2*meshTriangleIndices.size() + 6*islandBoundaryRing.size());
+	for (uint32_t triangleVertexIndex : meshTriangleIndices)
 	{// Generate triangle indices for top:
-		supportGeometryIndices.push_back(indicesToUniqueVertices[modelVertices[triangleVertexIndex]]);
+		supportGeometryIndices.push_back(indicesToUniqueVertices[vertices[triangleVertexIndex]]);
 	}
-	for (uint32_t index : islandTriangleIndices)
+	for (uint32_t index : meshTriangleIndices)
 	{// Generate triangle indices for bottom.
-		const Vec3 topVertex = modelVertices[index];
+		const Vec3 topVertex = vertices[index];
 		const uint32_t floorIndex = floorIndicesToTopVertices[topVertex];
 		const Vec3 floorVertex = uniqueSupportPointsArray[floorIndex];
 		supportGeometryIndices.push_back(indicesToUniqueVertices[floorVertex]);
