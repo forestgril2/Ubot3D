@@ -36,6 +36,7 @@ SOURCES += \
     src/cpp/Layer.cpp \
     src/cpp/NaivePerimeterGenerator.cpp \
     src/cpp/NaiveSlicer.cpp \
+    src/cpp/PolygonTriangulation.cpp \
      src/cpp/main.cpp \
     src/cpp/ProcessLauncher.cpp \
     src/cpp/SimplexGeometry.cpp \
@@ -56,6 +57,7 @@ HEADERS += \
         src/cpp/NaivePerimeterGenerator.h \
         src/cpp/NaiveSlicer.h \
         src/cpp/NaiveSlicerHeaders.h \
+        src/cpp/PolygonTriangulation.h \
         src/cpp/TriangleGeometry.h \
         src/cpp/CommonDefs.h \
         src/cpp/ProcessLauncher.h \
