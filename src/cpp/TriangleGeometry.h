@@ -181,7 +181,10 @@ private:
 	std::vector<uint32_t> _overhangingTriangleIndices;
 	QVector<QVector3D> _debugTriangleEdges;
 	QVector<QVector3D> _triangulationResult;
+public:
 	QVector<QVector<QVector3D>> _triangleIslandBoundaries;
+private:
+	float _supportAlphaValue;
 	std::vector<std::shared_ptr<TriangleGeometry>> _supportGeometries;
 	std::vector<std::shared_ptr<TriangleGeometry>> _raftGeometries;
 

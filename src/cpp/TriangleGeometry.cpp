@@ -264,11 +264,11 @@ static std::list<std::vector<uint32_t>> composeNodeRingsV0(const std::set<Edge>&
 		// Remove the edge from map entry for front node.
 //		std::cout << " ### " << __FUNCTION__ << " edges at front node: " << std::endl;
 		std::set<Edge>& edgesLeftAtFrontNode = edgesLeftAtNodes.at(boundary.front());
-		for(const Edge& edge: edgesLeftAtFrontNode)
-		{
-			std::cout << edge << std::endl;
-		}
-		std::cout << std::endl;
+//		for(const Edge& edge: edgesLeftAtFrontNode)
+//		{
+//			std::cout << edge << std::endl;
+//		}
+//		std::cout << std::endl;
 		edgesLeftAtFrontNode.erase(currEdge);
 
 		while(true)
@@ -709,7 +709,7 @@ void TriangleGeometry::generateRaftGeometries()
 
 		std::vector<Vec3> boundaryEdgeVertices;
 		const std::set<Edge> islandBoundaryEdges = island.getBoundaryEdges();
-		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV1(islandBoundaryEdges);
+		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV0(islandBoundaryEdges);
 		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
 		{
 			const std::vector<Vec3> ringEdgeVertices =

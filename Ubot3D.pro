@@ -1,6 +1,5 @@
 #QT += quick3d-private quick3druntimerender-private gui quick3dassetimport-private gui-private quick core quick3d quick3dutils-private qml core-private quick3dassetimport
 QT += quick3d quickcontrols2 qml widgets xml
-
 CONFIG += c++2a
 
 #QTPLUGIN += assetimporters
@@ -34,6 +33,9 @@ SUBDIRS += src/cpp src/qml
 SOURCES += \
     src/cpp/Edge.cpp \
     src/cpp/FileImportExport.cpp \
+    src/cpp/Layer.cpp \
+    src/cpp/NaivePerimeterGenerator.cpp \
+    src/cpp/NaiveSlicer.cpp \
      src/cpp/main.cpp \
     src/cpp/ProcessLauncher.cpp \
     src/cpp/SimplexGeometry.cpp \
@@ -50,6 +52,10 @@ SOURCES += \
 HEADERS += \
         src/cpp/Edge.h \
         src/cpp/FileImportExport.h \
+        src/cpp/Layer.h \
+        src/cpp/NaivePerimeterGenerator.h \
+        src/cpp/NaiveSlicer.h \
+        src/cpp/NaiveSlicerHeaders.h \
         src/cpp/TriangleGeometry.h \
         src/cpp/CommonDefs.h \
         src/cpp/ProcessLauncher.h \

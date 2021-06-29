@@ -3,6 +3,8 @@
 
 #include <QObject>
 #include <qqml.h>
+#include "TriangleGeometry.h"
+
 
 class ProcessLauncher : public QObject
 {
@@ -12,7 +14,9 @@ class ProcessLauncher : public QObject
 public:
 	explicit ProcessLauncher(QObject *parent = nullptr);
 
-	Q_INVOKABLE void generateGCode(const QString& stlFilePath, bool isTwoHeaderExtrusion);
+
+    Q_INVOKABLE void generateGCode(const QString& stlFilePath, bool isTwoHeaderExtrusion);    
+    Q_INVOKABLE void generateSlices(TriangleGeometry* g);
 
 signals:
 	void gcodeGenerated(const QString& outputFilePath);

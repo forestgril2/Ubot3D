@@ -8,7 +8,7 @@ import QtQuick.Controls 2.15
 import customgeometry 1.0
 import "HelperFunctions.js" as QmlHelpers
 
-Window {
+ApplicationWindow {
     id: root
 
     width: 1920
@@ -364,7 +364,8 @@ Window {
                 }
 
                 var isTwoHeaderExtrusion = slicerParameters.isUsingTwoExtruders
-                generateGCode(selectedModels[0].geometry.inputFile, isTwoHeaderExtrusion)
+//                generateGCode2(selectedModels[0].geometry.inputFile, isTwoHeaderExtrusion)
+                generateSlices(selectedModels[0].geometry)
             }
         }
     }

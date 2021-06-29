@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <iostream>
 
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QtQuick3D/qquick3d.h>
@@ -17,7 +17,7 @@
 
 int main(int argc, char *argv[])
 {
-	QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
 	QSurfaceFormat::setDefaultFormat(QQuick3D::idealSurfaceFormat());
 
 	QQmlApplicationEngine engine;
