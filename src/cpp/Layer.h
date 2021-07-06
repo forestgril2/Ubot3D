@@ -11,8 +11,8 @@ public:
     using Polyline_type = std::vector<Point>;
     using Polylines = std::list<Polyline_type>;
 
+	Layer();
     Layer(const Polylines& polylines);
-public:
     Polylines polylines;
 };
 

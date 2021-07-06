@@ -686,6 +686,15 @@ void TriangleGeometry::clearSupportGeometries()
 	emit raftGeometriesChanged();
 }
 
+Slicer::Layer TriangleGeometry::computeBottomLayer() const
+{
+	using namespace Slicer;
+	NaiveSlicer slicer;
+	const float kSliceDistFromFloor = 0.05f;
+	const std::vector<Layer> layers = slicer.slice(*this, minBounds().z() + kSliceDistFromFloor);
+	return layers[0];
+}
+
 void TriangleGeometry::generateRaftGeometries()
 {
 	Chronograph chronograph(__FUNCTION__, true);
@@ -696,15 +705,7 @@ void TriangleGeometry::generateRaftGeometries()
 	ClipperLib::ClipperOffset clipperOffsetter;
 	static const uint32_t kClipperIntMultiplier = 1000;
 
-	using namespace Slicer;
-
-	NaiveSlicer slicer;
-	const float kSliceDistFromFloor = 0.05f;
-	const std::vector<Layer> layers = slicer.slice(*this, minBounds().z() + kSliceDistFromFloor);
-
-	const Layer& layer = layers[0];
-
-	for(auto const& polyline : layer.polylines)
+	for(auto const& polyline : _bottomLayer.polylines)
 	{
 		// Create polygon path for clipper and enlarge/shrink the boundary by a specified offset.
 		ClipperLib::Path clipperBoundary;
@@ -965,6 +966,7 @@ void TriangleGeometry::updateData(const TriangleGeometryData& data)
 				 QQuick3DGeometry::Attribute::U32Type);
 
 	buildIntersectionData();
+	_bottomLayer = computeBottomLayer();
 	emit modelLoaded();
 }
 

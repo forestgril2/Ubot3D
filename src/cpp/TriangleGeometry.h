@@ -15,6 +15,8 @@ using Vec3 = Eigen::Vector3f;
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\runtimerender\qssgrenderray_p.h>
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 
+#include <NaiveSlicer.h>
+
 struct aiScene;
 struct QSSGMeshBVH;
 
@@ -153,6 +155,7 @@ private:
 	void generateRaftGeometries();
 	void generateRaftGeometriesAllTogether();
 	void clearRaftGeometries();
+	Slicer::Layer computeBottomLayer() const;
 
 	uint32_t calculateAndSetStride();
 	std::vector<float> prepareColorTrianglesVertexData();
@@ -188,9 +191,11 @@ private:
 public:
 	QVector<QVector<QVector3D>> _triangleIslandBoundaries;
 private:
+	Slicer::Layer _bottomLayer;
 	float _supportAlphaValue;
 	std::vector<std::shared_ptr<TriangleGeometry>> _supportGeometries;
 	std::vector<std::shared_ptr<TriangleGeometry>> _raftGeometries;
+
 
 	bool _hasColors = true;
 	bool _isPicked = false;

@@ -15,7 +15,7 @@ using namespace Slicer;
 typedef CGAL::Simple_cartesian<double>     Kernel;
 typedef CGAL::Polyhedron_3<Kernel>         Polyhedron;
 
-std::vector<Layer> NaiveSlicer::slice(TriangleGeometry& g, float zStart, float step, uint32_t numSlices)
+std::vector<Layer> NaiveSlicer::slice(const TriangleGeometry& g, float zStart, float step, uint32_t numSlices)
 {
 	auto const mesh = createMeshReorienting(g);
 
