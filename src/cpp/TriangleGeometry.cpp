@@ -46,6 +46,7 @@
 
 #include <Chronograph.h>
 #include <Helpers3D.h>
+#include <NaiveSlicer.h>
 #include <PolygonTriangulation.h>
 #include <TriangleConnectivity.h>
 
@@ -621,8 +622,6 @@ void TriangleGeometry::generateDebugTriangleEdges(const std::vector<Vec3>& verti
 			_debugTriangleEdges.push_back(v);
 		}
 	}
-
-//	std::cout << " ### " << __FUNCTION__ << " _debugTriangleEdges.size(): " << _debugTriangleEdges.size() << "," << "" << std::endl;
 	emit debugTriangleEdgesChanged();
 }
 
@@ -693,35 +692,25 @@ void TriangleGeometry::generateRaftGeometries()
 	_raftGeometries.clear();
 	_triangleIslandBoundaries.clear();
 
-	const std::vector<uint32_t> floorTriangleIndices = collectFloorTriangleIndices();
-	generateDebugTriangleEdges(_data.vertices, floorTriangleIndices);
-
-	TriangleConnectivity triangleConnectivity(floorTriangleIndices);
-	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
-
-
 	ClipperLib::Paths offsetPathsResult;
 	ClipperLib::ClipperOffset clipperOffsetter;
 	static const uint32_t kClipperIntMultiplier = 1000;
 
-	for (const TriangleIsland& island : triangleIslands)
-	{// Generate a raft geometry for each triangle island at floor level.
-		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
+	using namespace Slicer;
 
-		std::vector<Vec3> boundaryEdgeVertices;
-		const std::set<Edge> islandBoundaryEdges = island.getBoundaryEdges();
-		const std::list<std::vector<uint32_t>> islandBoundaryRings = composeNodeRingsV0(islandBoundaryEdges);
-		for (const std::vector<uint32_t>& ring : islandBoundaryRings)
-		{
-			const std::vector<Vec3> ringEdgeVertices =
-					getEdgeVertices(_data.vertices, convertBoundaryToEdges(ring), false);
-			std::copy(ringEdgeVertices.begin(), ringEdgeVertices.end(), std::back_inserter(boundaryEdgeVertices));
-		}
+	NaiveSlicer slicer;
+	const float kSliceDistFromFloor = 0.05f;
+	const std::vector<Layer> layers = slicer.slice(*this, minBounds().z() + kSliceDistFromFloor);
 
+	const Layer& layer = layers[0];
+
+	for(auto const& polyline : layer.polylines)
+	{
 		// Create polygon path for clipper and enlarge/shrink the boundary by a specified offset.
 		ClipperLib::Path clipperBoundary;
-		for (Vec3& vertex : boundaryEdgeVertices)
+		for (const auto& polylineVertex : polyline)
 		{
+			Vec3 vertex(polylineVertex.x(), polylineVertex.y(), polylineVertex.z());
 			vertex *= kClipperIntMultiplier;
 			ClipperLib::IntPoint clipperPoint(int32_t(std::round(vertex.x())), int32_t(std::round(vertex.y())));
 			clipperBoundary << clipperPoint;
@@ -729,8 +718,8 @@ void TriangleGeometry::generateRaftGeometries()
 
 		clipperOffsetter.AddPath(clipperBoundary, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
 	}
-
 	clipperOffsetter.Execute(offsetPathsResult, kClipperIntMultiplier * double(_raftOffset));
+
 
 	TriangleGeometryData raftData;
 	std::list<std::vector<uint32_t>> offsetRings;

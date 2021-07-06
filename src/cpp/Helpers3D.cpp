@@ -74,17 +74,18 @@ static void alpha_edges(const Alpha_shape_2& A, OutputIterator out)
 
 bool Helpers3D::vertexLess(const Vec3& a, const Vec3& b)
 {
-	if (definitelyLessThan(a.z(), b.z(), FLT_MIN))
+	static const float kFloatPrecision = 0.00000001;
+	if (definitelyLessThan(a.z(), b.z(), kFloatPrecision))
 		return true;
-	if (definitelyGreaterThan(a.z(), b.z(), FLT_MIN))
+	if (definitelyGreaterThan(a.z(), b.z(), kFloatPrecision))
 		return false;
 
-	if (definitelyLessThan(a.y(), b.y(), FLT_MIN))
+	if (definitelyLessThan(a.y(), b.y(), kFloatPrecision))
 		return true;
-	if (definitelyGreaterThan(a.y(), b.y(), FLT_MIN))
+	if (definitelyGreaterThan(a.y(), b.y(), kFloatPrecision))
 		return false;
 
-	if (definitelyLessThan(a.x(), b.x(), FLT_MIN))
+	if (definitelyLessThan(a.x(), b.x(), kFloatPrecision))
 		return true;
 
 	return false;
@@ -475,8 +476,6 @@ IndicesToVertices Helpers3D::mapIndicesToUniqueVerticesAndNormals(const std::vec
 			uniqueVertices.push_back(vertex);
 		}
 	}
-	const uint32_t numUniqueVertices = uint32_t(indicesToUniqueVertices.size());
-	std::cout << " ### " << "numUniqueVertices" << " :" << numUniqueVertices << "," << "" << std::endl;
 	return indicesToUniqueVertices;
 }
 

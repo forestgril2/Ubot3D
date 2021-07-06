@@ -3,22 +3,24 @@
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Polygon_mesh_slicer.h>
+#include <CGAL/Polyhedron_3.h>
 #include <CGAL/Surface_mesh.h>
 
-#include <CGAL/Surface_mesh.h>
+#include <CGAL/Polygon_mesh_processing/orient_polygon_soup.h>
+#include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
+#include <CGAL/Polygon_mesh_processing/orientation.h>
 
 using namespace Slicer;
 
-std::vector<Layer> NaiveSlicer::slice(TriangleGeometry& g)
+typedef CGAL::Simple_cartesian<double>     Kernel;
+typedef CGAL::Polyhedron_3<Kernel>         Polyhedron;
+
+std::vector<Layer> NaiveSlicer::slice(TriangleGeometry& g, float zStart, float step, uint32_t numSlices)
 {
-    auto const& mesh = createMesh(g);
+	auto const mesh = createMeshReorienting(g);
 
-    float max = g.boundsMax().z();
-    float min = g.boundsMin().z();
-
-    int sliceCount = 100;
-    float step = std::abs(max-min) / sliceCount;
-    float z = max;
+	const float zMax = g.boundsMax().z();
+	const float zMin = g.boundsMin().z();
 
     MeshSlicer cgalSlicer(mesh);
 
@@ -29,17 +31,19 @@ std::vector<Layer> NaiveSlicer::slice(TriangleGeometry& g)
     };
 
     std::vector<Layer> layers;
-    for(int i=0;i<sliceCount;i++)
+	for(uint32_t i=0; i<numSlices; ++i)
     {
-        z -= step;
-        auto const& polylines = makeSlice(cgalSlicer, K::Plane_3(0,0,-1,z));
-        layers.push_back(Layer(polylines));
+		const float z = zStart + float(i)*step;
+		if (z < zMin || z > zMax)
+			continue;
+
+		layers.emplace_back(Layer(makeSlice(cgalSlicer, K::Plane_3(0, 0, -1, z))));
     }
 
     return layers;
 }
 
-NaiveSlicer::Mesh NaiveSlicer::createMesh(const TriangleGeometry& geom)
+NaiveSlicer::Mesh NaiveSlicer::createMeshSimple(const TriangleGeometry& geom)
 {
     Mesh mesh;
     auto data = geom.getData();
@@ -58,4 +62,38 @@ NaiveSlicer::Mesh NaiveSlicer::createMesh(const TriangleGeometry& geom)
     }
 
     return mesh;
+}
+
+NaiveSlicer::Mesh NaiveSlicer::createMeshReorienting(const TriangleGeometry& geom)
+{
+	Mesh mesh;
+	auto data = geom.getData();
+
+	std::vector<CGAL::cpp11::array<float, 3> > points;
+	std::vector<CGAL::cpp11::array<unsigned int, 3> > triangles;
+
+	for(auto const& v : data.vertices)
+	{
+		auto arr = CGAL::cpp11::array<float, 3>{v.x(), v.y(), v.z()};
+		points.push_back(arr);
+	}
+
+	for(size_t i=0; i < data.indices.size(); i+=3)
+	{
+		auto v1 = data.vertices[data.indices[i]];
+		auto v2 = data.vertices[data.indices[i+1]];
+		auto v3 = data.vertices[data.indices[i+2]];
+
+		auto arr = CGAL::cpp11::array<unsigned int, 3>{data.indices[i], data.indices[i+1], data.indices[i+2]};
+		triangles.push_back(arr);
+	}
+
+	Polyhedron poly_Partition;
+
+	CGAL::Polygon_mesh_processing::orient_polygon_soup(points, triangles);
+	CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(points, triangles, poly_Partition);
+
+	CGAL::copy_face_graph(poly_Partition, mesh);
+
+	return mesh;
 }

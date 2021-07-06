@@ -81,7 +81,6 @@ void ProcessLauncher::generateSlices(TriangleGeometry* g)
 
     showYellowDebugs(layers, g);
 
-
     NaivePerimeterGenerator perGen(layers);
     perGen.generate();
 }
