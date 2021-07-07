@@ -14,6 +14,7 @@
 #include <Chronograph.h>
 #include <FileImportExport.h>
 #include <Helpers3D.h>
+#include <Utils.h>
 #include <ProcessLauncher.h>
 
 int main(int argc, char *argv[])
@@ -26,9 +27,11 @@ int main(int argc, char *argv[])
 
 	Chronograph::setOutputFile("Chronograph.log");
 	Helpers3D helpers3D;
+    Utils utils;
 	FileImportExport fileImportExport;
 	ProcessLauncher launcher;
 	context->setContextProperty("helpers3D", &helpers3D);
+    context->setContextProperty("utils", &utils);
 	context->setContextProperty("fileImportExport", &fileImportExport);
 
 	QLoggingCategory::setFilterRules(QStringLiteral("qt.qml.binding.removal.info=true"));
