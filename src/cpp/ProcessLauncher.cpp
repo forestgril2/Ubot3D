@@ -79,9 +79,9 @@ void ProcessLauncher::generateSlices(TriangleGeometry* g)
         g->raftGeometriesChanged();
     };
 
-    showYellowDebugs(layers, g);
+    //showYellowDebugs(layers, g);
 
 
     NaivePerimeterGenerator perGen(layers);
-    perGen.generate();
+    perGen.generate(*g);
 }
