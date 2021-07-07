@@ -5,10 +5,14 @@
 #include <CGAL/Polygon_mesh_slicer.h>
 #include <CGAL/Polyhedron_3.h>
 #include <CGAL/Surface_mesh.h>
+#include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
 
 #include <CGAL/Polygon_mesh_processing/orient_polygon_soup.h>
 #include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
 #include <CGAL/Polygon_mesh_processing/orientation.h>
+#include <QDebug>
+
+#include <CGAL/Surface_mesh.h>
 
 using namespace Slicer;
 
@@ -48,6 +52,14 @@ NaiveSlicer::Mesh NaiveSlicer::createMeshSimple(const TriangleGeometry& geom)
     Mesh mesh;
     auto data = geom.getData();
 
+    std::vector<CGAL::cpp11::array<float, 3> > points;
+    std::vector<CGAL::cpp11::array<unsigned int, 3> > triangles;
+
+    for(auto const& v : data.vertices)
+    {
+        auto arr = CGAL::cpp11::array<float, 3>{v.x(), v.y(), v.z()};
+        points.push_back(arr);
+    }
 
     for(size_t i=0; i < data.indices.size(); i+=3)
     {
@@ -55,11 +67,18 @@ NaiveSlicer::Mesh NaiveSlicer::createMeshSimple(const TriangleGeometry& geom)
         auto v2 = data.vertices[data.indices[i+1]];
         auto v3 = data.vertices[data.indices[i+2]];
 
-        mesh.add_face(
-                    mesh.add_vertex(Layer::Point(v1.x(), v1.y(), v1.z())),
-                    mesh.add_vertex(Layer::Point(v2.x(), v2.y(), v2.z())),
-                    mesh.add_vertex(Layer::Point(v3.x(), v3.y(), v3.z())));
+        auto arr = CGAL::cpp11::array<unsigned int, 3>{data.indices[i], data.indices[i+1], data.indices[i+2]};
+        triangles.push_back(arr);
     }
+
+    Polyhedron_3 poly_Partition;
+
+    CGAL::Polygon_mesh_processing::orient_polygon_soup(points, triangles);
+    CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(points, triangles, poly_Partition);
+
+
+    CGAL::copy_face_graph(poly_Partition, mesh);
+
 
     return mesh;
 }
@@ -101,4 +120,40 @@ NaiveSlicer::Mesh NaiveSlicer::createMeshReorienting(const TriangleGeometry& geo
 	CGAL::copy_face_graph(poly_Partition, mesh);
 
 	return mesh;
+}
+
+NaiveSlicer::Polyhedron_3 NaiveSlicer::createMesh2(const TriangleGeometry& geom)
+{
+    Mesh mesh;
+    auto data = geom.getData();
+
+    std::vector<CGAL::cpp11::array<float, 3> > points;
+    std::vector<CGAL::cpp11::array<unsigned int, 3> > triangles;
+
+    for(auto const& v : data.vertices)
+    {
+        auto arr = CGAL::cpp11::array<float, 3>{v.x(), v.y(), v.z()};
+        points.push_back(arr);
+    }
+
+    for(size_t i=0; i < data.indices.size(); i+=3)
+    {
+        auto v1 = data.vertices[data.indices[i]];
+        auto v2 = data.vertices[data.indices[i+1]];
+        auto v3 = data.vertices[data.indices[i+2]];
+
+        auto arr = CGAL::cpp11::array<unsigned int, 3>{data.indices[i], data.indices[i+1], data.indices[i+2]};
+        triangles.push_back(arr);
+    }
+
+    Polyhedron_3 poly_Partition;
+
+    CGAL::Polygon_mesh_processing::orient_polygon_soup(points, triangles);
+    CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(points, triangles, poly_Partition);
+
+
+    //CGAL::copy_face_graph(poly_Partition, mesh);
+
+
+    return poly_Partition;
 }
