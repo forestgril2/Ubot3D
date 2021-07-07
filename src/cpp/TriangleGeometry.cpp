@@ -31,8 +31,8 @@
 #else
 #include <QtQuick3DRuntimeRender/private/qssgrenderbuffermanager_p.h>
 #include <QtQuick3DRuntimeRender/private/qssgrenderray_p.h>
+#include <QtQuick3DAssetImport/private/qssgmeshbvhbuilder_p.h>
 #endif
-
 
 #include <QtQuick3DUtils/private/qssgmeshbvh_p.h>
 //qssgmeshbvhbuilder_p.h
