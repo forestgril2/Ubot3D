@@ -18,9 +18,7 @@ FileDialog {
     {
         function generateSystemFilePath(qtFilePath) {
             var fullSystemFilePath = qtFilePath.toString()
-            console.log(Qt.resolvedUrl(fullSystemFilePath))
-            var pos = fullSystemFilePath.search("file:///");
-            return fullSystemFilePath.substring(pos+8)
+            return utils.generateSystemFilePath(fullSystemFilePath)
         }
 
         function generateSystemFilepathList(qtFilePathList) {
