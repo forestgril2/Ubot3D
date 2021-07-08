@@ -692,7 +692,7 @@ Slicer::Layer TriangleGeometry::computeBottomLayer() const
 	NaiveSlicer slicer;
 	const float kSliceDistFromFloor = 0.05f;
 	const std::vector<Layer> layers = slicer.slice(*this, minBounds().z() + kSliceDistFromFloor);
-	return layers[0];
+	return !layers.empty() ? layers[0] : Slicer::Layer();
 }
 
 void TriangleGeometry::generateRaftGeometries()

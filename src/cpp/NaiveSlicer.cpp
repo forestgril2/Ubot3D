@@ -68,6 +68,8 @@ NaiveSlicer::Mesh NaiveSlicer::createMeshReorienting(const TriangleGeometry& geo
 {
 	Mesh mesh;
 	auto data = geom.getData();
+	if (data.vertices.empty() || data.indices.empty())
+		return mesh;
 
 	std::vector<CGAL::cpp11::array<float, 3> > points;
 	std::vector<CGAL::cpp11::array<unsigned int, 3> > triangles;
@@ -87,6 +89,9 @@ NaiveSlicer::Mesh NaiveSlicer::createMeshReorienting(const TriangleGeometry& geo
 		auto arr = CGAL::cpp11::array<unsigned int, 3>{data.indices[i], data.indices[i+1], data.indices[i+2]};
 		triangles.push_back(arr);
 	}
+
+	if(!CGAL::Polygon_mesh_processing::is_polygon_soup_a_polygon_mesh(triangles))
+		return mesh;
 
 	Polyhedron poly_Partition;
 
