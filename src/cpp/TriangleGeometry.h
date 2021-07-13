@@ -98,7 +98,6 @@ public:
 	QVector<TriangleGeometry*> getRaftGeometries() const;
 	QVector<QVector<QVector3D>> getTriangleIslandBoundaries() const;
 
-
 	const aiScene* getAssimpScene() const;
 
 	QString getInputFile() const;
@@ -115,13 +114,15 @@ public:
 	void setMaxBounds(const QVector3D& maxBounds);
 
 public slots:
-	void onSceneTransformChanged();
+	void onZLevelChanged();
+
 	void onIsSupportGeneratedChanged();
 	void onAreRaftsGeneratedChanged();
 	void onRaftOffsetChanged();
 
 signals:
 	void sceneTransformChanged();
+	void zLevelChanged();
 
 	void normalsChanged();
 	void normalXYChanged();

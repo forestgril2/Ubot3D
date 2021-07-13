@@ -202,8 +202,8 @@ int Helpers3D::drawTriangulation(const QVector<QVector3D>& points)
 
 std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedPlanarMesh(const std::vector<uint32_t>& meshTriangleIndices,
 																	   const std::vector<Vec3>& vertices,
-																	   float modelFloorLevel,
-																	   const std::vector<Vec3>& boundaryEdges)
+																	   const std::vector<Vec3>& boundaryEdges,
+																	   float modelFloorLevel)
 {// Get (top) triangle island points, get it casted to floor, connect both.
 	TriangleGeometryData returnData;
 

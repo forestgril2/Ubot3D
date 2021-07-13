@@ -404,7 +404,8 @@ TriangleGeometry::TriangleGeometry() :
 	_minBound(aiVector3D(FLT_MAX, FLT_MAX, FLT_MAX))
 {
 	updateData(TriangleGeometryData());
-	connect(this, &TriangleGeometry::sceneTransformChanged, this, &TriangleGeometry::onSceneTransformChanged);
+	connect(this, &TriangleGeometry::zLevelChanged, this, &TriangleGeometry::onZLevelChanged);
+
 	connect(this, &TriangleGeometry::isSupportGeneratedChanged, this, &TriangleGeometry::onIsSupportGeneratedChanged);
 	connect(this, &TriangleGeometry::areRaftsGeneratedChanged, this, &TriangleGeometry::onAreRaftsGeneratedChanged);
 	connect(this, &TriangleGeometry::raftOffsetChanged, this, &TriangleGeometry::onRaftOffsetChanged);
@@ -423,6 +424,11 @@ void TriangleGeometry::setSceneTransform(const QMatrix4x4& transform)
 {
 	if (qFuzzyCompare(_sceneTransform, transform))
 		return;
+
+	if (!qFuzzyCompare(_sceneTransform.column(3).z(), transform.column(3).z()))
+	{
+		emit zLevelChanged();
+	}
 
 	_sceneTransform = transform;
 
@@ -486,7 +492,7 @@ void TriangleGeometry::setMaxBounds(const QVector3D& maxBounds)
 	setBounds(minBounds(), maxBounds);
 }
 
-void TriangleGeometry::onSceneTransformChanged()
+void TriangleGeometry::onZLevelChanged()
 {
 	onIsSupportGeneratedChanged();
 }
@@ -686,8 +692,8 @@ void TriangleGeometry::generateSupportGeometries()
 															   /*isDuplicatingSecondVertex*/ true);
 		_supportGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(island.getTriangleIndices(),
 																		  _data.vertices,
-																		  _minBound.z,
-																		  edgeVertices));
+																		  edgeVertices,
+																		  _minBound.z));
 		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(edgeVertices));
 	}
 
@@ -770,8 +776,8 @@ void TriangleGeometry::generateRaftGeometries()
 
 	_raftGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(t.getMesh().indices,
 																   t.getMesh().vertices,
-																   _minBound.z,
-																   t.getMesh().vertices));
+																   t.getMesh().vertices,
+																   _minBound.z));
 
 	emit raftGeometriesChanged();
 }
@@ -908,11 +914,11 @@ void TriangleGeometry::updateData(const TriangleGeometryData& data)
 	setVertexData(QByteArray(reinterpret_cast<const char*>(prepareColorTrianglesVertexData().data()),
 							 qsizetype(_data.vertices.size() * stride)));
 
-    setPrimitiveType(QQuick3DGeometry::PrimitiveType::Triangles);
+	setPrimitiveType(QQuick3DGeometry::PrimitiveType::Triangles);
 
-    addAttribute(QQuick3DGeometry::Attribute::PositionSemantic,
-                 0,
-                 QQuick3DGeometry::Attribute::F32Type);
+	addAttribute(QQuick3DGeometry::Attribute::PositionSemantic,
+				 0,
+				 QQuick3DGeometry::Attribute::F32Type);
 
 	addAttribute(QQuick3DGeometry::Attribute::ColorSemantic,
 				 kNumFloatsPerPositionAttribute * sizeof(float),

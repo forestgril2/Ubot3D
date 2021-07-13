@@ -5,6 +5,7 @@
 #include <functional>
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 #include <Chronograph.h>
 

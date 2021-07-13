@@ -11,7 +11,8 @@
 
 #include <glm/mat4x4.hpp>
 
-#include <Eigen/Geometry>
+#include <CommonDefs.h>
+
 
 template<class L=std::less<>>
 struct LexographicLess {
@@ -22,8 +23,6 @@ struct LexographicLess {
 	}
 };
 
-
-using Vec3 = Eigen::Vector3f;
 using Matrix4 = Eigen::Matrix4f;
 using IndicesToVertices = std::map<Vec3, uint32_t, LexographicLess<>>;
 
@@ -54,8 +53,8 @@ public:
 
 	static std::shared_ptr<TriangleGeometry> computeExtrudedPlanarMesh(const std::vector<uint32_t>& meshTriangleIndices,
 																	   const std::vector<Vec3>& vertices,
-																	   float modelFloorLevel = 0,
-																	   const std::vector<Vec3>& boundaryEdges = {});
+																	   const std::vector<Vec3>& boundaryEdges,
+																	   float modelFloorLevel);
 
 	// TODO: CGAL related - extract to CGAL class or whatever.
 	static std::vector<Vec3> computeConvexHull(const std::vector<Vec3>& points);
