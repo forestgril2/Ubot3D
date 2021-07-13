@@ -203,7 +203,7 @@ int Helpers3D::drawTriangulation(const QVector<QVector3D>& points)
 std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedPlanarMesh(const std::vector<uint32_t>& meshTriangleIndices,
 																	   const std::vector<Vec3>& vertices,
 																	   const std::vector<Vec3>& boundaryEdges,
-																	   float modelFloorLevel)
+																	   float modelDistToFloor)
 {// Get (top) triangle island points, get it casted to floor, connect both.
 	TriangleGeometryData returnData;
 
@@ -238,7 +238,7 @@ std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedPlanarMesh(const std
 			uniqueSupportPointsArray.push_back(topVertex);
 
 			// Match floor vertices to them by means of top index.
-			const Vec3 floorVertex{topVertex.x(), topVertex.y(), modelFloorLevel};
+			const Vec3 floorVertex{topVertex.x(), topVertex.y(), modelDistToFloor};
 			floorVertices.push_back(floorVertex);
 			// Remember to increment the support index afterwards!
 			topIndicesToFloorVertices[floorVertex] = currSupportIndex++;
@@ -254,7 +254,7 @@ std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedPlanarMesh(const std
 			//========================================================================
 			// TODO!: Watch out - maybe this should be somehow extracted and exposed
 			Vec3 adjustedFloorVertex = floorVertex;
-			adjustedFloorVertex.z() = modelFloorLevel;
+			adjustedFloorVertex.z() = modelDistToFloor;
 //			uniqueSupportPoints.push_back(adjustedFloorVertex);
 			uniqueSupportPointsArray.push_back(floorVertex);
 			//========================================================================
@@ -271,7 +271,7 @@ std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedPlanarMesh(const std
 	for (const Vec3& edgeVertex : boundaryEdges)
 	{
 		Vec3 adjustedFloorVertex = edgeVertex;
-		adjustedFloorVertex.z() = modelFloorLevel;
+		adjustedFloorVertex.z() = modelDistToFloor;
 		islandBoundaryRing.emplace_back(adjustedFloorVertex);
 	}
 

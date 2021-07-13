@@ -54,7 +54,7 @@ public:
 	static std::shared_ptr<TriangleGeometry> computeExtrudedPlanarMesh(const std::vector<uint32_t>& meshTriangleIndices,
 																	   const std::vector<Vec3>& vertices,
 																	   const std::vector<Vec3>& boundaryEdges,
-																	   float modelFloorLevel);
+																	   float modelDistToFloor);
 
 	// TODO: CGAL related - extract to CGAL class or whatever.
 	static std::vector<Vec3> computeConvexHull(const std::vector<Vec3>& points);

@@ -425,14 +425,15 @@ void TriangleGeometry::setSceneTransform(const QMatrix4x4& transform)
 	if (qFuzzyCompare(_sceneTransform, transform))
 		return;
 
-	if (!qFuzzyCompare(_sceneTransform.column(3).z(), transform.column(3).z()))
-	{
-		emit zLevelChanged();
-	}
+	const bool zChanged = !qFuzzyCompare(_sceneTransform.column(3).z(), transform.column(3).z());
 
 	_sceneTransform = transform;
 
 	emit sceneTransformChanged();
+
+	if (!zChanged)
+		return;
+	emit zLevelChanged();
 }
 
 QVector<QVector3D> TriangleGeometry::getDebugTriangleEdges() const
@@ -686,14 +687,14 @@ void TriangleGeometry::generateSupportGeometries()
 
 	for (const TriangleIsland& island : triangleIslands)
 	{// Generate a support geometry for each overhanging triangle island.
-		// TODO: Watch out! Hacking here - assuming, the model is snapped to floor.
 		const std::vector<Vec3> edgeVertices = getEdgeVertices(_data.vertices,
 															   island.getBoundaryEdges(),
 															   /*isDuplicatingSecondVertex*/ true);
+		const float distToFloor = _minBound.z - _sceneTransform.column(3).z();
 		_supportGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(island.getTriangleIndices(),
 																		  _data.vertices,
 																		  edgeVertices,
-																		  _minBound.z));
+																		  distToFloor));
 		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(edgeVertices));
 	}
 
