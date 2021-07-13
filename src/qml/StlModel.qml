@@ -23,6 +23,7 @@ Model {
 
     geometry: TriangleGeometry {
         id: geometry
+        sceneTransform: stlModel.sceneTransform
 
         onBoundsChanged: {
             stlModel.modelCenter = minBounds.plus(maxBounds).times(0.5)

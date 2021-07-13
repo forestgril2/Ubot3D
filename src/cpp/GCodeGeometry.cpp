@@ -14,6 +14,7 @@
 #include <string>
 
 #include <Chronograph.h>
+#include <CommonDefs.h>
 #include <GCodeProgramProcessor.h>
 #include <Helpers3D.h>
 

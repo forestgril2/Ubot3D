@@ -9,12 +9,10 @@
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 
-#include <Eigen/Geometry>
-using Vec3 = Eigen::Vector3f;
-
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\runtimerender\qssgrenderray_p.h>
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 
+#include <CommonDefs.h>
 #include <NaiveSlicer.h>
 
 struct aiScene;
@@ -64,7 +62,7 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_PROPERTY(bool areRaftsGenerated READ areRaftsGenerated WRITE setRaftsGenerated NOTIFY areRaftsGeneratedChanged)
 
 	Q_PROPERTY(QVector<QVector<QVector3D>> triangleIslandBoundaries READ getTriangleIslandBoundaries NOTIFY triangleIslandBoundariesChanged)
-//	Q_PROPERTY(QMatrix4x4 sceneTransform READ _sceneTransform WRITE setSceneTransform)
+	Q_PROPERTY(QMatrix4x4 sceneTransform WRITE setSceneTransform NOTIFY sceneTransformChanged)
 
 public:
 	TriangleGeometry();
@@ -77,6 +75,8 @@ public:
 		bool isPick = false;
 		QVector3D pickPos;
 	};
+
+	void setSceneTransform(const QMatrix4x4& transform);
 
 	void setSupportGenerated(bool isGenerated);
 	bool isSupportGenerated() const;
@@ -107,19 +107,22 @@ public:
 	void setBounds(const QVector3D &min, const QVector3D &max);
 	QVector3D minBounds() const;
 	QVector3D maxBounds() const;
-	void setSceneTransform(const QMatrix4x4& transform);
 
 	bool isPicked() const;
 	void setPicked(const bool isPicked);
 
-public slots:
 	void setMinBounds(const QVector3D& minBounds);
 	void setMaxBounds(const QVector3D& maxBounds);
+
+public slots:
+	void onSceneTransformChanged();
 	void onIsSupportGeneratedChanged();
 	void onAreRaftsGeneratedChanged();
 	void onRaftOffsetChanged();
 
 signals:
+	void sceneTransformChanged();
+
 	void normalsChanged();
 	void normalXYChanged();
 	void uvChanged();
@@ -168,7 +171,7 @@ private:
 	// Member variables
 	TriangleGeometryData _data;
 	QSSGMeshBVH* _intersectionData = nullptr;
-//	QMatrix4x4 _sceneTransform;
+	QMatrix4x4 _sceneTransform;
 
 	Assimp::Importer importer;
 	const aiScene* _scene = nullptr;

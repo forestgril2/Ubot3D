@@ -11,7 +11,8 @@
 using namespace Eigen;
 
 using Real = float;
-using Vertex = Eigen::Vector3f;
+using Vec3 = Eigen::Vector3f;
+using Vertex = Vec3;
 using Vertices = std::vector<Vertex>;
 using Indices = std::vector<uint32_t>;
 //using StrRefWrap = std::reference_wrapper<const std::string&>;
