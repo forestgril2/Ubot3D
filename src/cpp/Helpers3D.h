@@ -12,9 +12,20 @@
 #include <glm/mat4x4.hpp>
 
 #include <Eigen/Geometry>
+
+template<class L=std::less<>>
+struct LexographicLess {
+	template<class T>
+	bool operator()(T const& lhs, T const& rhs) const
+	{
+		return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(), L{});
+	}
+};
+
+
 using Vec3 = Eigen::Vector3f;
 using Matrix4 = Eigen::Matrix4f;
-using IndicesToVertices = std::map<Vec3, uint32_t, bool(*)(const Vec3& a, const Vec3& b)>;
+using IndicesToVertices = std::map<Vec3, uint32_t, LexographicLess<>>;
 
 struct aiScene;
 class TriangleGeometry;

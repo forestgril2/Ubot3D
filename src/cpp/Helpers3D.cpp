@@ -222,9 +222,9 @@ std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedPlanarMesh(const std
 	uniqueSupportPointsArray.reserve(2*numIslandUniqueIndices);
 
 	//These maps will help to match indices to vertices and vice-versa.
-	IndicesToVertices indicesToUniqueVertices(Helpers3D::vertexLess);
-	IndicesToVertices topIndicesToFloorVertices(Helpers3D::vertexLess);
-	IndicesToVertices floorIndicesToTopVertices(Helpers3D::vertexLess);
+	IndicesToVertices indicesToUniqueVertices;
+	IndicesToVertices topIndicesToFloorVertices;
+	IndicesToVertices floorIndicesToTopVertices;
 
 	uint32_t currSupportIndex = 0;
 	for (uint32_t index : islandUniqueIndices)
@@ -462,7 +462,7 @@ IndicesToVertices Helpers3D::mapIndicesToUniqueVerticesAndNormals(const std::vec
 
 	uniqueVertices.clear();
 	uniqueNormals.clear();
-	IndicesToVertices indicesToUniqueVertices(vertexLess);
+	IndicesToVertices indicesToUniqueVertices;
 	uint32_t currIndex = 0;
 	for (uint32_t v=0; v<vertices.size(); ++v)
 	{
