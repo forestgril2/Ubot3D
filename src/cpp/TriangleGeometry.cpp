@@ -405,10 +405,11 @@ TriangleGeometry::TriangleGeometry() :
 {
 	updateData(TriangleGeometryData());
 	connect(this, &TriangleGeometry::zLevelChanged, this, &TriangleGeometry::onZLevelChanged);
+	connect(this, &TriangleGeometry::bottomLayerChanged, this, &TriangleGeometry::onBottomLayerChanged);
 
 	connect(this, &TriangleGeometry::isSupportGeneratedChanged, this, &TriangleGeometry::onIsSupportGeneratedChanged);
 	connect(this, &TriangleGeometry::areRaftsGeneratedChanged, this, &TriangleGeometry::onAreRaftsGeneratedChanged);
-	connect(this, &TriangleGeometry::raftOffsetChanged, this, &TriangleGeometry::onRaftOffsetChanged);
+	connect(this, &TriangleGeometry::raftOffsetChanged, this, &TriangleGeometry::onRaftDataChanged);
 
 	// Re-draw debug data each time support or rafts are generated.
 	connect(this, &TriangleGeometry::raftGeometriesChanged, this, &TriangleGeometry::triangleIslandBoundariesChanged);
@@ -496,6 +497,12 @@ void TriangleGeometry::setMaxBounds(const QVector3D& maxBounds)
 void TriangleGeometry::onZLevelChanged()
 {
 	onIsSupportGeneratedChanged();
+	onRaftDataChanged();
+}
+
+void TriangleGeometry::onBottomLayerChanged()
+{
+	onRaftDataChanged();
 }
 
 void TriangleGeometry::onIsSupportGeneratedChanged()
@@ -528,7 +535,7 @@ void TriangleGeometry::onAreRaftsGeneratedChanged()
 	}
 }
 
-void TriangleGeometry::onRaftOffsetChanged()
+void TriangleGeometry::onRaftDataChanged()
 {
 	if (!_areRaftsGenerated)
 		return;
@@ -672,6 +679,11 @@ std::vector<uint32_t> TriangleGeometry::collectFloorTriangleIndices(const float 
 	return floorTriangleIndices;
 }
 
+float TriangleGeometry::getDistToFloor() const
+{
+	return _minBound.z + _raftHeight - _sceneTransform.column(3).z();
+}
+
 void TriangleGeometry::generateSupportGeometries()
 {
 	Chronograph chronograph(__FUNCTION__, true);
@@ -690,11 +702,10 @@ void TriangleGeometry::generateSupportGeometries()
 		const std::vector<Vec3> edgeVertices = getEdgeVertices(_data.vertices,
 															   island.getBoundaryEdges(),
 															   /*isDuplicatingSecondVertex*/ true);
-		const float distToFloor = _minBound.z - _sceneTransform.column(3).z();
 		_supportGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(island.getTriangleIndices(),
 																		  _data.vertices,
 																		  edgeVertices,
-																		  distToFloor));
+																		  getDistToFloor()));
 		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(edgeVertices));
 	}
 
@@ -708,13 +719,16 @@ void TriangleGeometry::clearSupportGeometries()
 	emit raftGeometriesChanged();
 }
 
-Slicer::Layer TriangleGeometry::computeBottomLayer() const
+void TriangleGeometry::computeBottomLayer()
 {
 	using namespace Slicer;
 	NaiveSlicer slicer;
-	const float kSliceDistFromFloor = 0.05f;
-	const std::vector<Layer> layers = slicer.slice(*this, minBounds().z() + kSliceDistFromFloor);
-	return !layers.empty() ? layers[0] : Slicer::Layer();
+	const float sliceDistFromFloor = 0.05f;
+	const float distToFloor = _minBound.z;
+	const std::vector<Layer> layers = slicer.slice(*this, distToFloor + sliceDistFromFloor);
+	_bottomLayer = (!layers.empty() ? layers[0] : Slicer::Layer());
+
+	emit bottomLayerChanged();
 }
 
 void TriangleGeometry::generateRaftGeometries()
@@ -760,14 +774,14 @@ void TriangleGeometry::generateRaftGeometries()
 		{
 			offsetBoundary.emplace_back(Vec3{float(double(clipperPoint.X)/kClipperIntMultiplier),
 											 float(double(clipperPoint.Y)/kClipperIntMultiplier),
-											 _minBound.z + _raftHeight});
+											 _minBound.z});
 
 			raftData.vertices.emplace_back(offsetBoundary.back());
 			boundaryNodes.push_back(ringNodeCount++);
 		}
 
 		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(generateRingEdgeVertices(offsetBoundary)));
-//		_raftGeometries.push_back(Helpers3D::computeExtrudedTriangleIsland(island, _data.vertices, 1, offsetBoundary));
+//		_raftGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(island, _data.vertices, 1, offsetBoundary));
 	}
 
 	PolygonTriangulation t(raftData.vertices, offsetRings);
@@ -778,7 +792,7 @@ void TriangleGeometry::generateRaftGeometries()
 	_raftGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(t.getMesh().indices,
 																   t.getMesh().vertices,
 																   t.getMesh().vertices,
-																   _minBound.z));
+																   getDistToFloor()));
 
 	emit raftGeometriesChanged();
 }
@@ -930,7 +944,7 @@ void TriangleGeometry::updateData(const TriangleGeometryData& data)
 				 QQuick3DGeometry::Attribute::U32Type);
 
 	buildIntersectionData();
-	_bottomLayer = computeBottomLayer();
+	computeBottomLayer();
 	emit modelLoaded();
 }
 

@@ -115,14 +115,15 @@ public:
 
 public slots:
 	void onZLevelChanged();
-
+	void onBottomLayerChanged();
+	void onRaftDataChanged();
 	void onIsSupportGeneratedChanged();
 	void onAreRaftsGeneratedChanged();
-	void onRaftOffsetChanged();
 
 signals:
 	void sceneTransformChanged();
 	void zLevelChanged();
+	void bottomLayerChanged();
 
 	void normalsChanged();
 	void normalXYChanged();
@@ -159,7 +160,7 @@ private:
 	void generateRaftGeometries();
 	void generateRaftGeometriesAllTogether();
 	void clearRaftGeometries();
-	Slicer::Layer computeBottomLayer() const;
+	void computeBottomLayer();
 
 	uint32_t calculateAndSetStride();
 	std::vector<float> prepareColorTrianglesVertexData();
@@ -216,4 +217,5 @@ private:
 	QString _inputFile;
 	TriangleGeometryData prepareDataFromAssimpScene();
 	std::shared_ptr<TriangleGeometry> extrudedTriangleIsland(const TriangleIsland& island);
+	float getDistToFloor() const;
 };
