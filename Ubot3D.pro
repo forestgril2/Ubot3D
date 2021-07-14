@@ -37,7 +37,8 @@ SOURCES += \
     src/cpp/NaivePerimeterGenerator.cpp \
     src/cpp/NaiveSlicer.cpp \
     src/cpp/PolygonTriangulation.cpp \
-     src/cpp/main.cpp \
+    src/cpp/Utils.cpp \
+    src/cpp/main.cpp \
     src/cpp/ProcessLauncher.cpp \
     src/cpp/SimplexGeometry.cpp \
     src/cpp/GCodeProgramProcessor.cpp \
@@ -68,7 +69,8 @@ HEADERS += \
         $$PWD/../gpr/src/parser.h \
         src/cpp/GCodeProgramProcessor.h \
         src/cpp/Helpers3D.h \
-        src/cpp/TriangleConnectivity.h
+        src/cpp/TriangleConnectivity.h \
+        src/cpp/Utils.h
 
 RESOURCES += \
     src/qml/qml.qrc \
@@ -112,7 +114,7 @@ else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/c
 
 unix {
 
-CGAL_INCLUDEPATH=/usr/include/CGAL
+CGAL_INCLUDEPATH=/usr/include
 BOOST_INCLUDEPATH=/usr/include/boost
 ASSIMP_INCLUDEPATH=/usr/include/assimp
 CLIPPER_INCLUDEPATH=/usr/include/polyclipping
