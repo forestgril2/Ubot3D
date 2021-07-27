@@ -12,7 +12,7 @@ class PolygonTriangulation
 {
 public:
 	PolygonTriangulation(const std::vector<Vec3>& vertices,
-						 const std::list<std::vector<uint32_t>>& nodeRings);
+						 const std::list<std::vector<uint32_t>>& boundaryNodeRings);
 
 	const TriangleGeometryData& getMesh() const { return _mesh; }
 	const std::list<std::vector<uint32_t>>& getBorders() const { return _borders; }

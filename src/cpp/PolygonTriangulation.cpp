@@ -82,11 +82,11 @@ void mark_domains(CDT& cdt)
 }
 
 PolygonTriangulation::PolygonTriangulation(const std::vector<Vec3>& vertices,
-										   const std::list<std::vector<uint32_t>>& nodeRings)
+										   const std::list<std::vector<uint32_t>>& boundaryNodeRings)
 {
 	CDT cdt;
 
-	for(const auto& nodeRing : nodeRings)
+	for(const auto& nodeRing : boundaryNodeRings)
 	{
 		Polygon_2 polygon1;
 		for (uint32_t node : nodeRing)

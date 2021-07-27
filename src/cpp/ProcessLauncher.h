@@ -16,7 +16,7 @@ public:
 
 
     Q_INVOKABLE void generateGCode(const QString& stlFilePath, bool isTwoHeaderExtrusion);    
-    Q_INVOKABLE void generateSlices(TriangleGeometry* g);
+	Q_INVOKABLE void generateSlices(TriangleGeometry* geometry);
 
 signals:
 	void gcodeGenerated(const QString& outputFilePath);

@@ -9,6 +9,8 @@
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 
+#include <clipper.hpp>
+
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\runtimerender\qssgrenderray_p.h>
 //#include <D:\Projects\qt6-a80e52\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 
@@ -18,6 +20,7 @@
 struct aiScene;
 struct QSSGMeshBVH;
 
+class PolygonTriangulation;
 class TriangleIsland;
 struct TriangleGeometryData
 {
@@ -96,7 +99,7 @@ public:
 	QVector<QVector3D> getTriangulationResult() const;
 	QVector<TriangleGeometry*> getSupportGeometries() const;
 	QVector<TriangleGeometry*> getRaftGeometries() const;
-	QVector<QVector<QVector3D>> getTriangleIslandBoundaries() const;
+	QVector<QVector<QVector3D> >& getTriangleIslandBoundaries();
 
 	const aiScene* getAssimpScene() const;
 
@@ -193,9 +196,7 @@ private:
 	std::vector<uint32_t> _overhangingTriangleIndices;
 	QVector<QVector3D> _debugTriangleEdges;
 	QVector<QVector3D> _triangulationResult;
-public:
 	QVector<QVector<QVector3D>> _triangleIslandBoundaries;
-private:
 	Slicer::Layer _bottomLayer;
 	float _supportAlphaValue;
 	std::vector<std::shared_ptr<TriangleGeometry>> _supportGeometries;
@@ -218,4 +219,8 @@ private:
 	TriangleGeometryData prepareDataFromAssimpScene();
 	std::shared_ptr<TriangleGeometry> extrudedTriangleIsland(const TriangleIsland& island);
 	float getDistToFloor() const;
+	static ClipperLib::Paths offsetClipperPaths(const Slicer::Layer::Polylines& polylines, double offset);
+	static PolygonTriangulation computeBoundedTriangulation(const ClipperLib::Paths& pathsCl,
+															float zLevel,
+															QVector<QVector<QVector3D>>* debugBoundaries = nullptr);
 };

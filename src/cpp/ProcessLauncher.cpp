@@ -56,12 +56,12 @@ void ProcessLauncher::generateGCode(const QString& stlFilePath, bool isTwoHeader
 	emit gcodeGenerated(slicerOutputPath);
 }
 
-void ProcessLauncher::generateSlices(TriangleGeometry* g)
+void ProcessLauncher::generateSlices(TriangleGeometry* geometry)
 {
     using namespace Slicer;
 
     NaiveSlicer slicer;
-    auto layers = slicer.slice(*g);
+	auto layers = slicer.slice(*geometry);
 
     auto showYellowDebugs = [](auto& layers, auto& g){
         for(auto const& layer : layers)
@@ -74,12 +74,12 @@ void ProcessLauncher::generateSlices(TriangleGeometry* g)
                     vv.emplace_back(seg.x(), seg.y(), seg.z());
                 }
             }
-            g->_triangleIslandBoundaries.push_back(vv);
+			g->getTriangleIslandBoundaries().push_back(vv);
         }
         g->raftGeometriesChanged();
     };
 
-    showYellowDebugs(layers, g);
+	showYellowDebugs(layers, geometry);
 
     NaivePerimeterGenerator perGen(layers);
     perGen.generate();

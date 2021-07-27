@@ -60,6 +60,8 @@ QT_BEGIN_NAMESPACE
 using Matrix4 = Eigen::Matrix4f;
 
 static const uint32_t kNumFloatsPerPositionAttribute = 3u;
+static const uint32_t kClipperIntMultiplier = 1000;
+
 
 static std::list<std::vector<uint32_t>> composeNodeRingsV1(const std::set<Edge>& edges)
 {
@@ -731,17 +733,12 @@ void TriangleGeometry::computeBottomLayer()
 	emit bottomLayerChanged();
 }
 
-void TriangleGeometry::generateRaftGeometries()
+ClipperLib::Paths TriangleGeometry::offsetClipperPaths(const Slicer::Layer::Polylines& polylines, double offset)
 {
-	Chronograph chronograph(__FUNCTION__, true);
-	_raftGeometries.clear();
-	_triangleIslandBoundaries.clear();
-
 	ClipperLib::Paths offsetPathsResult;
 	ClipperLib::ClipperOffset clipperOffsetter;
-	static const uint32_t kClipperIntMultiplier = 1000;
 
-	for(auto const& polyline : _bottomLayer.polylines)
+	for(auto const& polyline : polylines)
 	{
 		// Create polygon path for clipper and enlarge/shrink the boundary by a specified offset.
 		ClipperLib::Path clipperBoundary;
@@ -755,43 +752,61 @@ void TriangleGeometry::generateRaftGeometries()
 
 		clipperOffsetter.AddPath(clipperBoundary, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
 	}
-	clipperOffsetter.Execute(offsetPathsResult, kClipperIntMultiplier * double(_raftOffset));
+	clipperOffsetter.Execute(offsetPathsResult, kClipperIntMultiplier * offset);
 
+	return offsetPathsResult;
+}
 
+PolygonTriangulation TriangleGeometry::computeBoundedTriangulation(const ClipperLib::Paths& pathsCl,
+																   float zLevel,
+																   QVector<QVector<QVector3D>>* debugBoundaries)
+{
 	TriangleGeometryData raftData;
-	std::list<std::vector<uint32_t>> offsetRings;
+	std::list<std::vector<uint32_t>> offsetTriangulationBoundaries;
 	uint32_t ringNodeCount = 0;
 
-	for (const ClipperLib::Path& clipperPath : offsetPathsResult)
+	for (const ClipperLib::Path& clipperPath : pathsCl)
 	{
 		std::vector<Vec3> offsetBoundary;
-		offsetRings.push_back({});
-		offsetRings.back().reserve(clipperPath.size());
-		std::vector<uint32_t>& boundaryNodes = offsetRings.back();
+		offsetTriangulationBoundaries.push_back({});
+		offsetTriangulationBoundaries.back().reserve(clipperPath.size());
+		// Be careful - this is in fact being used.
+		std::vector<uint32_t>& boundaryNodes = offsetTriangulationBoundaries.back();
 
 		offsetBoundary.reserve(clipperPath.size());
 		for (const ClipperLib::IntPoint& clipperPoint : clipperPath)
 		{
 			offsetBoundary.emplace_back(Vec3{float(double(clipperPoint.X)/kClipperIntMultiplier),
 											 float(double(clipperPoint.Y)/kClipperIntMultiplier),
-											 _minBound.z});
+											 zLevel});
 
 			raftData.vertices.emplace_back(offsetBoundary.back());
 			boundaryNodes.push_back(ringNodeCount++);
 		}
 
-		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(generateRingEdgeVertices(offsetBoundary)));
+		debugBoundaries->emplace_back(convertToQVectors3D(generateRingEdgeVertices(offsetBoundary)));
 //		_raftGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(island, _data.vertices, 1, offsetBoundary));
 	}
 
-	PolygonTriangulation t(raftData.vertices, offsetRings);
-	generateDebugTriangleEdges(t.getMesh().vertices, t.getMesh().indices);
+	return PolygonTriangulation(raftData.vertices, offsetTriangulationBoundaries);
+}
 
-	TriangleGeometryData data{t.getMesh().vertices, t.getMesh().vertices, t.getMesh().indices};
+void TriangleGeometry::generateRaftGeometries()
+{
+	Chronograph chronograph(__FUNCTION__, true);
+	_raftGeometries.clear();
+	_triangleIslandBoundaries.clear();
 
-	_raftGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(t.getMesh().indices,
-																   t.getMesh().vertices,
-																   t.getMesh().vertices,
+	const ClipperLib::Paths offsetPathsResult = offsetClipperPaths(_bottomLayer.polylines, _raftOffset);
+	const PolygonTriangulation triangulation = computeBoundedTriangulation(offsetPathsResult, _minBound.z, &_triangleIslandBoundaries);
+
+	generateDebugTriangleEdges(triangulation.getMesh().vertices, triangulation.getMesh().indices);
+
+	TriangleGeometryData data{triangulation.getMesh().vertices, triangulation.getMesh().vertices, triangulation.getMesh().indices};
+
+	_raftGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(triangulation.getMesh().indices,
+																   triangulation.getMesh().vertices,
+																   triangulation.getMesh().vertices,
 																   getDistToFloor()));
 
 	emit raftGeometriesChanged();
@@ -884,7 +899,7 @@ QVector<TriangleGeometry*> TriangleGeometry::getRaftGeometries() const
 	return geometries;
 }
 
-QVector<QVector<QVector3D> > TriangleGeometry::getTriangleIslandBoundaries() const
+QVector<QVector<QVector3D>>& TriangleGeometry::getTriangleIslandBoundaries()
 {
 	return _triangleIslandBoundaries;
 }
