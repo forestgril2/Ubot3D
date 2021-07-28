@@ -52,10 +52,11 @@
 
 #include <fstream>
 
+// TODO: Remove that after testing. It is here to test in Release mode.
+//#undef NDEBUG
+
 // To have QSG included
 QT_BEGIN_NAMESPACE
-
-#undef NDEBUG
 
 using Matrix4 = Eigen::Matrix4f;
 
@@ -403,10 +404,22 @@ TriangleGeometry::TriangleGeometry() :
 	_maxFloatBound(aiVector3D(-FLT_MAX, -FLT_MAX, -FLT_MAX)),
 	_minFloatBound(aiVector3D(FLT_MAX, FLT_MAX, FLT_MAX)),
 	_maxBound(aiVector3D(-FLT_MAX, -FLT_MAX, -FLT_MAX)),
-	_minBound(aiVector3D(FLT_MAX, FLT_MAX, FLT_MAX))
+	_minBound(aiVector3D(FLT_MAX, FLT_MAX, FLT_MAX)),
+	_isMainGeometry(true)
 {
 	updateData(TriangleGeometryData());
+
+
+	connect(this, &QQuick3DObject::parentChanged, this, [](){
+		std::cout << " ### " << __FUNCTION__ << " parentChanged:" << "" << "," << "" << std::endl;
+	});
+
+//	connect(this, &QQuick3DObject::update, this, [](){
+//		std::cout << " ### " << __FUNCTION__ << " update launched:" << "" << "," << "" << std::endl;
+//	});
+
 	connect(this, &TriangleGeometry::zLevelChanged, this, &TriangleGeometry::onZLevelChanged);
+	connect(this, &TriangleGeometry::raftHeightChanged, this, &TriangleGeometry::onZLevelChanged);
 	connect(this, &TriangleGeometry::bottomLayerChanged, this, &TriangleGeometry::onBottomLayerChanged);
 
 	connect(this, &TriangleGeometry::isSupportGeneratedChanged, this, &TriangleGeometry::onIsSupportGeneratedChanged);
@@ -423,8 +436,14 @@ TriangleGeometry::TriangleGeometry(const TriangleGeometryData& data) : TriangleG
 	updateData(data);
 }
 
+bool TriangleGeometry::isMainGeometry() const
+{
+	return _isMainGeometry;
+}
+
 void TriangleGeometry::setSceneTransform(const QMatrix4x4& transform)
 {
+	std::cout << " ### " << __FUNCTION__ << " :" << "" << "," << "" << std::endl;
 	if (qFuzzyCompare(_sceneTransform, transform))
 		return;
 
@@ -479,9 +498,25 @@ void TriangleGeometry::setInputFile(const QString& url)
 void TriangleGeometry::setBounds(const QVector3D& min, const QVector3D& max)
 {
 	QQuick3DGeometry::setBounds(min, max);
+	const bool areMinZBoundsChanged = !qFuzzyCompare(_minBound.z, min.z());
+	const bool areBoundsChanged = areMinZBoundsChanged                 ||
+								  !qFuzzyCompare(_minBound.x, min.x()) ||
+								  !qFuzzyCompare(_minBound.y, min.y()) ||
+								  !qFuzzyCompare(_minBound.z, min.z()) ||
+								  !qFuzzyCompare(_minBound.x, min.x()) ||
+								  !qFuzzyCompare(_minBound.y, min.y());
+
+	if (!areBoundsChanged)
+		return;
 
 	_minBound = {min.x(), min.y(), min.z()};
 	_maxBound = {max.x(), max.y(), max.z()};
+
+	if(areMinZBoundsChanged)
+	{
+		std::cout << " ### " << __FUNCTION__ << " _minBound.z CHANGED:" << _minBound.z << "," << "" << std::endl;
+		emit minZBoundsChanged();
+	}
 
 	emit boundsChanged();
 }
@@ -681,14 +716,17 @@ std::vector<uint32_t> TriangleGeometry::collectFloorTriangleIndices(const float 
 	return floorTriangleIndices;
 }
 
-float TriangleGeometry::getDistToFloor() const
+float TriangleGeometry::getMinBoundZDistToSceneFloor() const
 {
-	return _minBound.z + _raftHeight - _sceneTransform.column(3).z();
+	return _raftHeight - _sceneTransform.column(3).z();
 }
 
 void TriangleGeometry::generateSupportGeometries()
-{
+{//TODO: Support geometries should have their own types, inheriting from TriangleGeometry.
 	Chronograph chronograph(__FUNCTION__, true);
+	if (!_isMainGeometry)
+		return;
+
 	generateDebugTriangleEdges(_data.vertices, _overhangingTriangleIndices);
 
 	TriangleConnectivity triangleConnectivity(_overhangingTriangleIndices);
@@ -697,17 +735,22 @@ void TriangleGeometry::generateSupportGeometries()
 	_supportGeometries.clear();
 	_triangleIslandBoundaries.clear();
 
-	std::cout << " ### " << __FUNCTION__ << " triangleIslands.size():" << triangleIslands.size() << "," << "" << std::endl;
-
 	for (const TriangleIsland& island : triangleIslands)
 	{// Generate a support geometry for each overhanging triangle island.
 		const std::vector<Vec3> edgeVertices = getEdgeVertices(_data.vertices,
 															   island.getBoundaryEdges(),
 															   /*isDuplicatingSecondVertex*/ true);
-		_supportGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(island.getTriangleIndices(),
-																		  _data.vertices,
-																		  edgeVertices,
-																		  getDistToFloor()));
+
+		std::cout << " ### " << __FUNCTION__ << " objectName: " << objectName().toStdString()
+											 << ", raft height: " << _raftHeight
+											 << ", _minBound.z + _raftHeight: " << _minBound.z + _raftHeight
+											 << std::endl;
+		std::shared_ptr<TriangleGeometry> support = Helpers3D::computeExtrudedPlanarMesh(island.getTriangleIndices(),
+																						 _data.vertices,
+																						 edgeVertices,
+																						 _minBound.z - _raftHeight);
+		support->_isMainGeometry = false;
+		_supportGeometries.push_back(support);
 		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(edgeVertices));
 	}
 
@@ -784,11 +827,18 @@ PolygonTriangulation TriangleGeometry::computeBoundedTriangulation(const Clipper
 			boundaryNodes.push_back(ringNodeCount++);
 		}
 
+#ifndef NDEBUG
 		debugBoundaries->emplace_back(convertToQVectors3D(generateRingEdgeVertices(offsetBoundary)));
+#endif
 //		_raftGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(island, _data.vertices, 1, offsetBoundary));
 	}
 
 	return PolygonTriangulation(raftData.vertices, offsetTriangulationBoundaries);
+}
+
+float TriangleGeometry::getUpperRaftBase() const
+{
+	return _minBound.z + _raftHeight;
 }
 
 void TriangleGeometry::generateRaftGeometries()
@@ -797,17 +847,23 @@ void TriangleGeometry::generateRaftGeometries()
 	_raftGeometries.clear();
 	_triangleIslandBoundaries.clear();
 
+	//TODO: Raft geometries should have their own types, inheriting from TriangleGeometry.
 	const ClipperLib::Paths offsetPathsResult = offsetClipperPaths(_bottomLayer.polylines, _raftOffset);
-	const PolygonTriangulation triangulation = computeBoundedTriangulation(offsetPathsResult, _minBound.z, &_triangleIslandBoundaries);
+	const PolygonTriangulation triangulation = computeBoundedTriangulation(offsetPathsResult,
+																		   _sceneTransform.row(3).z(),
+																		   &_triangleIslandBoundaries);
 
+#ifndef NDEBUG
 	generateDebugTriangleEdges(triangulation.getMesh().vertices, triangulation.getMesh().indices);
+#endif
 
+	//TODO: Shitty code: triangulation.getMesh().vertices passed as normals, because not using them here anyway...
 	TriangleGeometryData data{triangulation.getMesh().vertices, triangulation.getMesh().vertices, triangulation.getMesh().indices};
 
 	_raftGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(triangulation.getMesh().indices,
 																   triangulation.getMesh().vertices,
 																   triangulation.getMesh().vertices,
-																   getDistToFloor()));
+																   0));
 
 	emit raftGeometriesChanged();
 }
@@ -868,10 +924,10 @@ float TriangleGeometry::getRaftHeight() const
 
 void TriangleGeometry::setRaftHeight(float height)
 {
-	if (approximatelyEqual(height, _raftHeight, 0.00001f))
+	if (qFuzzyCompare(height, _raftHeight))
 		return;
 
-	_raftOffset = height;
+	_raftHeight = height;
 	emit raftHeightChanged(_raftHeight);
 }
 
@@ -960,6 +1016,7 @@ void TriangleGeometry::updateData(const TriangleGeometryData& data)
 
 	buildIntersectionData();
 	computeBottomLayer();
+
 	emit modelLoaded();
 }
 

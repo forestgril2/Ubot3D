@@ -48,6 +48,8 @@ class TriangleGeometry : public QQuick3DGeometry
 	Q_OBJECT
 	QML_NAMED_ELEMENT(TriangleGeometry)
 
+	Q_PROPERTY(bool isMainGeometry READ isMainGeometry)
+
 	Q_PROPERTY(QVector3D minBounds READ minBounds WRITE setMinBounds NOTIFY boundsChanged)
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
@@ -78,6 +80,8 @@ public:
 		bool isPick = false;
 		QVector3D pickPos;
 	};
+
+	bool isMainGeometry() const;
 
 	void setSceneTransform(const QMatrix4x4& transform);
 
@@ -133,6 +137,7 @@ signals:
 	void uvChanged();
 	void uvAdjustChanged();
 	void boundsChanged();
+	void minZBoundsChanged();
 	void modelLoaded();
 	void isPickedChanged();
 
@@ -161,7 +166,6 @@ private:
 	void generateSupportGeometries();
 	void clearSupportGeometries();
 	void generateRaftGeometries();
-	void generateRaftGeometriesAllTogether();
 	void clearRaftGeometries();
 	void computeBottomLayer();
 
@@ -218,9 +222,12 @@ private:
 	QString _inputFile;
 	TriangleGeometryData prepareDataFromAssimpScene();
 	std::shared_ptr<TriangleGeometry> extrudedTriangleIsland(const TriangleIsland& island);
-	float getDistToFloor() const;
+	float getMinBoundZDistToSceneFloor() const;
 	static ClipperLib::Paths offsetClipperPaths(const Slicer::Layer::Polylines& polylines, double offset);
 	static PolygonTriangulation computeBoundedTriangulation(const ClipperLib::Paths& pathsCl,
 															float zLevel,
 															QVector<QVector<QVector3D>>* debugBoundaries = nullptr);
+	float getUpperRaftBase() const;
+
+	bool _isMainGeometry;
 };

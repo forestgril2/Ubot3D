@@ -161,19 +161,34 @@ ApplicationWindow {
 
             delegate: StlModel {
                 id: stlModel
+                inputFile: stlObjectsRepeater.model[index]
+                objectName: inputFile
                 isSupportGenerated: supportOptions.isGeneratingSupport
                 areRaftsGenerated: raftOptions.isGeneratingRafts
                 raftOffset: raftOptions.raftOffset
                 raftHeight: raftOptions.raftHeight
-                inputFile: stlObjectsRepeater.model[index]
 
-                Component.onCompleted: {
-                    stlObjectsRepeater.delegateLoaded(stlModel.modelCenter)
+//                Component.onCompleted: {
+//                    console.log(" ### delegate: StlModel Component.onCompleted:")
+//                    stlObjectsRepeater.delegateLoaded(stlModel.modelCenter)
+//                    snapToFloor()
+//                }
+
+                Connections {
+                    target: stlModel.geometry
+                    function onModelLoaded() {
+                        console.log(" ### delegate: target: stlModel.geometry onModelLoaded:")
+                    }
                 }
 
                 onIsPickedChanged: {
                     view3d.pickedModelsChanged()
                 }
+
+                onRaftHeightChanged: {
+                    console.log(" ### new raft height:" + raftHeight)
+                }
+
             }
 
             onDelegateLoaded: {
@@ -186,7 +201,7 @@ ApplicationWindow {
             id: gCodeObjectsRepeater
             property var gcodeGeometry: (objectAt(0) === null ? null : objectAt(0).geometry)
 
-            signal delegateLoaded(var modelCenter)
+            signal delegateLoaded(var modelCeHinter)
 
             model: []
             delegate: GCodeGeometryRepeaterModelDelegate {
@@ -204,24 +219,37 @@ ApplicationWindow {
             }
         }
 
-
         Repeater3D {
             id: stlSupportGeometries
             model: (supportOptions.isGeneratingSupport && stlObjectsRepeater.count > 0) ? stlObjectsRepeater.objectAt(0).geometry.supportGeometries : []
-            delegate: StlModel {
+            delegate: StlModelSupport {
+                id: stlModelSupport
+                mainModel: stlObjectsRepeater.objectAt(0)
                 geometry: stlObjectsRepeater.objectAt(0).geometry.supportGeometries[index]
-                position: stlObjectsRepeater.objectAt(0).position
-                rotation: stlObjectsRepeater.objectAt(0).rotation
+
+                Connections {
+                    target: stlModelSupport.geometry
+                    function onModelLoaded() {
+                        objectName = "SupportGeometry" + index
+                    }
+                }
             }
         }
 
         Repeater3D {
             id: stlRaftGeometries
             model: (raftOptions.isGeneratingRafts && stlObjectsRepeater.count > 0) ? stlObjectsRepeater.objectAt(0).geometry.raftGeometries : []
-            delegate: StlModel {
+            delegate: StlModelSupport {
+                id: stlModelRaft
+                mainModel: stlObjectsRepeater.objectAt(0)
                 geometry: stlObjectsRepeater.objectAt(0).geometry.raftGeometries[index]
-                position: stlObjectsRepeater.objectAt(0).position
-                rotation: stlObjectsRepeater.objectAt(0).rotation
+
+                Connections {
+                    target: stlModelRaft.geometry
+                    function onModelLoaded() {
+                        objectName = "RaftGeometry" + index
+                    }
+                }
             }
         }
 

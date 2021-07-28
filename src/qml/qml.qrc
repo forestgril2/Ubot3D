@@ -19,5 +19,6 @@
         <file>SlicerParametersInput.qml</file>
         <file>SupportOptions.qml</file>
         <file>RaftOptions.qml</file>
+        <file>StlModelSupport.qml</file>
     </qresource>
 </RCC>

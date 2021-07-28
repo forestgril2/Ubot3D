@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include <QApplication>
+#include <QLoggingCategory>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QtQuick3D/qquick3d.h>
@@ -29,6 +30,8 @@ int main(int argc, char *argv[])
 	ProcessLauncher launcher;
 	context->setContextProperty("helpers3D", &helpers3D);
 	context->setContextProperty("fileImportExport", &fileImportExport);
+
+	QLoggingCategory::setFilterRules(QStringLiteral("qt.qml.binding.removal.info=true"));
 
 	engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
 
