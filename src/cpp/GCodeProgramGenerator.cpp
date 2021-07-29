@@ -12,16 +12,16 @@ GCodeProgramGenerator::GCodeProgramGenerator(const GCodeProgramGeneratorParams& 
 		// Brim
 	}
 
-	// Generate slices
+	// Generate MultiLayers
 	{
-		// Generate a bottom SliceStructure.
-		// Keep generating SliceStructures, until the top slice is higher, than the max.
-		// Generate a top SliceStructure.
+		// Generate a bottom MultiLayer structure.
+		// Keep generating MultiLayers, until the top layer+(final multilayer height) <= maxHeight.
+		// Generate a top MultiLayer structure.
 	}
 
-	// Convert slices to gcodeprogram
+	// Convert layers to gcodeprogram
 	{
-		// Keep generating gcode_program parts, starting from lowest slice.
+		// Keep generating gcode_program parts, starting from lowest layer, going up.
 	}
 }
 

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <Layer.h>
 
 namespace gpr
 {
@@ -11,8 +12,18 @@ namespace gpr
 	class addr;
 };
 
+namespace Slicer
+{
+
+
 class GCodeProgramGeneratorParams;
-class SliceStructure;
+
+class MultiLayer
+{
+public:
+	Layer thick;
+	std::vector<Layer> thin;
+};
 
 class GCodeProgramGenerator
 {
@@ -24,5 +35,6 @@ public:
 
 private:
 	std::shared_ptr<gpr::gcode_program> _program;
-	std::vector<SliceStructure> _slices;
+	std::vector<MultiLayer> _layers;
 };
+}
