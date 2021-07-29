@@ -33,6 +33,7 @@ SUBDIRS += src/cpp src/qml
 SOURCES += \
     src/cpp/Edge.cpp \
     src/cpp/FileImportExport.cpp \
+    src/cpp/GCodeProgramGenerator.cpp \
     src/cpp/Layer.cpp \
     src/cpp/NaivePerimeterGenerator.cpp \
     src/cpp/NaiveSlicer.cpp \
@@ -53,6 +54,7 @@ SOURCES += \
 HEADERS += \
         src/cpp/Edge.h \
         src/cpp/FileImportExport.h \
+        src/cpp/GCodeProgramGenerator.h \
         src/cpp/Layer.h \
         src/cpp/NaivePerimeterGenerator.h \
         src/cpp/NaiveSlicer.h \
