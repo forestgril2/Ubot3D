@@ -20,12 +20,13 @@ namespace Slicer
 
 class GCodeProgramGeneratorParams;
 
-//class MultiLayer
-//{
-//public:
-//	Layer thick;
-//	std::vector<Layer> thin;
-//};
+struct DualExtrusion
+{
+	Extrusion extr0;
+	Extrusion extr1;
+
+	Real height;
+};
 
 class GCodeProgramGenerator
 {

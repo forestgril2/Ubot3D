@@ -11,13 +11,12 @@ struct Extrusion
 
 	std::vector<Path> paths{Path{{0,0,0,0}}};
 	std::vector<Layer> layers{{0u, 0.0f}};
-	std::vector<Annotation> annotations; /** Additional annotations for paths*/
+	std::vector<Annotation> annotations;                  /** Additional annotations for paths*/
 
 	size_t numPaths = 0;
 	size_t numPathPointsMax = 0;
 
-	bool isExtruding = false;
-
+	bool isActive = false;
 	float filamentCrossArea = 1.75f*1.75f*float(M_PI_4);  /** Filament cross-section area in mm^2 for filament cross section diameter 1.75mm */
 };
 

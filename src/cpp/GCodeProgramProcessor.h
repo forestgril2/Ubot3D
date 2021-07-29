@@ -43,8 +43,8 @@ private:
 	bool processComment(const std::string& comment);
 
 	void switchExtruderModes(const int value);
-	void setExtrusionOff(Extrusion* extruder);
-	void setExtrusionOn(Extrusion* extruder, const ExtrPoint& lastAbsCoords);
+	void setExtrusionOff(Extrusion* extrusion);
+	void setExtrusionOn(Extrusion* extrusion, const ExtrPoint& lastAbsCoords);
 	void setAbsoluteModeOn();
 	void setAbsoluteModeOff(ExtrPoint* blockCurrRelativeCoords);
 
@@ -60,7 +60,7 @@ private:
 	static bool isPathAnnotation(const std::string& s);
 
 	std::map<uint32_t, Extrusion> _extruders;
-	Extrusion* _extruderCurr = nullptr;
+	Extrusion* _extrusionCurr = nullptr;
 	std::vector<ExtrPath>* _extruderPathsCurr;
 	ExtrPath _pathCurr;
 	ExtrPoint _blockCurrAbsCoordsCurr = {0,0,0,0};

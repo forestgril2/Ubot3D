@@ -38,7 +38,7 @@ void GCodeProgramProcessor::pushNewLayer()
 	const ExtrPoint previousLayerLastPoint =
 			(pathPrev.size() > 0) ? pathPrev[pathPrev.size() -1] : ExtrPoint{0,0,0,0};
 
-	_extruderCurr->layers.push_back({_extruderPathsCurr->size(), previousLayerLastPoint.z()});
+	_extrusionCurr->layers.push_back({_extruderPathsCurr->size(), previousLayerLastPoint.z()});
 }
 
 void GCodeProgramProcessor::setExtruder(const uint32_t extruderIndex)
@@ -48,14 +48,14 @@ void GCodeProgramProcessor::setExtruder(const uint32_t extruderIndex)
 		_extruders[extruderIndex] = Extrusion();
 	}
 
-	if (_extruderCurr == &_extruders[extruderIndex])
+	if (_extrusionCurr == &_extruders[extruderIndex])
 		return;
 
 	// If we are switching extruders, we may currently assume, that the previous one is set off.
 	// TODO: One day we may have two extruders working at the same time.
-	setExtrusionOff(_extruderCurr);
+	setExtrusionOff(_extrusionCurr);
 	// Update last paths.
-	_extruderCurr->numPaths = (*_extruderPathsCurr).size();
+	_extrusionCurr->numPaths = (*_extruderPathsCurr).size();
 	setupCurrentExtruderReferences(extruderIndex);
 }
 
@@ -70,7 +70,7 @@ bool GCodeProgramProcessor::isNewLayerComment(const std::string& comment)
 
 bool GCodeProgramProcessor::isNewPathPoint() const
 {// Ignore movements without extrusion and identical extruder path coordinates.
-	return _extruderCurr->isExtruding &&
+	return _extrusionCurr->isActive &&
 			(_pathCurr.size() == 0 || _extrWorkPoints.lastAbsCoords != _pathCurr.back());
 }
 
@@ -87,9 +87,9 @@ bool GCodeProgramProcessor::isExtruderFilamentPushed() const
 void GCodeProgramProcessor::setupCurrentExtruderReferences(uint32_t extruderIndex)
 {
 	assert(_extruders.end() != _extruders.find(extruderIndex));
-	_extruderCurr = &_extruders[extruderIndex];
-	assert(!_extruderCurr->paths.empty());
-	_extruderPathsCurr = &(_extruderCurr->paths);
+	_extrusionCurr = &_extruders[extruderIndex];
+	assert(!_extrusionCurr->paths.empty());
+	_extruderPathsCurr = &(_extrusionCurr->paths);
 	assert(!_extruderPathsCurr->back().empty());
 	// Set current extruder position to last point in last path.
 	_blockCurrAbsCoordsCurr = _extruderPathsCurr->back().back();
@@ -122,10 +122,10 @@ void GCodeProgramProcessor::switchExtruderModes(const int value)
 	switch (value)
 	{
 		case 0:
-			setExtrusionOff(_extruderCurr);
+			setExtrusionOff(_extrusionCurr);
 			return;
 		case 1:
-			setExtrusionOn(_extruderCurr, _extrWorkPoints.lastAbsCoords);
+			setExtrusionOn(_extrusionCurr, _extrWorkPoints.lastAbsCoords);
 			return;
 		case 90:
 			setAbsoluteModeOn();
@@ -300,7 +300,7 @@ std::map<uint32_t, Extrusion>& GCodeProgramProcessor::createExtrusionData(const 
 				pushNewLayer();
 			}
 
-			setExtrusionOff(_extruderCurr);
+			setExtrusionOff(_extrusionCurr);
 		}
 
 		_pathCurr.push_back(_extrWorkPoints.lastAbsCoords);
@@ -310,16 +310,16 @@ std::map<uint32_t, Extrusion>& GCodeProgramProcessor::createExtrusionData(const 
 
 	if (!_pathCurr.empty())
 	{
-		_extruderCurr->numPathPointsMax = std::max<size_t>(_extruderCurr->numPathPointsMax, _pathCurr.size());
-		std::cout << " #### adding subPath no. " << _extruderPathsCurr->size() -1<< ", _extruderCurr->numPathPointsMax: " << _extruderCurr->numPathPointsMax << std::endl;
+		_extrusionCurr->numPathPointsMax = std::max<size_t>(_extrusionCurr->numPathPointsMax, _pathCurr.size());
+		std::cout << " #### adding subPath no. " << _extruderPathsCurr->size() -1<< ", _extruderCurr->numPathPointsMax: " << _extrusionCurr->numPathPointsMax << std::endl;
 
 //		dumpSubPath(blockStringCurr, subPathCurr);
 
 		std::swap(_extruderPathsCurr->back(), _pathCurr);
 	}
 
-	_extruderCurr->numPathPointsMax = std::max<size_t>(_extruderCurr->numPathPointsMax, _pathCurr.size());
-	_extruderCurr->numPaths = (*_extruderPathsCurr).size();
+	_extrusionCurr->numPathPointsMax = std::max<size_t>(_extrusionCurr->numPathPointsMax, _pathCurr.size());
+	_extrusionCurr->numPaths = (*_extruderPathsCurr).size();
 
 	return _extruders;
 }
@@ -335,16 +335,16 @@ void GCodeProgramProcessor::dumpSubPath(const std::string& blockString, const Ex
 	pathFile.close();
 }
 
-void GCodeProgramProcessor::setExtrusionOff(Extrusion* extruder)
+void GCodeProgramProcessor::setExtrusionOff(Extrusion* extrusion)
 {// If we are setting extrusion off, swap created path with the empty one in path vector.
-	if (!extruder->isExtruding)
+	if (!extrusion->isActive)
 		return;
-	extruder->isExtruding = false;
+	extrusion->isActive = false;
 
 	if (_pathCurr.empty())
 		return;
-	extruder->numPathPointsMax = std::max<size_t>(extruder->numPathPointsMax, _pathCurr.size());
-	extruder->numPaths = (*_extruderPathsCurr).size();
+	extrusion->numPathPointsMax = std::max<size_t>(extrusion->numPathPointsMax, _pathCurr.size());
+	extrusion->numPaths = (*_extruderPathsCurr).size();
 
 //	dumpSubPath(blockStringCurr, subPathCurr);
 
@@ -365,11 +365,11 @@ void GCodeProgramProcessor::setExtrusionOff(Extrusion* extruder)
 	_pathCurr = ExtrPath();
 }
 
-void GCodeProgramProcessor::setExtrusionOn(Extrusion* extruder, const ExtrPoint& lastAbsCoords)
+void GCodeProgramProcessor::setExtrusionOn(Extrusion* extrusion, const ExtrPoint& lastAbsCoords)
 {// If we are setting extrusion on, add new (empty) path to path vector.
-	if (extruder->isExtruding)
+	if (extrusion->isActive)
 		return;
-	extruder->isExtruding = true;
+	extrusion->isActive = true;
 	_pathCurr.push_back(lastAbsCoords);
 }
 

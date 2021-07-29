@@ -15,22 +15,27 @@ GCodeProgramGenerator::GCodeProgramGenerator(const GCodeProgramGeneratorParams& 
 		// Support
 		// Rafts
 		// Brim
+		// Skirt
 	}
 
 	// Generate Extrusions
 	{
-		// Generate MultiLayers
+		// Generate Raft Extrusion
+		// Generate a bottom Extrusion.
+		// Generate DualExtrusions
 		{
-			// Generate a bottom MultiLayer structure.
-			// Keep generating MultiLayers, until the top layer+(final multilayer height) <= maxHeight.
-			// Generate a top MultiLayer structure.
+			// Keep generating DualExtrusions for each thick Extrusion layer, until reaching h=(maxHeight-topExtrHeight).
+			{// The same thick layer height applies to all model groups.
+				// Generate separate DualExtrusions for all model groups
+				// - which will fall into different Extrusions and/or Annotations
+				// Merge Extrusions within groups/Annotations.
+			}
 		}
-
-		// Regroup Multilayers to generate Extrusions
+		// Generate a top Extrusion
 	}
 
 	// Convert Extrusions to gcodeprogram
-	{
+	{// For every matching DualExtrusion layer index.
 		// Keep generating gcode_program parts, starting from lowest layer, going up.
 	}
 }
