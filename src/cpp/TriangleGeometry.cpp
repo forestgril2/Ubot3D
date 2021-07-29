@@ -820,11 +820,7 @@ void TriangleGeometry::generateSupportGeometries()
 		const std::vector<Vec3> edgeVertices = getEdgeVertices(_data.vertices,
 															   island.getBoundaryEdges(),
 															   /*isDuplicatingSecondVertex*/ true);
-
-		std::cout << " ### " << __FUNCTION__ << " objectName: " << objectName().toStdString()
-											 << ", raft height: " << _raftHeight
-											 << ", _minBound.z + _raftHeight: " << _minBound.z + _raftHeight
-											 << std::endl;
+;
 		std::shared_ptr<TriangleGeometry> support = Helpers3D::computeExtrudedPlanarMesh(island.getTriangleIndices(),
 																						 _data.vertices,
 																						 edgeVertices,
@@ -845,22 +841,33 @@ void TriangleGeometry::generateRaftGeometries()
 
 	const double upperBaseRaftZlevel = _minBound.z;
 
-	//TODO: Raft geometries should have their own types, inheriting from TriangleGeometry.
+	//TODO: Do raft geometries should have their own types, inheriting from TriangleGeometry? Not only in QML?
 	const ClipperLib::Paths offsetPathsResult = offsetClipperPaths(_bottomLayer.polylines, _raftOffset);
 	const TriangleGeometryData polygonMesh = computePolygonTriangulationMesh(offsetPathsResult,
 																			 upperBaseRaftZlevel,
 																			 {0, 0, 1.0f},
 																			 &_triangleIslandBoundaries);
-
 #ifndef NDEBUG
 	generateDebugTriangleEdges(triangulation.getMesh().vertices, triangulation.getMesh().indices);
 #endif
 
-	_raftGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(polygonMesh.indices,
-																   polygonMesh.vertices,
-																   polygonMesh.vertices,
-																   _minBound.z - _raftHeight));
+	// TODO: Investigate these geometries - do they look correctly inside? It seems like some artifacts are there.
+	TriangleConnectivity triangleConnectivity(polygonMesh.indices);
+	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
+	for (const TriangleIsland& island : triangleIslands)
+	{// Generate a support geometry for each overhanging triangle island.
+		const std::vector<Vec3> edgeVertices = getEdgeVertices(polygonMesh.vertices,
+															   island.getBoundaryEdges(),
+															   /*isDuplicatingSecondVertex*/ true);
 
+		std::shared_ptr<TriangleGeometry> raft = Helpers3D::computeExtrudedPlanarMesh(island.getTriangleIndices(),
+																					  polygonMesh.vertices,
+																					  edgeVertices,
+																					  _minBound.z - _raftHeight);
+		raft->_isMainGeometry = false;
+		_raftGeometries.push_back(raft);
+		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(edgeVertices));
+	}
 	emit raftGeometriesChanged();
 }
 
