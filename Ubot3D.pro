@@ -32,6 +32,7 @@ SUBDIRS += src/cpp src/qml
 
 SOURCES += \
     src/cpp/Edge.cpp \
+    src/cpp/Extrusion.cpp \
     src/cpp/FileImportExport.cpp \
     src/cpp/GCodeProgramGenerator.cpp \
     src/cpp/Layer.cpp \
@@ -53,6 +54,7 @@ SOURCES += \
 
 HEADERS += \
         src/cpp/Edge.h \
+        src/cpp/Extrusion.h \
         src/cpp/FileImportExport.h \
         src/cpp/GCodeProgramGenerator.h \
         src/cpp/Layer.h \

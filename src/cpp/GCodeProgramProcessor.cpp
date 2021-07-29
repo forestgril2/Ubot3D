@@ -3,6 +3,8 @@
 #include <gcode_program.h>
 #include <parser.h>
 #include <cfloat>
+
+#include <Extrusion.h>
 #include <Helpers3D.h>
 
 // That would be around 10GB GCode probably.

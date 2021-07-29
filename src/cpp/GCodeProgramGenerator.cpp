@@ -2,6 +2,11 @@
 
 #include <gcode_program.h>
 
+#include <Extrusion.h>
+
+namespace Slicer
+{
+
 GCodeProgramGenerator::GCodeProgramGenerator(const GCodeProgramGeneratorParams& params)
 {
 	// Get model data and assign it to different model groups in model collection:
@@ -12,14 +17,19 @@ GCodeProgramGenerator::GCodeProgramGenerator(const GCodeProgramGeneratorParams& 
 		// Brim
 	}
 
-	// Generate MultiLayers
+	// Generate Extrusions
 	{
-		// Generate a bottom MultiLayer structure.
-		// Keep generating MultiLayers, until the top layer+(final multilayer height) <= maxHeight.
-		// Generate a top MultiLayer structure.
+		// Generate MultiLayers
+		{
+			// Generate a bottom MultiLayer structure.
+			// Keep generating MultiLayers, until the top layer+(final multilayer height) <= maxHeight.
+			// Generate a top MultiLayer structure.
+		}
+
+		// Regroup Multilayers to generate Extrusions
 	}
 
-	// Convert layers to gcodeprogram
+	// Convert Extrusions to gcodeprogram
 	{
 		// Keep generating gcode_program parts, starting from lowest layer, going up.
 	}
@@ -33,4 +43,6 @@ std::shared_ptr<gpr::gcode_program> GCodeProgramGenerator::getProgram() const
 std::shared_ptr<gpr::gcode_program> GCodeProgramGenerator::getProgram()
 {
 	return _program;
+}
+
 }

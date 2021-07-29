@@ -6,22 +6,23 @@
 
 #include <algorithm>
 #include <assert.h>
+#include <cfloat>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <iostream>
 #include <fstream>
 #include <optional>
 #include <string>
 
-#include <Chronograph.h>
+#include <Eigen/Geometry>
+
 #include <CommonDefs.h>
+
+#include <Chronograph.h>
+#include <Extrusion.h>
 #include <GCodeProgramProcessor.h>
 #include <Helpers3D.h>
-
-#include <cmath>
-#include <cfloat>
-
-#include <Eigen/Geometry>
 
 
 using namespace Eigen;

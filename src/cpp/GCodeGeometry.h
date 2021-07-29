@@ -8,6 +8,7 @@
 #include <qqml.h>
 
 #include <CommonDefs.h>
+#include <Extrusion.h>
 
 class GCodeGeometry : public QQuick3DGeometry
 {

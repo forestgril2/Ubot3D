@@ -4,6 +4,7 @@
 #include <string>
 
 #include <CommonDefs.h>
+#include <Extrusion.h>
 
 namespace gpr
 {
