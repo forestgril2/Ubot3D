@@ -224,10 +224,10 @@ private:
 	std::shared_ptr<TriangleGeometry> extrudedTriangleIsland(const TriangleIsland& island);
 	float getMinBoundZDistToSceneFloor() const;
 	static ClipperLib::Paths offsetClipperPaths(const Slicer::Layer::Polylines& polylines, double offset);
-	static PolygonTriangulation computeBoundedTriangulation(const ClipperLib::Paths& pathsCl,
-															float zLevel,
-															QVector<QVector<QVector3D>>* debugBoundaries = nullptr);
-	float getUpperRaftBase() const;
+	static TriangleGeometryData computePolygonTriangulationMesh(const ClipperLib::Paths& pathsCl,
+																float zLevel,
+																const Vec3& meshNormal,
+																QVector<QVector<QVector3D>>* debugBoundaries = nullptr);
 
 	bool _isMainGeometry;
 };

@@ -721,42 +721,6 @@ float TriangleGeometry::getMinBoundZDistToSceneFloor() const
 	return _raftHeight - _sceneTransform.column(3).z();
 }
 
-void TriangleGeometry::generateSupportGeometries()
-{//TODO: Support geometries should have their own types, inheriting from TriangleGeometry.
-	Chronograph chronograph(__FUNCTION__, true);
-	if (!_isMainGeometry)
-		return;
-
-	generateDebugTriangleEdges(_data.vertices, _overhangingTriangleIndices);
-
-	TriangleConnectivity triangleConnectivity(_overhangingTriangleIndices);
-	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
-
-	_supportGeometries.clear();
-	_triangleIslandBoundaries.clear();
-
-	for (const TriangleIsland& island : triangleIslands)
-	{// Generate a support geometry for each overhanging triangle island.
-		const std::vector<Vec3> edgeVertices = getEdgeVertices(_data.vertices,
-															   island.getBoundaryEdges(),
-															   /*isDuplicatingSecondVertex*/ true);
-
-		std::cout << " ### " << __FUNCTION__ << " objectName: " << objectName().toStdString()
-											 << ", raft height: " << _raftHeight
-											 << ", _minBound.z + _raftHeight: " << _minBound.z + _raftHeight
-											 << std::endl;
-		std::shared_ptr<TriangleGeometry> support = Helpers3D::computeExtrudedPlanarMesh(island.getTriangleIndices(),
-																						 _data.vertices,
-																						 edgeVertices,
-																						 _minBound.z - _raftHeight);
-		support->_isMainGeometry = false;
-		_supportGeometries.push_back(support);
-		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(edgeVertices));
-	}
-
-	emit supportGeometriesChanged();
-}
-
 void TriangleGeometry::clearSupportGeometries()
 {
 	_supportGeometries.clear();
@@ -800,9 +764,10 @@ ClipperLib::Paths TriangleGeometry::offsetClipperPaths(const Slicer::Layer::Poly
 	return offsetPathsResult;
 }
 
-PolygonTriangulation TriangleGeometry::computeBoundedTriangulation(const ClipperLib::Paths& pathsCl,
-																   float zLevel,
-																   QVector<QVector<QVector3D>>* debugBoundaries)
+TriangleGeometryData TriangleGeometry::computePolygonTriangulationMesh(const ClipperLib::Paths& pathsCl,
+																	   float zLevel,
+																	   const Vec3& meshNormal,
+																	   QVector<QVector<QVector3D>>* debugBoundaries)
 {
 	TriangleGeometryData raftData;
 	std::list<std::vector<uint32_t>> offsetTriangulationBoundaries;
@@ -833,12 +798,43 @@ PolygonTriangulation TriangleGeometry::computeBoundedTriangulation(const Clipper
 //		_raftGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(island, _data.vertices, 1, offsetBoundary));
 	}
 
-	return PolygonTriangulation(raftData.vertices, offsetTriangulationBoundaries);
+	return PolygonTriangulation(raftData.vertices, offsetTriangulationBoundaries, zLevel, meshNormal).getMesh();
 }
 
-float TriangleGeometry::getUpperRaftBase() const
-{
-	return _minBound.z + _raftHeight;
+void TriangleGeometry::generateSupportGeometries()
+{//TODO: Support geometries should have their own types, inheriting from TriangleGeometry.
+	Chronograph chronograph(__FUNCTION__, true);
+	if (!_isMainGeometry)
+		return;
+
+	generateDebugTriangleEdges(_data.vertices, _overhangingTriangleIndices);
+
+	TriangleConnectivity triangleConnectivity(_overhangingTriangleIndices);
+	std::vector<TriangleIsland> triangleIslands = triangleConnectivity.calculateIslands();
+
+	_supportGeometries.clear();
+	_triangleIslandBoundaries.clear();
+
+	for (const TriangleIsland& island : triangleIslands)
+	{// Generate a support geometry for each overhanging triangle island.
+		const std::vector<Vec3> edgeVertices = getEdgeVertices(_data.vertices,
+															   island.getBoundaryEdges(),
+															   /*isDuplicatingSecondVertex*/ true);
+
+		std::cout << " ### " << __FUNCTION__ << " objectName: " << objectName().toStdString()
+											 << ", raft height: " << _raftHeight
+											 << ", _minBound.z + _raftHeight: " << _minBound.z + _raftHeight
+											 << std::endl;
+		std::shared_ptr<TriangleGeometry> support = Helpers3D::computeExtrudedPlanarMesh(island.getTriangleIndices(),
+																						 _data.vertices,
+																						 edgeVertices,
+																						 _minBound.z - _raftHeight);
+		support->_isMainGeometry = false;
+		_supportGeometries.push_back(support);
+		_triangleIslandBoundaries.emplace_back(convertToQVectors3D(edgeVertices));
+	}
+
+	emit supportGeometriesChanged();
 }
 
 void TriangleGeometry::generateRaftGeometries()
@@ -847,23 +843,23 @@ void TriangleGeometry::generateRaftGeometries()
 	_raftGeometries.clear();
 	_triangleIslandBoundaries.clear();
 
+	const double upperBaseRaftZlevel = _minBound.z;
+
 	//TODO: Raft geometries should have their own types, inheriting from TriangleGeometry.
 	const ClipperLib::Paths offsetPathsResult = offsetClipperPaths(_bottomLayer.polylines, _raftOffset);
-	const PolygonTriangulation triangulation = computeBoundedTriangulation(offsetPathsResult,
-																		   _sceneTransform.row(3).z(),
-																		   &_triangleIslandBoundaries);
+	const TriangleGeometryData polygonMesh = computePolygonTriangulationMesh(offsetPathsResult,
+																			 upperBaseRaftZlevel,
+																			 {0, 0, 1.0f},
+																			 &_triangleIslandBoundaries);
 
 #ifndef NDEBUG
 	generateDebugTriangleEdges(triangulation.getMesh().vertices, triangulation.getMesh().indices);
 #endif
 
-	//TODO: Shitty code: triangulation.getMesh().vertices passed as normals, because not using them here anyway...
-	TriangleGeometryData data{triangulation.getMesh().vertices, triangulation.getMesh().vertices, triangulation.getMesh().indices};
-
-	_raftGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(triangulation.getMesh().indices,
-																   triangulation.getMesh().vertices,
-																   triangulation.getMesh().vertices,
-																   0));
+	_raftGeometries.push_back(Helpers3D::computeExtrudedPlanarMesh(polygonMesh.indices,
+																   polygonMesh.vertices,
+																   polygonMesh.vertices,
+																   _minBound.z - _raftHeight));
 
 	emit raftGeometriesChanged();
 }

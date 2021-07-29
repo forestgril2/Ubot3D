@@ -82,7 +82,9 @@ void mark_domains(CDT& cdt)
 }
 
 PolygonTriangulation::PolygonTriangulation(const std::vector<Vec3>& vertices,
-										   const std::list<std::vector<uint32_t>>& boundaryNodeRings)
+										   const std::list<std::vector<uint32_t>>& boundaryNodeRings,
+										   const float zLevel,
+										   const Vec3& meshNormal)
 {
 	CDT cdt;
 
@@ -108,7 +110,8 @@ PolygonTriangulation::PolygonTriangulation(const std::vector<Vec3>& vertices,
 			for (uint32_t i=0; i<3; i++)
 			{
 				Point vertex = f->vertex(int(i))->point();
-				_mesh.vertices.push_back({float(vertex.x()), float(vertex.y()), 0.0f});
+				_mesh.vertices.push_back({float(vertex.x()), float(vertex.y()), zLevel});
+				_mesh.normals.push_back(meshNormal);
 				_mesh.indices.push_back(indices++);
 			}
 		}
