@@ -16,21 +16,22 @@ namespace gpr
 
 
 class TriangleData;
+using SharedGCode = std::shared_ptr<gpr::gcode_program>;
+using SharedSurface = std::shared_ptr<TriangleData>;
+using SharedSurfaces = std::map<std::string, SharedSurface>;
+using SharedExtrusion = std::shared_ptr<Extrusion>;
+using SharedExtrusions = std::map<std::string, SharedExtrusion>;
 
 namespace Slicer
 {
 
-
 class SolidSurfaceModels
 {
 public:
-	const TriangleData& getMainModel() const;
-	const TriangleData& getSupport()   const;
-	const TriangleData& getRafts()     const;
-	const TriangleData& getBrim()      const;
-	const TriangleData& getSkirt()     const;
-
+	const SharedSurfaces& operator()() const;
 	float getMaxheight() const;
+private:
+	SharedSurfaces _surfaces;
 };
 
 struct DualExtrusion
@@ -46,13 +47,13 @@ class GCodeProgramGenerator
 public:
 	GCodeProgramGenerator(const SolidSurfaceModels& input);
 
-	std::shared_ptr<gpr::gcode_program> getProgram() const;
-	std::shared_ptr<gpr::gcode_program> getProgram();
+	SharedGCode getProgram() const;
+	SharedGCode getProgram();
 
 private:
-	std::map<uint32_t, std::shared_ptr<Extrusion>> computeExtrusions(const SolidSurfaceModels& input) const;
-	std::shared_ptr<gpr::gcode_program> generateProgram(std::map<uint32_t, std::shared_ptr<Extrusion>>&& extrusions) const;
+	SharedExtrusions computeExtrusions(const SolidSurfaceModels& input) const;
+	SharedGCode generateProgram(SharedExtrusions&& extrusions) const;
 
-	std::shared_ptr<gpr::gcode_program> _program;
+	SharedGCode _program;
 };
 }

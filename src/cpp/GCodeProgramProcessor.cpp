@@ -255,7 +255,7 @@ void GCodeProgramProcessor::updateLastAbsCoords()
 	}
 }
 
-std::map<uint32_t, Extrusion>& GCodeProgramProcessor::createExtrusionData(const std::string& inputFilePath)
+std::map<uint32_t, Extrusion>& GCodeProgramProcessor::generateExtrusionsFromGCode(const std::string& inputFilePath)
 {
 	Chronograph chronograph(__FUNCTION__, true);
 

@@ -16,27 +16,27 @@ GCodeProgramGenerator::GCodeProgramGenerator(const SolidSurfaceModels& input)
 	_program = generateProgram(computeExtrusions(input));
 }
 
-std::shared_ptr<gpr::gcode_program> GCodeProgramGenerator::getProgram() const
+SharedGCode GCodeProgramGenerator::getProgram() const
 {
 	return _program;
 }
 
-std::shared_ptr<gpr::gcode_program> GCodeProgramGenerator::getProgram()
+SharedGCode GCodeProgramGenerator::getProgram()
 {
 	return _program;
 }
 
-std::map<uint32_t, std::shared_ptr<Extrusion>> GCodeProgramGenerator::computeExtrusions(const SolidSurfaceModels& input) const
+SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceModels& input) const
 {
-	std::map<uint32_t, std::shared_ptr<Extrusion>> extrusions;
+	SharedExtrusions extrusions;
 
 	// Get model data and assign it to different model groups in model collection:
 	{
-		const TriangleData& mainModel = input.getMainModel();
-		const TriangleData& support   = input.getSupport()  ;
-		const TriangleData& rafts     = input.getRafts()    ;
-		const TriangleData& brim      = input.getBrim()     ;
-		const TriangleData& skirt     = input.getSkirt()    ;
+//		const TriangleData& mainModel = input.getMainModel();
+//		const TriangleData& support   = input.getSupport()  ;
+//		const TriangleData& rafts     = input.getRafts()    ;
+//		const TriangleData& brim      = input.getBrim()     ;
+//		const TriangleData& skirt     = input.getSkirt()    ;
 	}
 	const float maxHeight = input.getMaxheight();
 
@@ -56,11 +56,16 @@ std::map<uint32_t, std::shared_ptr<Extrusion>> GCodeProgramGenerator::computeExt
 	return extrusions;
 }
 
-std::shared_ptr<gpr::gcode_program> GCodeProgramGenerator::generateProgram(std::map<uint32_t, std::shared_ptr<Extrusion> >&& extrusions) const
+SharedGCode GCodeProgramGenerator::generateProgram(SharedExtrusions&& extrusions) const
 {
 	{// For every matching DualExtrusion layer index.
 		// Keep generating gcode_program parts, starting from lowest layer, going up.
 	}
+}
+
+const SharedSurfaces& SolidSurfaceModels::operator()() const
+{
+	return _surfaces;
 }
 
 }
