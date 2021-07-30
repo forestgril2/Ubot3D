@@ -74,7 +74,7 @@ ClipperLib::Paths NaivePerimeterGenerator::slicerPathsToClipperPaths(const Layer
 }
 
 void NaivePerimeterGenerator::debug_draw(std::vector<ClipperLib::Paths> paths,
-                                   TriangleGeometry& g)
+										 TriangleGeometry& g)
 {
 
     for(auto const& pp : paths)
@@ -104,7 +104,7 @@ void NaivePerimeterGenerator::debug_draw(std::vector<ClipperLib::Paths> paths,
                 vertCnt++;
             }
 
-            g._triangleIslandBoundaries.emplace_back(offsetBoundary);
+			g.getTriangleIslandBoundaries().emplace_back(offsetBoundary);
         }
     }
 

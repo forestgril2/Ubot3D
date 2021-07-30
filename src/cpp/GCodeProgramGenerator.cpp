@@ -61,11 +61,18 @@ SharedGCode GCodeProgramGenerator::generateProgram(SharedExtrusions&& extrusions
 	{// For every matching DualExtrusion layer index.
 		// Keep generating gcode_program parts, starting from lowest layer, going up.
 	}
+
+	return SharedGCode();
 }
 
 const SharedSurfaces& SolidSurfaceModels::operator()() const
 {
 	return _surfaces;
+}
+
+float SolidSurfaceModels::getMaxheight() const
+{
+	return _maxHeight;
 }
 
 }

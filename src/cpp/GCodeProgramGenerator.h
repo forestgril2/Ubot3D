@@ -32,6 +32,7 @@ public:
 	float getMaxheight() const;
 private:
 	SharedSurfaces _surfaces;
+	float _maxHeight;
 };
 
 struct DualExtrusion
