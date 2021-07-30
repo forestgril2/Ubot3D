@@ -30,21 +30,9 @@ SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceMode
 														  const ExtrusionParamSets& params) const
 {
 	SharedExtrusions extrusions = primeExtrusions(models, params);
-
-	// Get model data and assign it to different model groups in model collection:
-	{
-//		const TriangleData& mainModel = input.getMainModel();
-//		const TriangleData& support   = input.getSupport()  ;
-//		const TriangleData& rafts     = input.getRafts()    ;
-//		const TriangleData& brim      = input.getBrim()     ;
-//		const TriangleData& skirt     = input.getSkirt()    ;
-	}
-
 	const std::vector<Real> layerBottoms = computeLayerBottoms(models, params);
 
-	// Generate Raft Extrusion
-	// Generate a bottom Extrusion.
-	// Generate DualExtrusions
+
 	{
 		// Keep generating DualExtrusions for each thick Extrusion layer, until reaching h=(maxHeight-topExtrHeight).
 		{// The same thick layer height applies to all model groups.
@@ -59,13 +47,21 @@ SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceMode
 }
 
 SharedExtrusions GCodeProgramGenerator::primeExtrusions(const SolidSurfaceModels& models,
-														const ExtrusionParamSets& params) const
+														const ExtrusionParamSets& params)
 {// Generate an ExtrusionId's and an empty Extrusion for the given params.
+	// Get model data and assign it to different model groups in model collection:
+	{
+//		const TriangleData& mainModel = input.getMainModel();
+//		const TriangleData& support   = input.getSupport()  ;
+//		const TriangleData& rafts     = input.getRafts()    ;
+//		const TriangleData& brim      = input.getBrim()     ;
+//		const TriangleData& skirt     = input.getSkirt()    ;
+	}
 	return {};
 }
 
 std::vector<Real> GCodeProgramGenerator::computeLayerBottoms(const SolidSurfaceModels& models,
-															 const ExtrusionParamSets& params) const
+															 const ExtrusionParamSets& params)
 {
 	return {};
 }

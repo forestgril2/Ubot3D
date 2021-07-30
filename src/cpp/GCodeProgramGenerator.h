@@ -3,6 +3,11 @@
 #include <memory>
 #include <vector>
 
+#include <json.hpp>
+
+// for convenience
+using json = nlohmann::json;
+
 #include <Extrusion.h>
 #include <Layer.h>
 
@@ -23,9 +28,20 @@ namespace Slicer
 using ExtrusionId = std::string;
 using SurfaceId = std::string;
 
+
 struct ExtrusionParams
 {
 	ExtrusionId id;
+	json params =
+	{
+		{"Infill" , {}},
+		{"Outline", {}},
+		{"Bottom" , {}},
+		{"Top"	  , {}},
+		{"Support", {}},
+		{"Raft"	  , {}},
+		{"Skirt"  , {}},
+	};
 };
 
 using SharedGCode = std::shared_ptr<gpr::gcode_program>;
@@ -43,6 +59,10 @@ public:
 private:
 	SharedSurfaces _surfaces;
 	float _maxHeight;
+};
+
+class DualExtrusionData
+{
 };
 
 class ExtrusionParamSets
@@ -73,10 +93,28 @@ private:
 	 * @param params Parameters for the extrusion.
 	 * @return A mapping of empty extrusions to their ids.
 	 */
-	SharedExtrusions primeExtrusions(const SolidSurfaceModels& models,
-									   const ExtrusionParamSets& params) const;
-	std::vector<Real> computeLayerBottoms(const SolidSurfaceModels& models,
-										  const ExtrusionParamSets& params) const;
+	static SharedExtrusions primeExtrusions(const SolidSurfaceModels& models,
+											const ExtrusionParamSets& params);
+	static std::vector<Real> computeLayerBottoms(const SolidSurfaceModels& models,
+												 const ExtrusionParamSets& params);
+	/**
+	 * @brief splitDualExtrusion Splits an Extrusion at a certain infill layer, and generates
+	 * DualExtrusionData.
+	 * @param extrusion
+	 * @param model
+	 * @param params
+	 * @param layerBottom
+	 * @param layerTop
+	 * @return
+	 */
+	static DualExtrusionData splitDualExtrusion(SharedExtrusion& extrusion,
+												const SharedSurface& model,
+												const SharedParams params,
+												const float layerBottom,
+												const float layerTop);
+
+	static SharedExtrusions generateDualExtrusions(const DualExtrusionData& data);
+
 	SharedGCode generateProgram(SharedExtrusions&& extrusions) const;
 
 	SharedGCode _program;
