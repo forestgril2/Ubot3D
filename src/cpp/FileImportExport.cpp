@@ -319,9 +319,9 @@ static std::vector<uint32_t>& getSceneIndices(const aiScene* scene,
 	return indices;
 };
 
-static TriangleGeometryData getCombinedScenesTriangleData(const std::vector<aiScene*>& scenes, const uint32_t finalIndicesSize = 0)
+static TriangleData getCombinedScenesTriangleData(const std::vector<aiScene*>& scenes, const uint32_t finalIndicesSize = 0)
 {
-	TriangleGeometryData data;
+	TriangleData data;
 	data.indices.reserve(finalIndicesSize);
 	for (const aiScene* scene : scenes)
 	{
@@ -366,8 +366,8 @@ static bool exportAssimpScenesAsStl(const std::string& filePath,
 {
 	const StlHeaderData headerData = getStlHeaderFromAssimpScenes(modelScenes, supportScenes, standScenes);
 
-	const TriangleGeometryData modelData   = getCombinedScenesTriangleData(modelScenes,   3 * headerData.numModelTriangles);
-	const TriangleGeometryData supportData = getCombinedScenesTriangleData(supportScenes, 3 * headerData.numSupportTriangles);
+	const TriangleData modelData   = getCombinedScenesTriangleData(modelScenes,   3 * headerData.numModelTriangles);
+	const TriangleData supportData = getCombinedScenesTriangleData(supportScenes, 3 * headerData.numSupportTriangles);
 	//TODO: Add "isInitialized" to TriangleGeometryData or let know otherwise.
 //	const TriangleGeometryData standData   = getCombinedScenesTriangleData(standScenes,   3 * headerData.numStandTriangles);
 
@@ -378,7 +378,7 @@ static bool exportAssimpScenesAsStl(const std::string& filePath,
 	assert(0 == numTotalIndices%3);
 	triangles.reserve(numTotalIndices/3);
 
-	auto addExportTriangles = [](const TriangleGeometryData& data, std::vector<StlTriangleData>& triangles) {
+	auto addExportTriangles = [](const TriangleData& data, std::vector<StlTriangleData>& triangles) {
 		for (uint32_t i=0; i<data.indices.size(); i+=3)
 		{
 			const uint32_t i0 = data.indices[i   ];

@@ -407,7 +407,7 @@ TriangleGeometry::TriangleGeometry() :
 	_minBound(aiVector3D(FLT_MAX, FLT_MAX, FLT_MAX)),
 	_isMainGeometry(true)
 {
-	updateData(TriangleGeometryData());
+	updateData(TriangleData());
 
 
 	connect(this, &QQuick3DObject::parentChanged, this, [](){
@@ -431,7 +431,7 @@ TriangleGeometry::TriangleGeometry() :
 	connect(this, &TriangleGeometry::supportGeometriesChanged, this, &TriangleGeometry::triangleIslandBoundariesChanged);
 }
 
-TriangleGeometry::TriangleGeometry(const TriangleGeometryData& data) : TriangleGeometry()
+TriangleGeometry::TriangleGeometry(const TriangleData& data) : TriangleGeometry()
 {
 	updateData(data);
 }
@@ -764,12 +764,12 @@ ClipperLib::Paths TriangleGeometry::offsetClipperPaths(const Slicer::Layer::Poly
 	return offsetPathsResult;
 }
 
-TriangleGeometryData TriangleGeometry::computePolygonTriangulationMesh(const ClipperLib::Paths& pathsCl,
+TriangleData TriangleGeometry::computePolygonTriangulationMesh(const ClipperLib::Paths& pathsCl,
 																	   float zLevel,
 																	   const Vec3& meshNormal,
 																	   QVector<QVector<QVector3D>>* debugBoundaries)
 {
-	TriangleGeometryData raftData;
+	TriangleData raftData;
 	std::list<std::vector<uint32_t>> offsetTriangulationBoundaries;
 	uint32_t ringNodeCount = 0;
 
@@ -843,7 +843,7 @@ void TriangleGeometry::generateRaftGeometries()
 
 	//TODO: Do raft geometries should have their own types, inheriting from TriangleGeometry? Not only in QML?
 	const ClipperLib::Paths offsetPathsResult = offsetClipperPaths(_bottomLayer.polylines, _raftOffset);
-	const TriangleGeometryData polygonMesh = computePolygonTriangulationMesh(offsetPathsResult,
+	const TriangleData polygonMesh = computePolygonTriangulationMesh(offsetPathsResult,
 																			 upperBaseRaftZlevel,
 																			 {0, 0, 1.0f},
 																			 &_triangleIslandBoundaries);
@@ -963,7 +963,7 @@ QVector<QVector<QVector3D>>& TriangleGeometry::getTriangleIslandBoundaries()
 	return _triangleIslandBoundaries;
 }
 
-TriangleGeometryData TriangleGeometry::prepareDataFromAssimpScene()
+TriangleData TriangleGeometry::prepareDataFromAssimpScene()
 {// Assimp vertices from STL are not unique, lets remove duplicates and remap indices.
 	Chronograph chronograph(__FUNCTION__, true);
 
@@ -971,7 +971,7 @@ TriangleGeometryData TriangleGeometry::prepareDataFromAssimpScene()
 	std::vector<Vec3> assimpNormals;
 	Helpers3D::getContiguousAssimpVerticesAndNormals(_scene, assimpVertices, assimpNormals);
 
-	TriangleGeometryData returnData;
+	TriangleData returnData;
 	const IndicesToVertices indicesToUniqueVertices =
 			Helpers3D::mapIndicesToUniqueVerticesAndNormals(assimpVertices,      assimpNormals,
 															returnData.vertices, returnData.normals);
@@ -979,7 +979,7 @@ TriangleGeometryData TriangleGeometry::prepareDataFromAssimpScene()
 	return returnData;
 }
 
-void TriangleGeometry::updateData(const TriangleGeometryData& data)
+void TriangleGeometry::updateData(const TriangleData& data)
 {
 	Chronograph chronograph(__FUNCTION__, false);
 

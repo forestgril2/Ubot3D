@@ -16,10 +16,10 @@ public:
 						 const float zLevel,
 						 const Vec3& meshNormal);
 
-	const TriangleGeometryData& getMesh() const { return _mesh; }
+	const TriangleData& getMesh() const { return _mesh; }
 	const std::list<std::vector<uint32_t>>& getBorders() const { return _borders; }
 
 private:
-	TriangleGeometryData _mesh;
+	TriangleData _mesh;
 	std::list<std::vector<uint32_t>> _borders;
 };

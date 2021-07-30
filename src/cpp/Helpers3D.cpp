@@ -205,7 +205,7 @@ std::shared_ptr<TriangleGeometry> Helpers3D::computeExtrudedPlanarMesh(const std
 																	   const std::vector<Vec3>& boundaryEdges,
 																	   float modelDistToFloor)
 {// Get (top) triangle island points, get it casted to floor, connect both.
-	TriangleGeometryData returnData;
+	TriangleData returnData;
 
 	std::vector<Vec3>& uniqueSupportPointsArray = returnData.vertices;
 	std::vector<uint32_t>& supportGeometryIndices = returnData.indices;

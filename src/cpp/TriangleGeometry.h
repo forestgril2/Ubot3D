@@ -22,7 +22,7 @@ struct QSSGMeshBVH;
 
 class PolygonTriangulation;
 class TriangleIsland;
-struct TriangleGeometryData
+struct TriangleData
 {
 	std::vector<Vec3> vertices = {};
 	std::vector<Vec3> normals = {};
@@ -71,9 +71,9 @@ class TriangleGeometry : public QQuick3DGeometry
 
 public:
 	TriangleGeometry();
-	TriangleGeometry(const TriangleGeometryData& data);
+	TriangleGeometry(const TriangleData& data);
 
-	const TriangleGeometryData& getData() const { return _data; }
+	const TriangleData& getData() const { return _data; }
 
 	struct PickResult
 	{
@@ -161,7 +161,7 @@ private:
 	void updateAllMeshBounds(const aiScene* scene, const unsigned meshIndex = 0u);
 	void updateBounds(const float* vertexMatrixXCoord);
 	void buildIntersectionData();
-	void updateData(const TriangleGeometryData& data);
+	void updateData(const TriangleData& data);
 
 	void generateSupportGeometries();
 	void clearSupportGeometries();
@@ -178,7 +178,7 @@ private:
 	void logBounds();
 
 	// Member variables
-	TriangleGeometryData _data;
+	TriangleData _data;
 	QSSGMeshBVH* _intersectionData = nullptr;
 	QMatrix4x4 _sceneTransform;
 
@@ -220,14 +220,14 @@ private:
 //	QSSGMeshUtilities::OffsetDataRef<QSSGMeshUtilities::Joint> m_joints;
 
 	QString _inputFile;
-	TriangleGeometryData prepareDataFromAssimpScene();
+	TriangleData prepareDataFromAssimpScene();
 	std::shared_ptr<TriangleGeometry> extrudedTriangleIsland(const TriangleIsland& island);
 	float getMinBoundZDistToSceneFloor() const;
 	static ClipperLib::Paths offsetClipperPaths(const Slicer::Layer::Polylines& polylines, double offset);
-	static TriangleGeometryData computePolygonTriangulationMesh(const ClipperLib::Paths& pathsCl,
-																float zLevel,
-																const Vec3& meshNormal,
-																QVector<QVector<QVector3D>>* debugBoundaries = nullptr);
+	static TriangleData computePolygonTriangulationMesh(const ClipperLib::Paths& pathsCl,
+														float zLevel,
+														const Vec3& meshNormal,
+														QVector<QVector<QVector3D>>* debugBoundaries = nullptr);
 
 	bool _isMainGeometry;
 };
