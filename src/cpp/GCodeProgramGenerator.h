@@ -14,16 +14,26 @@ namespace gpr
 	class addr;
 };
 
-
 class TriangleData;
-using SharedGCode = std::shared_ptr<gpr::gcode_program>;
-using SharedSurface = std::shared_ptr<TriangleData>;
-using SharedSurfaces = std::map<std::string, SharedSurface>;
-using SharedExtrusion = std::shared_ptr<Extrusion>;
-using SharedExtrusions = std::map<std::string, SharedExtrusion>;
+
 
 namespace Slicer
 {
+
+using ExtrusionId = std::string;
+using SurfaceId = std::string;
+
+struct ExtrusionParams
+{
+	ExtrusionId id;
+};
+
+using SharedGCode = std::shared_ptr<gpr::gcode_program>;
+using SharedParams = std::shared_ptr<ExtrusionParams>;
+using SharedSurface = std::shared_ptr<TriangleData>;
+using SharedSurfaces = std::map<SurfaceId, SharedSurface>;
+using SharedExtrusion = std::shared_ptr<Extrusion>;
+using SharedExtrusions = std::map<ExtrusionId, SharedExtrusion>;
 
 class SolidSurfaceModels
 {
@@ -35,24 +45,38 @@ private:
 	float _maxHeight;
 };
 
-struct DualExtrusion
+class ExtrusionParamSets
 {
-	Extrusion extr0;
-	Extrusion extr1;
-
-	Real height;
+public:
+	const SharedParams& operator()(const ExtrusionId& extrId) const;
+private:
+	SharedParams _params;
 };
 
 class GCodeProgramGenerator
 {
 public:
-	GCodeProgramGenerator(const SolidSurfaceModels& input);
+	GCodeProgramGenerator(const SolidSurfaceModels& models,
+						  const ExtrusionParamSets& params);
 
 	SharedGCode getProgram() const;
 	SharedGCode getProgram();
 
 private:
-	SharedExtrusions computeExtrusions(const SolidSurfaceModels& input) const;
+	SharedExtrusions computeExtrusions(const SolidSurfaceModels& models,
+									   const ExtrusionParamSets& params) const;
+
+	/**
+	 * @brief primeExtrusions Generates a map of empty extrusions
+	 * primed with their params sets to generated extrusion ids
+	 * @param models Model data for solid surfaces extruded in the GCode program.
+	 * @param params Parameters for the extrusion.
+	 * @return A mapping of empty extrusions to their ids.
+	 */
+	SharedExtrusions primeExtrusions(const SolidSurfaceModels& models,
+									   const ExtrusionParamSets& params) const;
+	std::vector<Real> computeLayerBottoms(const SolidSurfaceModels& models,
+										  const ExtrusionParamSets& params) const;
 	SharedGCode generateProgram(SharedExtrusions&& extrusions) const;
 
 	SharedGCode _program;

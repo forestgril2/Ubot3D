@@ -30,7 +30,7 @@ using namespace Eigen;
 
 using ExtrPath = Extrusion::Path;
 using ExtrPoint = Extrusion::Point;
-using ExtrLayer = Extrusion::Layer;
+using ExtrLayer = Extrusion::LayerBottom;
 
 static Vector3f maxFloatBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 static Vector3f minFloatBound(FLT_MAX, FLT_MAX, FLT_MAX);
@@ -454,7 +454,7 @@ bool GCodeGeometry::verifyEnoughPoints(const Extrusion::Path& subPath)
 
 float GCodeGeometry::getLayerBottom(const uint32_t layerIndex)
 {// TODO: Ideally, this function should look down below from the current nozzle level and detect the previous layer.
-	return _extrData.layers[layerIndex].second;
+	return _extrData.layerBottoms[layerIndex].second;
 }
 
 void GCodeGeometry::logSubPath(const Extrusion::Path& path)
@@ -481,7 +481,7 @@ void GCodeGeometry::generate()
 
 	//Remember start point to know the direction and level, from which extruder head arrives in next subpath.
 	ExtrPoint lastStartPoint{0,0,0,0};
-	const std::vector<ExtrLayer>& layerBottoms = _extrData.layers;
+	const std::vector<ExtrLayer>& layerBottoms = _extrData.layerBottoms;
 	const std::vector<ExtrPath>& extruderSubPaths = _extrData.paths;
 
 	for (uint32_t layerIndex=0; layerIndex<layerBottoms.size(); ++layerIndex)

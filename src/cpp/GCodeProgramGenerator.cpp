@@ -10,10 +10,10 @@
 namespace Slicer
 {
 
-GCodeProgramGenerator::GCodeProgramGenerator(const SolidSurfaceModels& input)
+GCodeProgramGenerator::GCodeProgramGenerator(const SolidSurfaceModels& models, const ExtrusionParamSets& params)
 {
 	// Generate Extrusions and convert them to GCode program.
-	_program = generateProgram(computeExtrusions(input));
+	_program = generateProgram(computeExtrusions(models, params));
 }
 
 SharedGCode GCodeProgramGenerator::getProgram() const
@@ -26,9 +26,10 @@ SharedGCode GCodeProgramGenerator::getProgram()
 	return _program;
 }
 
-SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceModels& input) const
+SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceModels& models,
+														  const ExtrusionParamSets& params) const
 {
-	SharedExtrusions extrusions;
+	SharedExtrusions extrusions = primeExtrusions(models, params);
 
 	// Get model data and assign it to different model groups in model collection:
 	{
@@ -38,7 +39,8 @@ SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceMode
 //		const TriangleData& brim      = input.getBrim()     ;
 //		const TriangleData& skirt     = input.getSkirt()    ;
 	}
-	const float maxHeight = input.getMaxheight();
+
+	const std::vector<Real> layerBottoms = computeLayerBottoms(models, params);
 
 	// Generate Raft Extrusion
 	// Generate a bottom Extrusion.
@@ -56,6 +58,18 @@ SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceMode
 	return extrusions;
 }
 
+SharedExtrusions GCodeProgramGenerator::primeExtrusions(const SolidSurfaceModels& models,
+														const ExtrusionParamSets& params) const
+{// Generate an ExtrusionId's and an empty Extrusion for the given params.
+	return {};
+}
+
+std::vector<Real> GCodeProgramGenerator::computeLayerBottoms(const SolidSurfaceModels& models,
+															 const ExtrusionParamSets& params) const
+{
+	return {};
+}
+
 SharedGCode GCodeProgramGenerator::generateProgram(SharedExtrusions&& extrusions) const
 {
 	{// For every matching DualExtrusion layer index.
@@ -70,7 +84,7 @@ const SharedSurfaces& SolidSurfaceModels::operator()() const
 	return _surfaces;
 }
 
-float SolidSurfaceModels::getMaxheight() const
+Real SolidSurfaceModels::getMaxheight() const
 {
 	return _maxHeight;
 }

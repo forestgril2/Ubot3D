@@ -38,7 +38,7 @@ void GCodeProgramProcessor::pushNewLayer()
 	const ExtrPoint previousLayerLastPoint =
 			(pathPrev.size() > 0) ? pathPrev[pathPrev.size() -1] : ExtrPoint{0,0,0,0};
 
-	_extrusionCurr->layers.push_back({_extruderPathsCurr->size(), previousLayerLastPoint.z()});
+	_extrusionCurr->layerBottoms.push_back({_extruderPathsCurr->size(), previousLayerLastPoint.z()});
 }
 
 void GCodeProgramProcessor::setExtruder(const uint32_t extruderIndex)
