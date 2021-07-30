@@ -208,7 +208,7 @@ void GCodeGeometry::loadExtruderData()
 		return;
 
 	GCodeProgramProcessor gCodeParser;
-	std::map<uint32_t, Extrusion> extrusions = gCodeParser.createExtrusionData(_inputFile.toStdString());
+	std::map<uint32_t, Extrusion> extrusions = gCodeParser.generateExtrusionsFromGCode(_inputFile.toStdString());
 
 	assert(extrusions.size() > 0);
 

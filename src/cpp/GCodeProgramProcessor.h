@@ -21,7 +21,7 @@ using ExtrLayer = Extrusion::Layer;
 class GCodeProgramProcessor
 {
 public:
-	std::map<uint32_t, Extrusion>& createExtrusionData(const std::string& inputFilePath);
+	std::map<uint32_t, Extrusion>& generateExtrusionsFromGCode(const std::string& inputFilePath);
 
 private:
 	struct WorkPoints

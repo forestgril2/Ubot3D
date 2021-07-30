@@ -14,11 +14,24 @@ namespace gpr
 	class addr;
 };
 
+
+class TriangleData;
+
 namespace Slicer
 {
 
 
-class GCodeProgramGeneratorParams;
+class SolidSurfaceModels
+{
+public:
+	const TriangleData& getMainModel() const;
+	const TriangleData& getSupport()   const;
+	const TriangleData& getRafts()     const;
+	const TriangleData& getBrim()      const;
+	const TriangleData& getSkirt()     const;
+
+	float getMaxheight() const;
+};
 
 struct DualExtrusion
 {
@@ -31,12 +44,15 @@ struct DualExtrusion
 class GCodeProgramGenerator
 {
 public:
-	GCodeProgramGenerator(const GCodeProgramGeneratorParams& params);
+	GCodeProgramGenerator(const SolidSurfaceModels& input);
 
 	std::shared_ptr<gpr::gcode_program> getProgram() const;
 	std::shared_ptr<gpr::gcode_program> getProgram();
 
 private:
+	std::map<uint32_t, std::shared_ptr<Extrusion>> computeExtrusions(const SolidSurfaceModels& input) const;
+	std::shared_ptr<gpr::gcode_program> generateProgram(std::map<uint32_t, std::shared_ptr<Extrusion>>&& extrusions) const;
+
 	std::shared_ptr<gpr::gcode_program> _program;
 };
 }
