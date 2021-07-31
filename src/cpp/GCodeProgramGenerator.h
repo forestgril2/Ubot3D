@@ -51,7 +51,7 @@ using SharedSurfaces = std::map<SurfaceId, SharedSurface>;
 using SharedExtrusion = std::shared_ptr<Extrusion>;
 using SharedExtrusions = std::map<ExtrusionId, SharedExtrusion>;
 
-using LayerBottomsDict = std::map<ExtrusionId, std::vector<Real>>;
+using LayerLevelDict = std::map<ExtrusionId, std::vector<Real>>;
 
 class SolidSurfaceModels
 {
@@ -85,6 +85,9 @@ public:
 	SharedGCode getProgram();
 
 private:
+	SharedGCode generateProgram(SharedExtrusions&& extrusions) const;
+
+	// Static methods
 	SharedExtrusions computeExtrusions(const SolidSurfaceModels& models,
 									   const ExtrusionParamSets& params) const;
 
@@ -97,7 +100,7 @@ private:
 	 */
 	static SharedExtrusions primeExtrusions(const SolidSurfaceModels& models,
 											const ExtrusionParamSets& params);
-	static LayerBottomsDict computeLayerBottoms(const SolidSurfaceModels& models,
+	static LayerLevelDict computeLayerBottoms(const SolidSurfaceModels& models,
 												const ExtrusionParamSets& params,
 												const SharedExtrusions& extrusions);
 
@@ -116,19 +119,26 @@ private:
 	 * @param model
 	 * @param params
 	 * @param layerBottom
-	 * @param layerTop
 	 * @return
 	 */
 	static DualExtrusionData splitDualExtrusion(SharedExtrusion& extrusion,
 												const SharedSurface& model,
 												const SharedParams params,
-												const float layerBottom,
-												const float layerTop);
+												const Real layerBottom);
+
+	/**
+	 * @brief getLayerExtrusionTopsDict Creates a dictionary of layer tops within extrusions matched to ExtrusionId's.
+	 * @param layerExtrusions
+	 * @param layerBottom
+	 * @return
+	 */
+	static LayerLevelDict getLayerExtrusionTopsDict(const SharedExtrusions& layerExtrusions, Real layerBottom);
 
 	static SharedExtrusions generateDualExtrusions(const DualExtrusionData& data);
 
-	SharedGCode generateProgram(SharedExtrusions&& extrusions) const;
-
+	// Members
 	SharedGCode _program;
+	static std::vector<Real> getSortedUniqueLayerLevels(const LayerLevelDict& layerDict);
+
 };
 }

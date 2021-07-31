@@ -27,28 +27,35 @@ SharedGCode GCodeProgramGenerator::getProgram()
 	return _program;
 }
 
+std::vector<Real> GCodeProgramGenerator::getSortedUniqueLayerLevels(const LayerLevelDict& layerDict)
+{
+	std::set<Real> uniqueBottoms = std::accumulate(layerDict.begin(), layerDict.end(), std::set<Real>({}),
+												[](std::set<Real>&& set, const auto& dictPair) {
+												   const auto& [extrId, bottoms] = dictPair;
+												   for (Real bottom : bottoms)
+												   {
+													   set.insert(bottom);
+												   }
+												   // TODO: Check, if this is correct.
+												   return std::move(set);
+												});
+	return std::vector<Real>(uniqueBottoms.begin(), uniqueBottoms.end());
+}
+
 SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceModels& models,
 														  const ExtrusionParamSets& params) const
 {
 	SharedExtrusions extrusions = primeExtrusions(models, params);
-	const LayerBottomsDict layerBottomsDict = computeLayerBottoms(models, params, extrusions);
-	std::set<Real> bottoms = std::accumulate(layerBottomsDict.begin(), layerBottomsDict.end(),
-												   std::set<Real>({}), [](std::set<Real>&& set, const auto& dictPair) {
-													   const auto& [extrId, bottoms] = dictPair;
-													   for (Real bottom : bottoms)
-													   {
-														   set.insert(bottom);
-													   }
-													   // TODO: Check, if this is correct.
-													   return std::move(set);
-												   });
-	std::vector<Real> uniqueBottoms(bottoms.begin(), bottoms.end());
+	const LayerLevelDict layerBottomsDict = computeLayerBottoms(models, params, extrusions);
+	std::vector<Real> uniqueBottoms = getSortedUniqueLayerLevels(layerBottomsDict);
 
 	assert(0 == uniqueBottoms[0]);
 	float prevBottom = 0.0f;
 	for (Real layerBottom : uniqueBottoms | std::views::drop(1))
 	{// Keep generating DualExtrusions until reaching top.
 		SharedExtrusions layerExtrusions = getIntersectedExtrusions(extrusions, layerBottom);
+		const LayerLevelDict layerTopsDict = getLayerExtrusionTopsDict(layerExtrusions, layerBottom);
+		const std::vector<Real> layerTops = getSortedUniqueLayerLevels(layerTopsDict);
 
 
 		{// The same thick layer height applies to all model groups.
@@ -78,7 +85,7 @@ SharedExtrusions GCodeProgramGenerator::primeExtrusions(const SolidSurfaceModels
 	return {};
 }
 
-LayerBottomsDict GCodeProgramGenerator::computeLayerBottoms(const SolidSurfaceModels& models,
+LayerLevelDict GCodeProgramGenerator::computeLayerBottoms(const SolidSurfaceModels& models,
 															const ExtrusionParamSets& params,
 															const SharedExtrusions& extrusions)
 {
@@ -87,6 +94,11 @@ LayerBottomsDict GCodeProgramGenerator::computeLayerBottoms(const SolidSurfaceMo
 
 SharedExtrusions GCodeProgramGenerator::getIntersectedExtrusions(SharedExtrusions extrusions, Real planeZ)
 {// Collect all Extrusions, which are sliced by this bottom level plane.
+	return {};
+}
+
+LayerLevelDict GCodeProgramGenerator::getLayerExtrusionTopsDict(const SharedExtrusions& layerExtrusions, Real layerBottom)
+{
 	return {};
 }
 
