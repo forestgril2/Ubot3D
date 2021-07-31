@@ -51,6 +51,8 @@ using SharedSurfaces = std::map<SurfaceId, SharedSurface>;
 using SharedExtrusion = std::shared_ptr<Extrusion>;
 using SharedExtrusions = std::map<ExtrusionId, SharedExtrusion>;
 
+using LayerBottomsDict = std::map<ExtrusionId, std::vector<Real>>;
+
 class SolidSurfaceModels
 {
 public:
@@ -88,15 +90,25 @@ private:
 
 	/**
 	 * @brief primeExtrusions Generates a map of empty extrusions
-	 * primed with their params sets to generated extrusion ids
+	 * primed with their params sets to generated extrusion ids.
 	 * @param models Model data for solid surfaces extruded in the GCode program.
 	 * @param params Parameters for the extrusion.
 	 * @return A mapping of empty extrusions to their ids.
 	 */
 	static SharedExtrusions primeExtrusions(const SolidSurfaceModels& models,
 											const ExtrusionParamSets& params);
-	static std::vector<Real> computeLayerBottoms(const SolidSurfaceModels& models,
-												 const ExtrusionParamSets& params);
+	static LayerBottomsDict computeLayerBottoms(const SolidSurfaceModels& models,
+												const ExtrusionParamSets& params,
+												const SharedExtrusions& extrusions);
+
+	/**
+	 * @brief getIntersectedExtrusions Collects a subset of passed @param extrusions, which intersect with plane at @param planeZ.
+	 * @param extrusions
+	 * @param planeZ
+	 * @return
+	 */
+	static SharedExtrusions getIntersectedExtrusions(SharedExtrusions extrusions, Real planeZ);
+
 	/**
 	 * @brief splitDualExtrusion Splits an Extrusion at a certain infill layer, and generates
 	 * DualExtrusionData.

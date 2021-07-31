@@ -30,7 +30,7 @@ using namespace Eigen;
 
 using ExtrPath = Extrusion::Path;
 using ExtrPoint = Extrusion::Point;
-using ExtrLayer = Extrusion::LayerBottom;
+using ExtrLayer = Extrusion::LayerBottomDictEntry;
 
 static Vector3f maxFloatBound(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 static Vector3f minFloatBound(FLT_MAX, FLT_MAX, FLT_MAX);
@@ -454,15 +454,16 @@ bool GCodeGeometry::verifyEnoughPoints(const Extrusion::Path& subPath)
 
 float GCodeGeometry::getLayerBottom(const uint32_t layerIndex)
 {// TODO: Ideally, this function should look down below from the current nozzle level and detect the previous layer.
-	return _extrData.layerBottoms[layerIndex].second;
+	return _extrData.layerBottomsDict[layerIndex].second;
 }
 
 void GCodeGeometry::logSubPath(const Extrusion::Path& path)
 {
 	std::cout << " ### " << __FUNCTION__ << " subPath:" << "" << "," << "" << std::endl;
-	std::for_each(path.begin(), path.end(), [](const ExtrPoint& p) {
+	for(const ExtrPoint& p : path)
+	{
 		std::cout << " ### " << "ExtrPoint" << " :" << p.x() << "," << p.y() << "," << p.z() << "," << p.w() << std::endl;
-	});
+	}
 }
 
 void GCodeGeometry::generate()
@@ -481,17 +482,17 @@ void GCodeGeometry::generate()
 
 	//Remember start point to know the direction and level, from which extruder head arrives in next subpath.
 	ExtrPoint lastStartPoint{0,0,0,0};
-	const std::vector<ExtrLayer>& layerBottoms = _extrData.layerBottoms;
+	const std::vector<ExtrLayer>& layerBottomsDict = _extrData.layerBottomsDict;
 	const std::vector<ExtrPath>& extruderSubPaths = _extrData.paths;
 
-	for (uint32_t layerIndex=0; layerIndex<layerBottoms.size(); ++layerIndex)
+	for (uint32_t layerIndex=0; layerIndex<layerBottomsDict.size(); ++layerIndex)
 	{// For every model layer.
 		const float layerBottom = getLayerBottom(layerIndex);
 
-		uint32_t subPathIndex = layerBottoms[layerIndex].first;
-		const uint32_t nextLayerSubPathIndex = (layerIndex < layerBottoms.size() -1) ?
-												   layerBottoms[layerIndex +1].first :
-												   uint32_t(extruderSubPaths.size());
+		uint32_t subPathIndex = layerBottomsDict[layerIndex].first;
+		const uint32_t nextLayerSubPathIndex = (layerIndex < layerBottomsDict.size() -1) ?
+												layerBottomsDict[layerIndex +1].first :
+												uint32_t(extruderSubPaths.size());
 
 		for (; subPathIndex<nextLayerSubPathIndex; ++subPathIndex)
 		{// For every layer subPath - which is a set of consecutive extrusion points - generate a corresponding contiguous geometry.

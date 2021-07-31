@@ -4,14 +4,14 @@
 
 struct Extrusion
 {
-	using Point       = Eigen::Vector4f;                   /** Three dimensional coordinates +w == filament extrusion length. */
-	using Path        = std::vector<Point>;                /** Points along the center of the filament path. */
-	using LayerBottom = std::pair<uint32_t, Real>;         /** First index of path with given layer bottom. */
-	using Annotation  = std::pair<uint32_t, std::string*>; /** First index of path with given annotation. */
+	using Point                = Eigen::Vector4f;                    /** Three dimensional coordinates +w == filament extrusion length. */
+	using Path                 = std::vector<Point>;                 /** Points along the center of the filament path. */
+	using LayerBottomDictEntry = std::pair<uint32_t, Real>;          /** First index of path with given layer bottom. */
+	using AnnotationDictEntry  = std::pair<uint32_t, std::string*>;  /** First index of path with given annotation. */
 
-	std::vector<Path>        paths{Path{{0,0,0,0}}};
-	std::vector<LayerBottom> layerBottoms{{0u, 0.0f}};
-	std::vector<Annotation>  annotations;                   /** Additional annotations for paths */
+	std::vector<Path>                 paths{Path{{0,0,0,0}}};
+	std::vector<LayerBottomDictEntry> layerBottomsDict{{0u, 0.0f}};
+	std::vector<AnnotationDictEntry>  annotationsDict;               /** Annotations for paths */
 
 	size_t numPaths = 0;
 	size_t numPathPointsMax = 0;

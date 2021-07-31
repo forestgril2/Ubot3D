@@ -16,7 +16,7 @@ namespace gpr
 
 using ExtrPath = Extrusion::Path;
 using ExtrPoint = Extrusion::Point;
-using ExtrLayer = Extrusion::LayerBottom;
+using ExtrLayer = Extrusion::LayerBottomDictEntry;
 
 class GCodeProgramProcessor
 {
