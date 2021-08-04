@@ -49,19 +49,31 @@ SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceMode
 	const LayerLevelDict layerBottomsDict = computeLayerBottoms(models, params, extrusions);
 	std::vector<Real> uniqueBottoms = getSortedUniqueLayerLevels(layerBottomsDict);
 
-	assert(0 == uniqueBottoms[0]);
-	float prevBottom = 0.0f;
-	for (Real layerBottom : uniqueBottoms | std::views::drop(1))
-	{// Keep generating DualExtrusions until reaching top.
-		SharedExtrusions layerExtrusions = getIntersectedExtrusions(extrusions, layerBottom);
-		const LayerLevelDict layerTopsDict = getLayerExtrusionTopsDict(layerExtrusions, layerBottom);
-		const std::vector<Real> layerTops = getSortedUniqueLayerLevels(layerTopsDict);
+	static const Real bedLevel = 0.0f;
+	assert(bedLevel == uniqueBottoms[0]);
+	float prevBottom = bedLevel;
+	for (const Real bottom : uniqueBottoms | std::views::drop(1))
+	{// Keep generating extrusions until reaching top.
+		SharedExtrusions layerExtrusions = getIntersectedExtrusions(extrusions, bottom);
+		for (auto& [extrId, extrusion] : layerExtrusions)
+		{// Split all extrusions for this bottom to extrusions for different layer heights/different extruders.
+			const DualExtrusionData dualExtrData = splitDualExtrusion(extrusion, models, params(extrId), bottom);
+			SharedExtrusions splitted = generateDualExtrusions(dualExtrData);
+			for (auto& extr : splitted)
+			{// Extend layer extrusions with extrusions splitted to different tools.
+				layerExtrusions.insert(extr);
+			}
+		}
+		// Get all extrusions for this bottom sorted by ranges.
+		const LayerRangeDict layerRangeDict = getExtrusionRangeDict(layerExtrusions);
 
-
-		{// The same thick layer height applies to all model groups.
-			// Generate separate DualExtrusions for all model groups
-			// - which will fall into different Extrusions and/or Annotations
-			// Merge Extrusions within groups/Annotations.
+		for (const auto& [range, extrIds] : layerRangeDict)
+		{// Create extrusions for this bottom level in order frow lowest to highest LayerRange
+			{// The same thick layer height applies to all model groups.
+				// Generate separate DualExtrusions for all model groups
+				// - which will fall into different Extrusions and/or Annotations
+				// Merge Extrusions within groups/Annotations.
+			}
 		}
 	}
 	// Generate a top Extrusion
@@ -97,7 +109,7 @@ SharedExtrusions GCodeProgramGenerator::getIntersectedExtrusions(SharedExtrusion
 	return {};
 }
 
-LayerLevelDict GCodeProgramGenerator::getLayerExtrusionTopsDict(const SharedExtrusions& layerExtrusions, Real layerBottom)
+LayerRangeDict GCodeProgramGenerator::getExtrusionRangeDict(const SharedExtrusions& layerExtrusions)
 {
 	return {};
 }

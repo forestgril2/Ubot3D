@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -51,7 +52,15 @@ using SharedSurfaces = std::map<SurfaceId, SharedSurface>;
 using SharedExtrusion = std::shared_ptr<Extrusion>;
 using SharedExtrusions = std::map<ExtrusionId, SharedExtrusion>;
 
-using LayerLevelDict = std::map<ExtrusionId, std::vector<Real>>;
+struct LayerRange
+{
+	Real top;
+	Real bottom;
+	bool operator<(const LayerRange& other);
+};
+
+using LayerLevelDict = std::multimap<ExtrusionId, std::vector<Real>>;
+using LayerRangeDict = std::multimap<LayerRange, std::vector<ExtrusionId>>;
 
 class SolidSurfaceModels
 {
@@ -101,8 +110,8 @@ private:
 	static SharedExtrusions primeExtrusions(const SolidSurfaceModels& models,
 											const ExtrusionParamSets& params);
 	static LayerLevelDict computeLayerBottoms(const SolidSurfaceModels& models,
-												const ExtrusionParamSets& params,
-												const SharedExtrusions& extrusions);
+											  const ExtrusionParamSets& params,
+											  const SharedExtrusions& extrusions);
 
 	/**
 	 * @brief getIntersectedExtrusions Collects a subset of passed @param extrusions, which intersect with plane at @param planeZ.
@@ -122,23 +131,20 @@ private:
 	 * @return
 	 */
 	static DualExtrusionData splitDualExtrusion(SharedExtrusion& extrusion,
-												const SharedSurface& model,
+												const SolidSurfaceModels& models,
 												const SharedParams params,
 												const Real layerBottom);
 
 	/**
-	 * @brief getLayerExtrusionTopsDict Creates a dictionary of layer tops within extrusions matched to ExtrusionId's.
+	 * @brief getExtrusionRangeDict Creates a dictionary of layer renges within extrusions matched to ExtrusionId's.
 	 * @param layerExtrusions
-	 * @param layerBottom
 	 * @return
 	 */
-	static LayerLevelDict getLayerExtrusionTopsDict(const SharedExtrusions& layerExtrusions, Real layerBottom);
+	static LayerRangeDict getExtrusionRangeDict(const SharedExtrusions& layerExtrusions);
 
 	static SharedExtrusions generateDualExtrusions(const DualExtrusionData& data);
 
 	// Members
 	SharedGCode _program;
-	static std::vector<Real> getSortedUniqueLayerLevels(const LayerLevelDict& layerDict);
-
 };
 }
