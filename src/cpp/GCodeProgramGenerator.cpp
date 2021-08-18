@@ -46,35 +46,42 @@ SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceMode
 														  const ExtrusionParamSets& params) const
 {
 	SharedExtrusions extrusions = primeExtrusions(models, params);
-	const LayerLevelDict layerBottomsDict = computeLayerBottoms(models, params, extrusions);
-	std::vector<Real> uniqueBottoms = getSortedUniqueLayerLevels(layerBottomsDict);
+	const LayerLevelDict layerLevelsDict = computeLayerLevels(models, params, extrusions);
+	std::vector<Real> uniqueLevels = getSortedUniqueLayerLevels(layerLevelsDict);
 
 	static const Real bedLevel = 0.0f;
+
+	// If the first bottom is not at 0, something is clearly wrong.
 	assert(bedLevel == uniqueBottoms[0]);
+
 	float prevBottom = bedLevel;
-	for (const Real bottom : uniqueBottoms | std::views::drop(1))
-	{// Keep generating extrusions until reaching top.
-		SharedExtrusions layerExtrusions = getIntersectedExtrusions(extrusions, bottom);
+	for (const Real layerTop : uniqueLevels | std::views::drop(1))
+	{// Keep generating layer extrusions for every top layer level (will become the next layer bottom).
+		SharedExtrusions layerExtrusions = getIntersectedExtrusions(extrusions, layerTop);
+
 		for (auto& [extrId, extrusion] : layerExtrusions)
 		{// Split all extrusions for this bottom to extrusions for different layer heights/different extruders.
-			const DualExtrusionData dualExtrData = splitDualExtrusion(extrusion, models, params(extrId), bottom);
+			const DualExtrusionData dualExtrData = splitDualExtrusion(extrusion, models, params(extrId), layerTop);
 			SharedExtrusions splitted = generateDualExtrusions(dualExtrData);
 			for (auto& extr : splitted)
 			{// Extend layer extrusions with extrusions splitted to different tools.
 				layerExtrusions.insert(extr);
 			}
 		}
+
 		// Get all extrusions for this bottom sorted by ranges.
 		const LayerRangeDict layerRangeDict = getExtrusionRangeDict(layerExtrusions);
-
 		for (const auto& [range, extrIds] : layerRangeDict)
-		{// Create extrusions for this bottom level in order frow lowest to highest LayerRange
+		{// Create extrusions for this bottom level in order from lowest to highest LayerRange
 			{// The same thick layer height applies to all model groups.
 				// Generate separate DualExtrusions for all model groups
 				// - which will fall into different Extrusions and/or Annotations
 				// Merge Extrusions within groups/Annotations.
 			}
 		}
+
+		// Update bottom.
+		prevBottom = layerTop;
 	}
 	// Generate a top Extrusion
 
@@ -83,8 +90,8 @@ SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceMode
 
 SharedExtrusions GCodeProgramGenerator::primeExtrusions(const SolidSurfaceModels& models,
 														const ExtrusionParamSets& params)
-{// Generate an ExtrusionId's and an empty Extrusion for the given params,
- // including separate extrusions for each top and model bottom layers.
+{// Generate ExtrusionIds and empty Extrusions for the given params,
+ // including separate extrusions for each model top and bottom layers.
 
 	// ??? - old approach -??? Get model data and assign it to different model groups in model collection:
 	{
@@ -97,9 +104,9 @@ SharedExtrusions GCodeProgramGenerator::primeExtrusions(const SolidSurfaceModels
 	return {};
 }
 
-LayerLevelDict GCodeProgramGenerator::computeLayerBottoms(const SolidSurfaceModels& models,
-															const ExtrusionParamSets& params,
-															const SharedExtrusions& extrusions)
+LayerLevelDict GCodeProgramGenerator::computeLayerLevels(const SolidSurfaceModels& models,
+														  const ExtrusionParamSets& params,
+														  const SharedExtrusions& extrusions)
 {
 	return {};
 }
