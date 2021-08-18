@@ -59,8 +59,8 @@ struct LayerRange
 	bool operator<(const LayerRange& other);
 };
 
-using LayerLevelDict = std::multimap<ExtrusionId, std::vector<Real>>;
-using LayerRangeDict = std::multimap<LayerRange, std::vector<ExtrusionId>>;
+using LayerLevelDict = std::multimap<ExtrusionId, std::set<Real>>;
+using ExtrusionRanges = std::multimap<LayerRange, std::set<ExtrusionId>>;
 
 class SolidSurfaceModels
 {
@@ -114,20 +114,16 @@ private:
 											const ExtrusionParamSets& params);
 
 	/**
-	 * @brief computeLayerLevels Computes a vector of consecutive layer bottoms
-	 * for each input Extrusion and matches it to one of input ExtrusionIds.
+	 * @brief computeExtrusionRanges Computes a multimap of consecutive layer ranges
+	 * for each input Extrusion and maps input ExtrusionIds to their ranges.
 	 * @param models Input models to be printed.
 	 * @param params Input extrusion parameters.
-	 * @param extrusions Input extrusions for which to compute layer levels.
-	 * @return Dictionary of layer level vectors to ExtrusionIds.
-	 * @note The first level should be 0 - the bed level. Each next level is
-	 * a top of the extrusion layer and a bottom for the next layer. The last
-	 * element of levels for each ExtrusionId is the highest point
-	 * of the extrusion - thus nothing is printed above it.
+	 * @param extrusions Input extrusions for which to compute layer range multimap.
+	 * @return Dictionary of extrusion ids to layer ranges.
 	 */
-	static LayerLevelDict computeLayerLevels(const SolidSurfaceModels& models,
-											 const ExtrusionParamSets& params,
-											 const SharedExtrusions& extrusions);
+	static ExtrusionRanges computeExtrusionRanges(const SolidSurfaceModels& models,
+												  const ExtrusionParamSets& params,
+												  const SharedExtrusions& extrusions);
 
 	/**
 	 * @brief getIntersectedExtrusions Collects a subset of passed @param extrusions, which intersect with plane at @param planeZ.
@@ -156,16 +152,23 @@ private:
 	 * @param layerExtrusions
 	 * @return
 	 */
-	static LayerRangeDict getExtrusionRangeDict(const SharedExtrusions& layerExtrusions);
+	static ExtrusionRanges getExtrusionRangeDict(const SharedExtrusions& layerExtrusions);
 
 	static SharedExtrusions generateDualExtrusions(const DualExtrusionData& data);
 
 	/**
 	 * @brief getSortedUniqueLayerLevels Extracts layer levels from layer level dictionary, sorts them and removes duplicates.
 	 * @param layerDict Layer level dictionary to sort and remove duplicates from.
-	 * @return Output vector of sorted unique layer levels.
+	 * @return Output set of sorted unique layer levels.
 	 */
-	static std::vector<Real> getSortedUniqueLayerLevels(const LayerLevelDict& layerDict);
+	static std::set<Real> getSortedUniqueLayerLevels(const LayerLevelDict& layerDict);
+
+	/**
+	 * @brief getLayerRanges Creates a set of LayerRanges.
+	 * @param uniqueLevels Input set of unique sorted layer levels.
+	 * @return Output set of LayerRanges.
+	 */
+	static std::set<LayerRange> getLayerRanges(const std::set<Real>& uniqueLevels);
 
 	// Members
 	SharedGCode _program;

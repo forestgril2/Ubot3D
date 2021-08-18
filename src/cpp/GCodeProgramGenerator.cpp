@@ -8,6 +8,8 @@
 #include <Extrusion.h>
 #include <TriangleGeometry.h>
 
+#undef NDEBUG
+
 namespace Slicer
 {
 
@@ -27,37 +29,39 @@ SharedGCode GCodeProgramGenerator::getProgram()
 	return _program;
 }
 
-std::vector<Real> GCodeProgramGenerator::getSortedUniqueLayerLevels(const LayerLevelDict& layerDict)
+std::set<Real> GCodeProgramGenerator::getSortedUniqueLayerLevels(const LayerLevelDict& layerDict)
 {
-	std::set<Real> uniqueBottoms = std::accumulate(layerDict.begin(), layerDict.end(), std::set<Real>({}),
-												[](std::set<Real>&& set, const auto& dictPair) {
-												   const auto& [extrId, bottoms] = dictPair;
-												   for (Real bottom : bottoms)
-												   {
-													   set.insert(bottom);
-												   }
-												   // TODO: Check, if this is correct.
-												   return std::move(set);
-												});
-	return std::vector<Real>(uniqueBottoms.begin(), uniqueBottoms.end());
+	return std::accumulate(layerDict.begin(), layerDict.end(), std::set<Real>({}),
+							[](std::set<Real>&& set, const auto& dictPair) {
+							   const auto& [extrId, bottoms] = dictPair;
+							   for (Real bottom : bottoms)
+							   {
+								   set.insert(bottom);
+							   }
+							   // TODO: Check, if this is correct.
+							   return std::move(set);
+	});
+}
+
+std::set<LayerRange> GCodeProgramGenerator::getLayerRanges(const std::set<Real>& uniqueLevels)
+{
+	// TODO:
+	return {};
 }
 
 SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceModels& models,
 														  const ExtrusionParamSets& params) const
 {
 	SharedExtrusions extrusions = primeExtrusions(models, params);
-	const LayerLevelDict layerLevelsDict = computeLayerLevels(models, params, extrusions);
-	std::vector<Real> uniqueLevels = getSortedUniqueLayerLevels(layerLevelsDict);
+	ExtrusionsRanges extrRanges = computeExtrusionRanges(models, params, extrusions);
 
 	static const Real bedLevel = 0.0f;
+	Real layerBottom = bedLevel;
 
-	// If the first bottom is not at 0, something is clearly wrong.
-	assert(bedLevel == uniqueBottoms[0]);
-
-	float prevBottom = bedLevel;
-	for (const Real layerTop : uniqueLevels | std::views::drop(1))
-	{// Keep generating layer extrusions for every top layer level (will become the next layer bottom).
-		SharedExtrusions layerExtrusions = getIntersectedExtrusions(extrusions, layerTop);
+	auto extrRangesIt = extrRanges.begin();
+	while (extrRangesIt != extrRanges.end())
+	{// We will add new extrusions and ranges until we finish with the top range.
+		auto& [layerRange, extrusionIds] = *extrRangesIt;
 
 		for (auto& [extrId, extrusion] : layerExtrusions)
 		{// Split all extrusions for this bottom to extrusions for different layer heights/different extruders.
@@ -70,7 +74,7 @@ SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceMode
 		}
 
 		// Get all extrusions for this bottom sorted by ranges.
-		const LayerRangeDict layerRangeDict = getExtrusionRangeDict(layerExtrusions);
+		const ExtrusionsRanges layerRangeDict = getExtrusionRangeDict(layerExtrusions);
 		for (const auto& [range, extrIds] : layerRangeDict)
 		{// Create extrusions for this bottom level in order from lowest to highest LayerRange
 			{// The same thick layer height applies to all model groups.
@@ -80,8 +84,9 @@ SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceMode
 			}
 		}
 
-		// Update bottom.
-		prevBottom = layerTop;
+		// Update top and bottom.
+		layerBottom = layerTop;
+//		layerTop
 	}
 	// Generate a top Extrusion
 
@@ -101,23 +106,36 @@ SharedExtrusions GCodeProgramGenerator::primeExtrusions(const SolidSurfaceModels
 //		const TriangleData& brim      = input.getBrim()     ;
 //		const TriangleData& skirt     = input.getSkirt()    ;
 	}
+
+	// TODO:
 	return {};
 }
 
-LayerLevelDict GCodeProgramGenerator::computeLayerLevels(const SolidSurfaceModels& models,
-														  const ExtrusionParamSets& params,
-														  const SharedExtrusions& extrusions)
+ExtrusionsRanges GCodeProgramGenerator::computeExtrusionRanges(const SolidSurfaceModels& models,
+															  const ExtrusionParamSets& params,
+															  const SharedExtrusions& extrusions)
 {
+	// TODO:
+
+//	const std::set<Real> levels = getSortedUniqueLayerLevels(layerRangesDict);
+//	// If the first level is not at 0, something is clearly wrong.
+//	assert(0.0 == *uniqueLevels.begin());
+//	const Real extrusionTop = *levels.rbegin();
+//  SharedExtrusions layerExtrusions = getIntersectedExtrusions(extrusions, layerTop);
+//	const std::set<LayerRange> layerRanges = getLayerRanges(levels);
+
 	return {};
 }
 
 SharedExtrusions GCodeProgramGenerator::getIntersectedExtrusions(SharedExtrusions extrusions, Real planeZ)
 {// Collect all Extrusions, which are sliced by this bottom level plane.
+	// TODO:
 	return {};
 }
 
-LayerRangeDict GCodeProgramGenerator::getExtrusionRangeDict(const SharedExtrusions& layerExtrusions)
+ExtrusionsRanges GCodeProgramGenerator::getExtrusionRangeDict(const SharedExtrusions& layerExtrusions)
 {
+	// TODO:
 	return {};
 }
 
@@ -127,6 +145,7 @@ SharedGCode GCodeProgramGenerator::generateProgram(SharedExtrusions&& extrusions
 		// Keep generating gcode_program parts, starting from lowest layer, going up.
 	}
 
+	// TODO:
 	return SharedGCode();
 }
 
