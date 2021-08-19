@@ -275,54 +275,54 @@ ApplicationWindow {
 //            }
 //        }
 
-        Repeater3D {
-            id: debugTriangleEdges
-            model: stlObjectsRepeater.model.length
-            delegate: Model {
-                visible: true
-                scale: Qt.vector3d(1, 1, 1)
-                geometry: SimplexGeometry {
-                    simplexType: SimplexGeometry.Lines
-                    points: stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges
-                }
-                materials: [
-                    DefaultMaterial {
-                        pointSize: 5
-                        lineWidth: 5
-                        lighting: DefaultMaterial.NoLighting
-                        cullMode: DefaultMaterial.NoCulling
-                        diffuseColor: "blue"
-                    }
-                ]
-            }
-        }
+//        Repeater3D {
+//            id: debugTriangleEdges
+//            model: stlObjectsRepeater.model.length
+//            delegate: Model {
+//                visible: true
+//                scale: Qt.vector3d(1, 1, 1)
+//                geometry: SimplexGeometry {
+//                    simplexType: SimplexGeometry.Lines
+//                    points: stlObjectsRepeater.objectAt(index).geometry.debugTriangleEdges
+//                }
+//                materials: [
+//                    DefaultMaterial {
+//                        pointSize: 5
+//                        lineWidth: 5
+//                        lighting: DefaultMaterial.NoLighting
+//                        cullMode: DefaultMaterial.NoCulling
+//                        diffuseColor: "blue"
+//                    }
+//                ]
+//            }
+//        }
 
-        Repeater3D {
-            id: allModelsTriangleIslandBoundaries
-            model: stlObjectsRepeater.model.length
+//        Repeater3D {
+//            id: allModelsTriangleIslandBoundaries
+//            model: stlObjectsRepeater.model.length
 
-            delegate: Repeater3D {
-                id: triangleIslandBoundaries
-                model: stlObjectsRepeater.objectAt(index).geometry.triangleIslandBoundaries
-                delegate: Model {
-                    visible: true
-                    scale: Qt.vector3d(1, 1, 1)
-                    geometry: SimplexGeometry {
-                        simplexType: SimplexGeometry.Lines
-                        points: triangleIslandBoundaries.model[index]
-                    }
-                    materials: [
-                        DefaultMaterial {
-                            pointSize: 5
-                            lineWidth: 5
-                            lighting: DefaultMaterial.NoLighting
-                            cullMode: DefaultMaterial.NoCulling
-                            diffuseColor: "yellow"
-                        }
-                    ]
-                }
-            }
-        }
+//            delegate: Repeater3D {
+//                id: triangleIslandBoundaries
+//                model: stlObjectsRepeater.objectAt(index).geometry.triangleIslandBoundaries
+//                delegate: Model {
+//                    visible: true
+//                    scale: Qt.vector3d(1, 1, 1)
+//                    geometry: SimplexGeometry {
+//                        simplexType: SimplexGeometry.Lines
+//                        points: triangleIslandBoundaries.model[index]
+//                    }
+//                    materials: [
+//                        DefaultMaterial {
+//                            pointSize: 5
+//                            lineWidth: 5
+//                            lighting: DefaultMaterial.NoLighting
+//                            cullMode: DefaultMaterial.NoCulling
+//                            diffuseColor: "yellow"
+//                        }
+//                    ]
+//                }
+//            }
+//        }
 
         PickArea {
             id: pickArea
@@ -350,6 +350,11 @@ ApplicationWindow {
                     modelGroupDrag.dragPositionChanged(sceneBase.camera.position, ray)
                 }
             }
+        }
+
+        ModelControls {
+            id: controls
+
         }
 
         ProcessLauncher {
@@ -392,8 +397,8 @@ ApplicationWindow {
                 }
 
                 var isTwoHeaderExtrusion = slicerParameters.isUsingTwoExtruders
-//                generateGCode2(selectedModels[0].geometry.inputFile, isTwoHeaderExtrusion)
-                generateSlices(selectedModels[0].geometry)
+                generateGCode(selectedModels[0].geometry.inputFile, isTwoHeaderExtrusion)
+//                generateSlices(selectedModels[0].geometry)
             }
         }
     }

@@ -60,7 +60,7 @@ struct LayerRange
 };
 
 using LayerLevelDict = std::multimap<ExtrusionId, std::set<Real>>;
-using ExtrusionRanges = std::multimap<LayerRange, std::set<ExtrusionId>>;
+using ExtrusionsRanges = std::multimap<LayerRange, std::set<ExtrusionId>>;
 
 class SolidSurfaceModels
 {
@@ -121,7 +121,7 @@ private:
 	 * @param extrusions Input extrusions for which to compute layer range multimap.
 	 * @return Dictionary of extrusion ids to layer ranges.
 	 */
-	static ExtrusionRanges computeExtrusionRanges(const SolidSurfaceModels& models,
+	static ExtrusionsRanges computeExtrusionRanges(const SolidSurfaceModels& models,
 												  const ExtrusionParamSets& params,
 												  const SharedExtrusions& extrusions);
 
@@ -152,7 +152,7 @@ private:
 	 * @param layerExtrusions
 	 * @return
 	 */
-	static ExtrusionRanges getExtrusionRangeDict(const SharedExtrusions& layerExtrusions);
+	static ExtrusionsRanges getExtrusionRangeDict(const SharedExtrusions& layerExtrusions);
 
 	static SharedExtrusions generateDualExtrusions(const DualExtrusionData& data);
 

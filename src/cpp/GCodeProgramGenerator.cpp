@@ -63,32 +63,27 @@ SharedExtrusions GCodeProgramGenerator::computeExtrusions(const SolidSurfaceMode
 	{// We will add new extrusions and ranges until we finish with the top range.
 		auto& [layerRange, extrusionIds] = *extrRangesIt;
 
-		for (auto& [extrId, extrusion] : layerExtrusions)
-		{// Split all extrusions for this bottom to extrusions for different layer heights/different extruders.
-			const DualExtrusionData dualExtrData = splitDualExtrusion(extrusion, models, params(extrId), layerTop);
-			SharedExtrusions splitted = generateDualExtrusions(dualExtrData);
-			for (auto& extr : splitted)
-			{// Extend layer extrusions with extrusions splitted to different tools.
-				layerExtrusions.insert(extr);
-			}
-		}
+//		for (auto& [extrId, extrusion] : layerExtrusions)
+//		{// Split all extrusions for this bottom to extrusions for different layer heights/different extruders.
+//			const DualExtrusionData dualExtrData = splitDualExtrusion(extrusion, models, params(extrId), layerTop);
+//			SharedExtrusions splitted = generateDualExtrusions(dualExtrData);
+//			for (auto& extr : splitted)
+//			{// Extend extrusions-ranges with extrusions splitted to different tools.
+//				extrRanges.insert(extr);
+//			}
+//		}
 
 		// Get all extrusions for this bottom sorted by ranges.
-		const ExtrusionsRanges layerRangeDict = getExtrusionRangeDict(layerExtrusions);
-		for (const auto& [range, extrIds] : layerRangeDict)
-		{// Create extrusions for this bottom level in order from lowest to highest LayerRange
-			{// The same thick layer height applies to all model groups.
-				// Generate separate DualExtrusions for all model groups
-				// - which will fall into different Extrusions and/or Annotations
-				// Merge Extrusions within groups/Annotations.
-			}
-		}
-
-		// Update top and bottom.
-		layerBottom = layerTop;
-//		layerTop
+//		const ExtrusionsRanges layerRangeDict = getExtrusionRangeDict(layerExtrusions);
+//		for (const auto& [range, extrIds] : layerRangeDict)
+//		{// Create extrusions for this bottom level in order from lowest to highest LayerRange
+//			{// The same thick layer height applies to all model groups.
+//				// Generate separate DualExtrusions for all model groups
+//				// - which will fall into different Extrusions and/or Annotations
+//				// Merge Extrusions within groups/Annotations.
+//			}
+//		}
 	}
-	// Generate a top Extrusion
 
 	return extrusions;
 }
