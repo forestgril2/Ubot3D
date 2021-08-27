@@ -8,8 +8,6 @@
 #include <Extrusion.h>
 #include <TriangleGeometry.h>
 
-#undef NDEBUG
-
 namespace Slicer
 {
 
@@ -153,5 +151,18 @@ Real SolidSurfaceModels::getMaxheight() const
 {
 	return _maxHeight;
 }
+
+
+#ifdef AUTO_TEST
+void GCodeProgramGenerator::autoTest()
+{
+	generateProgramAutoTest();
+}
+
+void GCodeProgramGenerator::generateProgramAutoTest()
+{
+	Extrusion e;
+}
+#endif
 
 }

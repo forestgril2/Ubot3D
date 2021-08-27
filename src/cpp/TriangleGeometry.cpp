@@ -844,11 +844,11 @@ void TriangleGeometry::generateRaftGeometries()
 	//TODO: Do raft geometries should have their own types, inheriting from TriangleGeometry? Not only in QML?
 	const ClipperLib::Paths offsetPathsResult = offsetClipperPaths(_bottomLayer.polylines, _raftOffset);
 	const TriangleData polygonMesh = computePolygonTriangulationMesh(offsetPathsResult,
-																			 upperBaseRaftZlevel,
-																			 {0, 0, 1.0f},
-																			 &_triangleIslandBoundaries);
+																	 upperBaseRaftZlevel,
+																	 {0, 0, 1.0f},
+																	 &_triangleIslandBoundaries);
 #ifndef NDEBUG
-	generateDebugTriangleEdges(triangulation.getMesh().vertices, triangulation.getMesh().indices);
+	generateDebugTriangleEdges(polygonMesh.vertices, polygonMesh.indices);
 #endif
 
 	// TODO: Investigate these geometries - do they look correctly inside? It seems like some artifacts are there.

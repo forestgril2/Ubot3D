@@ -1,6 +1,6 @@
 #pragma once
 
-#include <qqml.h>
+//#include <qqml.h>
 
 #include <functional>
 

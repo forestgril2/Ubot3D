@@ -22,7 +22,6 @@ namespace gpr
 
 class TriangleData;
 
-
 namespace Slicer
 {
 
@@ -35,7 +34,7 @@ struct ExtrusionParams
 	ExtrusionId id;
 	json params =
 	{
-		{"Infill" , {}},
+		{"Infill" , {{"layerRange", 3}, {"width", 0.6}, {"pattern", "grid"}, }},
 		{"Outline", {}},
 		{"Bottom" , {}},
 		{"Top"	  , {}},
@@ -169,6 +168,12 @@ private:
 	 * @return Output set of LayerRanges.
 	 */
 	static std::set<LayerRange> getLayerRanges(const std::set<Real>& uniqueLevels);
+
+#define AUTO_TEST
+#ifdef AUTO_TEST
+	static void autoTest();
+	static void generateProgramAutoTest();
+#endif
 
 	// Members
 	SharedGCode _program;
