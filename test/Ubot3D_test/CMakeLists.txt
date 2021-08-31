@@ -1,8 +1,14 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.17)
 project(basic_test C CXX)
 
 # GoogleTest requires at least C++11
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_BUILD_TYPE Release)
+
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
 
 include(FetchContent)
 FetchContent_Declare(
