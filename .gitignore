@@ -71,3 +71,7 @@ Thumbs.db
 *.dll
 *.exe
 
+
+test/build-Ubot3D_test*
+
+test/Ubot3D_test/CMakeLists.txt.user
