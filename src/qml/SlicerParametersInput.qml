@@ -37,14 +37,31 @@ Window {
 
         Repeater {
             id: paramGroupRepeater
-            model: getParamsInGroup(paramGroups[stackLayout.currentIndex])
-            Item {
-                Switch {
-                    id: twoExtrudersSwitch
-                    property bool isUsingTwoExtruders: (position == 1.0)
-                    text: "Use two extruders"
+            model: getParamGroupNames(root.paramGroups)
+
+            Column {
+                id: paramColumn
+
+                Repeater {
+                    id: paramRowRepeater
+                    model: getParamsInGroup(root.paramGroups[index])
+
+                    ParameterRow {
+                        id: parameterRow
+                        param: modelData
+                    }
+
+                    onModelChanged: {
+                        console.log("paramRowRepeater model")
+                        console.log(JSON.stringify(model))
+                    }
                 }
 
+            }
+
+            onModelChanged: {
+                console.log("paramGroupRepeater model")
+                console.log(JSON.stringify(model))
             }
         }
     }
@@ -61,6 +78,8 @@ Window {
     }
 
     function getParamsInGroup(paramGroup) {
+        console.log("paramGroup.params")
+        console.log(paramGroup.params)
         return paramGroup.params
     }
 }

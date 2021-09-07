@@ -20,5 +20,6 @@
         <file>SupportOptions.qml</file>
         <file>RaftOptions.qml</file>
         <file>StlModelSupport.qml</file>
+        <file>ParameterRow.qml</file>
     </qresource>
 </RCC>
