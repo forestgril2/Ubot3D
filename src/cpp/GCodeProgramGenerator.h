@@ -20,8 +20,6 @@ namespace gpr
 	class addr;
 };
 
-class TriangleData;
-
 namespace Slicer
 {
 

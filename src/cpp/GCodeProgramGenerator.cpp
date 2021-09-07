@@ -6,7 +6,6 @@
 #include <gcode_program.h>
 
 #include <Extrusion.h>
-#include <TriangleGeometry.h>
 
 namespace Slicer
 {

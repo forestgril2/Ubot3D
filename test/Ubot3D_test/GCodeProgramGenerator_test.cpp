@@ -2,8 +2,11 @@
 #include <GCodeProgramGenerator.h>
 
 #include <gtest/gtest.h>
+#include <gcode_program.h>
 
-class GCodeProgramGeneratorTest : public ::testing::Test {
+
+class GCodeProgramGeneratorBasicTest : public ::testing::Test
+ {
  protected:
   void SetUp() override {
   }
@@ -11,14 +14,21 @@ class GCodeProgramGeneratorTest : public ::testing::Test {
   // void TearDown() override {}
 
 //  GCodeProgramGenerator g();
+  Slicer::SolidSurfaceModels models;
+  Slicer::ExtrusionParamSets params;
 };
 
 namespace Slicer
 {
 
-TEST_F(GCodeProgramGeneratorTest, GoogleTestSuiteWorks)
+TEST_F(GCodeProgramGeneratorBasicTest, TakesSolidSurfaceModelsAndExtrusionParamSetsAsInput)
 {
-	ASSERT_EQ(2+2, 4);
+	GCodeProgramGenerator(models, params);
+}
+
+TEST_F(GCodeProgramGeneratorBasicTest, ReturnsEmptyProgramForEmptyInput)
+{
+	ASSERT_EQ(GCodeProgramGenerator(models, params).getProgram()->num_blocks(), 0u);
 }
 
 }

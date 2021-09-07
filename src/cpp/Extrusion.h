@@ -2,6 +2,9 @@
 
 #include <CommonDefs.h>
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 struct Extrusion
 {
 	using Point                = Eigen::Vector4f;                    /** Three dimensional coordinates +w == filament extrusion length. */
@@ -17,6 +20,6 @@ struct Extrusion
 	size_t numPathPointsMax = 0;
 
 	bool isActive = false;
-	float filamentCrossArea = 1.75f*1.75f*float(M_PI_4);   /** Filament cross-section area in mm^2 for filament cross section diameter 1.75mm */
+	float filamentCrossArea = 3.0f*3.0f*float(M_PI/4);   /** Filament cross-section area in mm^2 for filament cross section diameter 1.75mm */
 };
 
