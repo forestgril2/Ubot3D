@@ -14,8 +14,9 @@
 #include <Chronograph.h>
 #include <FileImportExport.h>
 #include <Helpers3D.h>
-#include <Utils.h>
 #include <ProcessLauncher.h>
+#include <SlicerParams.h>
+#include <Utils.h>
 
 int main(int argc, char *argv[])
 {
@@ -41,6 +42,8 @@ int main(int argc, char *argv[])
 
 	if (engine.rootObjects().isEmpty())
 		return -1;
+
+	SlicerParams("C:\\Users\\Grzegorz Ilnicki\\Desktop\\JOB\\Ubot3D\\slicerParams.txt");
 
 	return app.exec();
 }
