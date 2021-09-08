@@ -1,8 +1,9 @@
 #include "SlicerParams.h"
 
 #include <fstream>
-#include <sstream>
 #include <iostream>
+#include <regex>
+#include <string_view>
 
 SlicerParams::SlicerParams(std::string cliParamsPath)
 {
@@ -14,11 +15,18 @@ SlicerParams::SlicerParams(std::string cliParamsPath)
 		return;
 	}
 
-	std::string fileContents((std::istreambuf_iterator<char>(fileStream)), std::istreambuf_iterator<char>());
+	const std::string fileContents((std::istreambuf_iterator<char>(fileStream)), std::istreambuf_iterator<char>());
 	fileStream.close();
 
-//	std::stringstream str(stream);
-	std::cout << fileContents;
+	std::regex delimiter("\n");
+	std::vector<std::string> tokens(std::sregex_token_iterator(fileContents.begin(), fileContents.end(), delimiter, -1),
+								   std::sregex_token_iterator());
+
+	for (const auto& token : tokens)
+	{
+		std::cout << " ### TOKEN:" << std::endl;
+		std::cout << token << std::endl;
+	}
 
 //	stream >> _params;
 }
