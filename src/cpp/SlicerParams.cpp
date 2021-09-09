@@ -5,9 +5,42 @@
 #include <regex>
 #include <string_view>
 
-static const std::string kParamLinePrefix = "    ";
+static const std::string kParamLineWhitespacesPrefix = "    ";
 static const std::string kParamSwitchPrefixLong = "--";
 static const std::string kParamSwitchPrefixShort = "-";
+static const std::string kParamTypePrefix = "<";
+static const std::string kParamTypePostfix = ">";
+
+static const std::string kParamGroupSchemaNameKey = "name";
+static const std::string kParamGroupParamsKey     = "params";
+static const std::string kParamCliSwitchLongKey   = "cliSwitchLong";
+static const std::string kParamCliSwitchShortKey  = "cliSwitchShort";
+static const std::string kParamTypeKey            = "type";
+static const std::string kParamDescriptionKey     = "description";
+
+static const json kParamGroupSchema =
+{
+	{kParamGroupSchemaNameKey, ""},
+	{"groupTabText",           ""},
+	{"description",            ""},
+	{"isVisible",              ""},
+	{kParamGroupParamsKey,     {}},
+};
+static const json kParamSchema =
+{
+	{"name",                  ""},
+	{"text",                  ""},
+	{kParamCliSwitchLongKey,  ""},
+	{kParamCliSwitchShortKey, ""},
+	{kParamTypeKey,           ""},
+	{"editFieldType",         ""},
+	{kParamDescriptionKey,    ""},
+	{"isVisible",             ""},
+	{"minValue",              ""},
+	{"maxValue",              ""},
+	{"stepValue",             ""},
+	{"possibleValues",        {}},
+};
 
 std::vector<std::pair<std::string, std::vector<std::string>>> SlicerParams::extractParameterGroups(const std::vector<std::string>& lines)
 {
@@ -31,7 +64,7 @@ std::vector<std::pair<std::string, std::vector<std::string>>> SlicerParams::extr
 			continue;
 		}
 
-		if (line.starts_with(kParamLinePrefix))
+		if (line.starts_with(kParamLineWhitespacesPrefix))
 		{
 			lineGroups[currentPairIndex].second.push_back(line);
 			continue;
@@ -61,13 +94,13 @@ std::vector<std::pair<std::string, std::vector<std::string>>> SlicerParams::extr
 	return lineGroups;
 }
 
-std::vector<std::string> SlicerParams::extractParamSwitchParts(const std::vector<std::string>& lineGroup)
+std::vector<std::string> SlicerParams::extractParamSwitchLineParts(const std::vector<std::string>& lineGroup)
 {
 	std::vector<std::string> paramSwitchParts;
 
 	for (const auto& line : lineGroup)
 	{
-		std::string lineLeft = line.substr(kParamLinePrefix.size(), std::string::npos);
+		std::string lineLeft = line.substr(kParamLineWhitespacesPrefix.size(), std::string::npos);
 		const bool isLongPrefixFirst = lineLeft.starts_with(kParamSwitchPrefixLong);
 		if (!isLongPrefixFirst && !lineLeft.starts_with(kParamSwitchPrefixShort))
 			continue;
@@ -100,15 +133,20 @@ std::vector<std::string> SlicerParams::extractParamSwitchParts(const std::vector
 		}
 
 		++currWordIndex;
-		static const std::string paramTypePrefix = "<";
-		static const std::string paramTypePostfix = ">";
-		if (paramLineWords[currWordIndex].starts_with(paramTypePrefix) &&
-			paramLineWords[currWordIndex].ends_with(paramTypePostfix))
+		if (paramLineWords[currWordIndex].starts_with(kParamTypePrefix) &&
+			paramLineWords[currWordIndex].ends_with(kParamTypePostfix))
 		{// We also have the param type.
 			currPart.append(wordDelimiter).append(paramLineWords[currWordIndex]);
 		}
 		// The switch part ends here and is fully initialized.
 	}
+
+	std::cout << " ### " << __FUNCTION__ << " PARAM SWITCH PARTS IN GROUP:" << std::endl;
+	for(const auto& token : paramSwitchParts)
+	{
+		std::cout << token << std::endl;
+	}
+	std::cout << std::endl;
 
 	return paramSwitchParts;
 }
@@ -118,6 +156,84 @@ json SlicerParams::constructJsonParamSchema(const std::vector<std::string>& line
 	return json();
 }
 
+
+std::vector<json> SlicerParams::extractGroupParams(const std::vector<std::string>& groupLines,
+												   const std::vector<std::string>& paramSwitchLineParts)
+{
+	std::vector<json> params;
+
+	// For each param switch in group, initialize a new parameter.
+	size_t currParamSwitchPartIndex = 0;
+	const auto* currParamSwitchLinePart = &(paramSwitchLineParts[currParamSwitchPartIndex]);
+	json* currParam = nullptr;
+
+	for (const auto& line: groupLines)
+	{
+		const auto paramSwitchPartPos =
+				line.find(*currParamSwitchLinePart, kParamLineWhitespacesPrefix.size());
+		if (std::string::npos == paramSwitchPartPos)
+		{// The line does not contain the CLI param switch, concatenate the line to the description.
+			const std::string currentDescription = (*currParam)[kParamDescriptionKey];
+			(*currParam)[kParamDescriptionKey] = currentDescription + truncateParamDescriptionWhitespaces(line);
+			continue;
+		}
+
+		// The line does contain the CLI param switch, initialize a new parameter.
+		params.push_back(kParamSchema);
+		currParam = &params.back();
+		(*currParam)[kParamCliSwitchLongKey]  = extractLongParamSwitch(*currParamSwitchLinePart);
+		(*currParam)[kParamCliSwitchShortKey] = extractShortParamSwitch(*currParamSwitchLinePart);
+		(*currParam)[kParamTypeKey]           = extractParamType(*currParamSwitchLinePart);
+		(*currParam)[kParamDescriptionKey]    =
+				truncateParamDescriptionWhitespaces(line.substr(paramSwitchPartPos + currParamSwitchLinePart->size()));
+
+		if (++currParamSwitchPartIndex == paramSwitchLineParts.size())
+			break;
+		currParamSwitchLinePart = &(paramSwitchLineParts[currParamSwitchPartIndex]);
+	}
+
+	return params;
+}
+
+std::string SlicerParams::extractLongParamSwitch(const std::string& paramSwitchLinePart)
+{
+	const auto longPrefixPos = paramSwitchLinePart.find(kParamSwitchPrefixLong);
+	const auto longPrefixEnd = paramSwitchLinePart.find(" ", longPrefixPos);
+	return paramSwitchLinePart.substr(longPrefixPos, longPrefixEnd - longPrefixPos);
+}
+
+std::string SlicerParams::extractShortParamSwitch(const std::string& paramSwitchLinePart)
+{
+	const auto longPrefixPos = paramSwitchLinePart.find(kParamSwitchPrefixLong);
+	const auto shortPrefixPos = paramSwitchLinePart.find(kParamSwitchPrefixShort);
+
+	if (longPrefixPos > shortPrefixPos)
+		return paramSwitchLinePart.substr(shortPrefixPos, paramSwitchLinePart.find(","));
+
+	return "";
+}
+
+std::string SlicerParams::extractParamType(const std::string& paramSwitchLinePart)
+{
+	const auto paramTypePrefixPos = paramSwitchLinePart.find(kParamTypePrefix);
+	if (paramTypePrefixPos == std::string::npos)
+		return "";
+	return paramSwitchLinePart.substr(paramTypePrefixPos, paramSwitchLinePart.find(kParamTypePostfix));
+}
+
+std::string SlicerParams::truncateParamDescriptionWhitespaces(const std::string& paramDescriptionLine)
+{
+	std::string s = paramDescriptionLine;
+	s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+		return !std::isspace(ch);
+	}));
+	s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+		return !std::isspace(ch);
+	}).base(), s.end());
+
+	//Add one trailing space.
+	return s + " ";
+}
 
 SlicerParams::SlicerParams(std::string cliParamsPath)
 {
@@ -134,22 +250,17 @@ SlicerParams::SlicerParams(std::string cliParamsPath)
 
 	// Read in parameter lines  - tokenize by newline delimiter.
 	const std::regex delimiter("\n");
-	const std::vector<std::string> lines(std::sregex_token_iterator(fileContents.begin(), fileContents.end(), delimiter, -1),
-										 std::sregex_token_iterator());
+	const std::vector<std::string> paramLines(std::sregex_token_iterator(fileContents.begin(), fileContents.end(), delimiter, -1),
+											  std::sregex_token_iterator());
 
-	// Extract parameter groups.
-	auto lineGroups = extractParameterGroups(lines);
+	auto lineGroups = extractParameterGroups(paramLines);
 
-	for (const auto& [groupName, lineGroup]: lineGroups)
+	for (const auto& [groupName, groupLines]: lineGroups)
 	{
-		const auto paramSwitchParts = extractParamSwitchParts(lineGroup);
-
-		std::cout << " ### " << __FUNCTION__ << " PARAM SWITCH PARTS IN GROUP:" << std::endl;
-		for(const auto& token : paramSwitchParts)
-		{
-			std::cout << token << std::endl;
-		}
-		std::cout << std::endl;
+		// Initialize a new json param group.
+		_params.push_back(kParamGroupSchema);
+		_params.back()[kParamGroupSchemaNameKey] = groupName;
+		_params.back()[kParamGroupParamsKey] = extractGroupParams(groupLines, extractParamSwitchLineParts(groupLines));
 
 //		for (const auto& line : lineGroup)
 //		{
@@ -157,14 +268,15 @@ SlicerParams::SlicerParams(std::string cliParamsPath)
 //			const json param = constructJsonParamSchema(paramLineTokens);
 //		}
 
-//		_params[groupName] = getJsonParamSchema(getParamLineTokens())
-		std::cout << " ### " << __FUNCTION__ << " next group:" << groupName << std::endl;
-
-		for (const auto& line: lineGroup)
-		{
-			std::cout << line << std::endl;
-		}
+//		std::cout << " ### " << __FUNCTION__ << " next group:" << groupName << std::endl;
+//		for (const auto& line: groupLines)
+//		{
+//			std::cout << line << std::endl;
+//		}
 	}
+
+	std::ofstream jsonFile("C:\\Users\\Grzegorz Ilnicki\\Desktop\\JOB\\Ubot3D\\slicerParams.json");
+	jsonFile << _params;
 
 //	stream >> _params;
 }
