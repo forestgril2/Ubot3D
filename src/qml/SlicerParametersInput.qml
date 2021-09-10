@@ -48,9 +48,9 @@ Window {
                     id: paramRowRepeater
                     model: getVisibleParamsInGroup(getParamGroupWithName(root.paramGroups, /*groupName*/ modelData))
 
-                    ParameterRow {
-                        id: parameterRow
-                        param: /*parameter*/ modelData
+                    ParameterInputRow {
+                        id: parameterInput
+                        paramData: /*parameter*/ modelData
                     }
 
                 }
