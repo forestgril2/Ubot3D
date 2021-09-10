@@ -23,7 +23,7 @@ static const json kParamGroupSchema =
 	{kParamGroupSchemaNameKey, ""},
 	{"groupTabText",           ""},
 	{"description",            ""},
-	{"isVisible",              ""},
+	{"isVisible",              true},
 	{kParamGroupParamsKey,     {}},
 };
 static const json kParamSchema =
@@ -35,7 +35,7 @@ static const json kParamSchema =
 	{kParamTypeKey,           ""},
 	{"editFieldType",         ""},
 	{kParamDescriptionKey,    ""},
-	{"isVisible",             ""},
+	{"isVisible",             true},
 	{"minValue",              ""},
 	{"maxValue",              ""},
 	{"stepValue",             ""},

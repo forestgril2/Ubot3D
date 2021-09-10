@@ -24,7 +24,7 @@ Window {
          width: parent.width
          Repeater {
              id: tabBarRepeater
-             model: getParamGroupNames(root.paramGroups)
+             model: getVisibleParamGroupNames(root.paramGroups)
              TabButton {
                  text: modelData
              }
@@ -39,7 +39,7 @@ Window {
 
         Repeater {
             id: paramGroupRepeater
-            model: getParamGroupNames(root.paramGroups)
+            model: getVisibleParamGroupNames(root.paramGroups)
 
             Column {
                 id: paramColumn
@@ -90,12 +90,14 @@ Window {
         }
     }
 
-    function getParamGroupNames(paramGroups) {
+    function getVisibleParamGroupNames(paramGroups) {
         if (!paramGroups)
             return []
 
         var names = []
         for (var i=0; i<paramGroups.length; i++) {
+            if (!paramGroups[i].isVisible)
+                continue
             names.push(paramGroups[i].groupName)
         }
         return names
