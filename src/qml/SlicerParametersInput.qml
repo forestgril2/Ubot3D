@@ -46,7 +46,7 @@ Window {
 
                 Repeater {
                     id: paramRowRepeater
-                    model: getParamsInGroup(root.paramGroups[index])
+                    model: getVisibleParamsInGroup(getParamGroupWithName(root.paramGroups, modelData))
 
                     ParameterRow {
                         id: parameterRow
@@ -103,7 +103,28 @@ Window {
         return names
     }
 
-    function getParamsInGroup(paramGroup) {
-        return paramGroup.params
+    function getParamGroupWithName(paramGroups, name) {
+        if (!paramGroups)
+            return {}
+
+        for (var i=0; i<paramGroups.length; i++) {
+            if (name === paramGroups[i].groupName)
+                return paramGroups[i]
+        }
+        return {}
+    }
+
+    function getVisibleParamsInGroup(paramGroup) {
+        if (!paramGroups)
+            return []
+
+        var visibleParams = []
+        for (var i=0; i<paramGroup.params.length; i++) {
+            if (!paramGroup.params[i].isVisible)
+                continue
+            visibleParams.push(paramGroup.params[i])
+        }
+
+        return visibleParams
     }
 }
