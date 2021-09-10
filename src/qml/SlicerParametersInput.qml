@@ -26,7 +26,7 @@ Window {
              id: tabBarRepeater
              model: getVisibleParamGroupNames(root.paramGroups)
              TabButton {
-                 text: modelData
+                 text: /*groupName*/ modelData
              }
          }
     }
@@ -46,11 +46,11 @@ Window {
 
                 Repeater {
                     id: paramRowRepeater
-                    model: getVisibleParamsInGroup(getParamGroupWithName(root.paramGroups, modelData))
+                    model: getVisibleParamsInGroup(getParamGroupWithName(root.paramGroups, /*groupName*/ modelData))
 
                     ParameterRow {
                         id: parameterRow
-                        param: modelData
+                        param: /*parameter*/ modelData
                     }
 
                 }

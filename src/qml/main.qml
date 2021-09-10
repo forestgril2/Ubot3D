@@ -31,8 +31,9 @@ ApplicationWindow {
 
     SlicerParametersInput {
         id: slicerParameters
-        // TODO:
-//        paramGroups: defaultParams
+        property string defaultParamPath: "C:\\Projects\\Ubot3D\\slicerParamsDefault.json"
+        width: 1200
+        paramGroups: JSON.parse(fileImportExport.readJsonFile(defaultParamPath))
     }
 
     SupportOptions {
