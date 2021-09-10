@@ -10,7 +10,8 @@ FileDialog {
         GcodeImport,
         StlImport,
         StlExport,
-        JsonImport
+        JsonImport,
+        JsonExport
     }
 
     property int fileType: TypedFileDialog.StlImport
@@ -52,6 +53,10 @@ FileDialog {
                 slicerParameters.paramGroups = JSON.parse(fileImportExport.readJsonFile(generateSystemFilePath(fileDialog.currentFile)))
                 console.log(" ### TypedFileDialog.JsonsImport: " + fileDialog.currentFile)
                 break
+            case TypedFileDialog.JsonExport:
+                fileImportExport.saveJsonFile(JSON.stringify(slicerParameters.paramGroups), generateSystemFilePath(fileDialog.currentFile))
+                console.log(" ### TypedFileDialog.JsonsExport: " + fileDialog.currentFile)
+                break
 
         }
     }
@@ -61,6 +66,14 @@ FileDialog {
         nameFilters = [".json files (*.json)"]
         fileMode = FileDialog.OpenFiles
         fileType = TypedFileDialog.JsonImport
+        open()
+    }
+
+    function openExportJsonFileDialog()
+    {
+        nameFilters = [".json files (*.json)"]
+        fileMode = FileDialog.SaveFile
+        fileType = TypedFileDialog.JsonExport
         open()
     }
 

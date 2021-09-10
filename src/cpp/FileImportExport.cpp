@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <vector>
 
 #include <assimp/scene.h>
@@ -471,4 +472,35 @@ QString FileImportExport::readJsonFile(const QString& filePath)
 	std::ifstream fileStreamAgain(filePath.toStdString());
 	const std::string fileContents((std::istreambuf_iterator<char>(fileStreamAgain)), std::istreambuf_iterator<char>());
 	return QString::fromStdString(fileContents);
+}
+
+bool FileImportExport::saveJsonFile(const QString& jsonData, const QString& filePath)
+{
+	json j;
+
+	try
+	{
+		j = json::parse(jsonData.toStdString());
+//		std::cout << " ### " << __FUNCTION__ << " Json input ok: " << j << std::endl;
+
+	}
+	catch (json::parse_error& ex)
+	{
+		std::cerr << "parse error at byte " << ex.byte << std::endl;
+		std::cout << " ### " << __FUNCTION__ << " parse error at byte:" << ex.byte << std::endl;
+
+		return false;
+	}
+
+	std::ofstream outputFileStream(filePath.toStdString());
+	if (!outputFileStream.is_open())
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR: cannot open file for writing: " << filePath.toStdString() << std::endl;
+		return false;
+	}
+
+	outputFileStream << std::setw(4) << j << std::endl;
+	outputFileStream.close();
+
+	return true;
 }
