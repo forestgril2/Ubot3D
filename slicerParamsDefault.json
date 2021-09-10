@@ -315,17 +315,17 @@
             {
                 "cliSwitchLong": "--nozzle-diameter",
                 "cliSwitchShort": "",
-                "defaultValue": "",
-                "description": "Diameter of nozzle in mm (default: 0.5) ",
-                "editFieldType": "number",
+                "defaultValue": "0.5",
+                "description": "Diameter of nozzle in mm",
+                "editFieldType": "text",
                 "isVisible": true,
                 "maxValue": "3",
                 "minValue": "0.01",
-                "name": "Nozzle diameter [mm]",
+                "name": "Nozzle Diameter",
                 "possibleValues": null,
-                "stepValue": "",
-                "text": "",
-                "valueType": ""
+                "stepValue": "0.01",
+                "text": "Nozzle diameter [mm]",
+                "valueType": "number"
             },
             {
                 "cliSwitchLong": "--print-center",
