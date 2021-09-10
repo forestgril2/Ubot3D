@@ -187,9 +187,9 @@ std::vector<json> SlicerParams::extractGroupParams(const std::vector<std::string
 		(*currParam)[kParamDescriptionKey]    =
 				truncateParamDescriptionWhitespaces(line.substr(paramSwitchPartPos + currParamSwitchLinePart->size()));
 
-		if (++currParamSwitchPartIndex == paramSwitchLineParts.size())
-			break;
-		currParamSwitchLinePart = &(paramSwitchLineParts[currParamSwitchPartIndex]);
+		if (currParamSwitchPartIndex == paramSwitchLineParts.size() -1)
+			continue;
+		currParamSwitchLinePart = &(paramSwitchLineParts[++currParamSwitchPartIndex]);
 	}
 
 	return params;
