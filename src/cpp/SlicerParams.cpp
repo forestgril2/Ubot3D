@@ -15,7 +15,7 @@ static const std::string kParamGroupSchemaNameKey = "groupName";
 static const std::string kParamGroupParamsKey     = "params";
 static const std::string kParamCliSwitchLongKey   = "cliSwitchLong";
 static const std::string kParamCliSwitchShortKey  = "cliSwitchShort";
-static const std::string kParamTypeKey            = "type";
+static const std::string kParamTypeKey            = "valueType";
 static const std::string kParamDescriptionKey     = "description";
 
 static const json kParamGroupSchema =
@@ -38,6 +38,7 @@ static const json kParamSchema =
 	{"isVisible",             true},
 	{"minValue",              ""},
 	{"maxValue",              ""},
+	{"defaultValue",          ""},
 	{"stepValue",             ""},
 	{"possibleValues",        {}},
 };
