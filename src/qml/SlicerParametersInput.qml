@@ -38,21 +38,29 @@ Window {
         currentIndex: paramGroupsTabs.currentIndex
 
         Repeater {
-            id: paramGroupRepeater
-            model: getVisibleParamGroupNames(root.paramGroups)
+            id: paramGroupNameRepeater
+            model: /*groupName[]*/ getVisibleParamGroupNames(root.paramGroups)
 
             Column {
                 id: paramColumn
 
                 Repeater {
-                    id: paramRowRepeater
-                    model: getVisibleParamsInGroup(getParamGroupWithName(root.paramGroups, /*groupName*/ modelData))
+                    id: paramRepeater
+                    property string paramGroupName: modelData
+                    property var paramGroup: getParamGroupWithName(root.paramGroups, /*groupName*/ modelData)
+                    model: /*params[]*/ getVisibleParamsInGroup(paramGroup)
 
                     ParameterInputRow {
                         id: parameterInput
                         paramData: /*parameter*/ modelData
-                    }
 
+                        onDataChanged: {
+                            modelData = paramData
+                            const paramGroupIndex = getParamGroupIndexWithName(root.paramGroups, /*groupName*/ paramRepeater.paramGroupName)
+                            const paramIndex = getParamIndex(paramRepeater.paramGroup.params, paramData)
+                            paramGroups[paramGroupIndex].params[paramIndex] = modelData
+                        }
+                    }
                 }
 
             }
@@ -78,6 +86,9 @@ Window {
         }
         Button {
             text: "Save"
+            onPressed: {
+                fileDialog.openExportJsonFileDialog()
+            }
         }
         Button {
             text: "Ok"
@@ -103,16 +114,33 @@ Window {
         return names
     }
 
-    function getParamGroupWithName(paramGroups, name) {
+    function getParamIndex(params, param) {
+        if (!params || 0 === params.length)
+            return null
+
+        for (var i=0; i<params.length; i++) {
+            if (param.cliSwitchLong === params[i].cliSwitchLong &&
+                param.cliSwitchShort === params[i].cliSwitchShort)
+                return i
+        }
+        return null
+    }
+
+    function getParamGroupIndexWithName(paramGroups, name) {
         if (!paramGroups)
-            return {}
+            return null
 
         for (var i=0; i<paramGroups.length; i++) {
             if (name === paramGroups[i].groupName)
-                return paramGroups[i]
+                return i
         }
-        return {}
+        return null
     }
+
+    function getParamGroupWithName(paramGroups, name) {
+        return paramGroups[getParamGroupIndexWithName(paramGroups, name) ]
+    }
+
 
     function getVisibleParamsInGroup(paramGroup) {
         if (!paramGroups)

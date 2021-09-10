@@ -10,21 +10,25 @@ Row {
     padding: 4
     spacing: 11
 
+    signal dataChanged()
+
     Frame {
         width: 100
         RowLayout {
             anchors.fill: parent
             TextInput {
                 id: textField
-                text: paramData.defaultValue
+                text: paramData.value ? paramData.value : paramData.defaultValue
                 Layout.alignment: Qt.AlignRight
                 horizontalAlignment: TextInput.AlignRight
                 rightPadding: root.padding
                 onEditingFinished: {
-                    //            if (parseInt(text) !== NaN)
-                    //            {
-                    //                root.value = parseInt(text)
-                    //            }
+                    if (parseInt(text) !== NaN)
+                    {
+                        paramData.value = parseFloat(text)
+                        console.log(" paramData.value: ", paramData.value)
+                        dataChanged()
+                    }
                 }
             }
         }

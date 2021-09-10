@@ -39,6 +39,7 @@ static const json kParamSchema =
 	{"minValue",              ""},
 	{"maxValue",              ""},
 	{"defaultValue",          ""},
+	{"value",                 ""},
 	{"stepValue",             ""},
 	{"possibleValues",        {}},
 };
