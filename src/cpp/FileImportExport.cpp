@@ -9,8 +9,14 @@
 #include <assimp/cexport.h>
 #include <assimp/SceneCombiner.h>
 
+#include <json.hpp>
+
+// for convenience
+using json = nlohmann::json;
+
 #include <Helpers3D.h>
 #include <TriangleGeometry.h>
+
 
 static constexpr uint32_t kStlHeaderSize = 80u;
 static constexpr uint32_t kStlTriangleSize = 50u;
@@ -408,7 +414,7 @@ static bool exportAssimpScenesAsStl(const std::string& filePath,
 	return true;
 }
 
-bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, const QString filePath)
+bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, const QString& filePath)
 {
 	assert(stlExportData.size() > 0);
 
@@ -439,4 +445,30 @@ bool FileImportExport::exportModelsToSTL(const QVariantList& stlExportData, cons
 	std::cout << " ### " << __FUNCTION__ << " Data successfully exported to file: " << filePath.toStdString() << std::endl;
 	readStlTriangleData(filePath.toStdString());
 	return true;
+}
+
+QString FileImportExport::readJsonFile(const QString& filePath)
+{
+	std::ifstream fileStream(filePath.toStdString());
+	if (!fileStream.is_open())
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR: cannot open file for reading: " << filePath.toStdString() << std::endl;
+		return "";
+	}
+
+	try
+	{
+		json j = json::parse(fileStream);
+//		std::cout << " ### " << __FUNCTION__ << " Json file ok: " << j << std::endl;
+
+	}
+	catch (json::parse_error& ex)
+	{
+		std::cerr << "parse error at byte " << ex.byte << std::endl;
+		std::cout << " ### " << __FUNCTION__ << " parse error at byte:" << ex.byte << std::endl;
+	}
+
+	std::ifstream fileStreamAgain(filePath.toStdString());
+	const std::string fileContents((std::istreambuf_iterator<char>(fileStreamAgain)), std::istreambuf_iterator<char>());
+	return QString::fromStdString(fileContents);
 }

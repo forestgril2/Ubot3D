@@ -31,11 +31,8 @@ ApplicationWindow {
 
     SlicerParametersInput {
         id: slicerParameters
-        paramGroups: [
-            {"groupName": "Dual Extrusion", "params": [{"name": "Dual Extrusion", "value": "false"}, {"name": "Dual Extrusion1", "value": "true"}, {"name": "Dual Extrusion2", "value": 1}]},
-            {"groupName": "Other",          "params": []},
-            {"groupName": "Other 2",        "params": [{"name": "Input0", "value": "false"}, {"name": "Input1", "value": "true"}, {"name": "Input2", "value": 1}]},
-        ]
+        // TODO:
+//        paramGroups: defaultParams
     }
 
     SupportOptions {

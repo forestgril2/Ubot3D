@@ -10,7 +10,7 @@ using json = nlohmann::json;
 class SlicerParams
 {
 public:
-	SlicerParams(std::string paramsPath);
+	SlicerParams(const std::string& paramsPath);
 
 private:
 	static std::vector<std::pair<std::string, std::vector<std::string>>> extractParameterGroups(const std::vector<std::string>& lines);

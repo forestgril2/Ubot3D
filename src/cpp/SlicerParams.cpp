@@ -11,7 +11,7 @@ static const std::string kParamSwitchPrefixShort = "-";
 static const std::string kParamTypePrefix = "<";
 static const std::string kParamTypePostfix = ">";
 
-static const std::string kParamGroupSchemaNameKey = "name";
+static const std::string kParamGroupSchemaNameKey = "groupName";
 static const std::string kParamGroupParamsKey     = "params";
 static const std::string kParamCliSwitchLongKey   = "cliSwitchLong";
 static const std::string kParamCliSwitchShortKey  = "cliSwitchShort";
@@ -141,12 +141,12 @@ std::vector<std::string> SlicerParams::extractParamSwitchLineParts(const std::ve
 		// The switch part ends here and is fully initialized.
 	}
 
-	std::cout << " ### " << __FUNCTION__ << " PARAM SWITCH PARTS IN GROUP:" << std::endl;
-	for(const auto& token : paramSwitchParts)
-	{
-		std::cout << token << std::endl;
-	}
-	std::cout << std::endl;
+//	std::cout << " ### " << __FUNCTION__ << " PARAM SWITCH PARTS IN GROUP:" << std::endl;
+//	for(const auto& token : paramSwitchParts)
+//	{
+//		std::cout << token << std::endl;
+//	}
+//	std::cout << std::endl;
 
 	return paramSwitchParts;
 }
@@ -235,7 +235,7 @@ std::string SlicerParams::truncateParamDescriptionWhitespaces(const std::string&
 	return s + " ";
 }
 
-SlicerParams::SlicerParams(std::string cliParamsPath)
+SlicerParams::SlicerParams(const std::string& cliParamsPath)
 {
 	std::ifstream fileStream(cliParamsPath);
 

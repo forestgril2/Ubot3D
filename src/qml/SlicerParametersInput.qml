@@ -15,6 +15,8 @@ Window {
     property var paramGroups: []
 
     minimumWidth: 300
+    minimumHeight: paramGroupsTabs.height + stackLayout.height + buttons.height
+    height: minimumHeight
 	title: "Input slicer parameters"
 
     TabBar {
@@ -51,18 +53,40 @@ Window {
                         param: modelData
                     }
 
-                    onModelChanged: {
-                        console.log("paramRowRepeater model")
-                        console.log(JSON.stringify(model))
-                    }
                 }
 
             }
+        }
+    }
 
-            onModelChanged: {
-                console.log("paramGroupRepeater model")
-                console.log(JSON.stringify(model))
+    Row {
+        id: buttons
+
+        anchors {
+            bottom: parent.bottom
+            right: parent.right
+        }
+
+        padding: 4
+        spacing: 17
+
+        Button {
+            text: "Load"
+            onPressed: {
+                fileDialog.openImportJsonFileDialog()
             }
+        }
+        Button {
+            text: "Save"
+        }
+        Button {
+            text: "Ok"
+        }
+        Button {
+            text: "Apply"
+        }
+        Button {
+            text: "Cancel"
         }
     }
 
@@ -78,8 +102,6 @@ Window {
     }
 
     function getParamsInGroup(paramGroup) {
-        console.log("paramGroup.params")
-        console.log(paramGroup.params)
         return paramGroup.params
     }
 }

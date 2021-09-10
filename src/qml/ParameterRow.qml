@@ -10,6 +10,6 @@ Row {
 	Switch {
 		id: twoExtrudersSwitch
 		property bool isUsingTwoExtruders: (position == 1.0)
-        text: param.name
+        text: param.description
 	}	
 }

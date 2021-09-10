@@ -9,7 +9,8 @@ FileDialog {
     enum FileType {
         GcodeImport,
         StlImport,
-        StlExport
+        StlExport,
+        JsonImport
     }
 
     property int fileType: TypedFileDialog.StlImport
@@ -47,8 +48,20 @@ FileDialog {
                 gCodeObjectsRepeater.model = [generateSystemFilePath(fileDialog.currentFile)]
                 console.log(" ### TypedFileDialog.GcodeImport: " + gCodeObjectsRepeater.model[0])
                 break
+            case TypedFileDialog.JsonImport:
+                slicerParameters.paramGroups = JSON.parse(fileImportExport.readJsonFile(generateSystemFilePath(fileDialog.currentFile)))
+                console.log(" ### TypedFileDialog.JsonsImport: " + fileDialog.currentFile)
+                break
 
         }
+    }
+
+    function openImportJsonFileDialog()
+    {
+        nameFilters = [".json files (*.json)"]
+        fileMode = FileDialog.OpenFiles
+        fileType = TypedFileDialog.JsonImport
+        open()
     }
 
     function openImportStlFileDialog()
