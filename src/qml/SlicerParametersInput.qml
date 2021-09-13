@@ -55,10 +55,8 @@ Window {
                         paramData: modelData
 
                         onParamValueChanged: {
-//                            modelData = paramData
                             const paramGroupIndex = getParamGroupIndexWithName(root.paramGroups, /*groupName*/ paramRepeater.paramGroupName)
                             const paramIndex = getParamIndex(paramRepeater.paramGroup.params, paramData)
-
                             paramGroups[paramGroupIndex].params[paramIndex].value = paramValue
                         }
                     }

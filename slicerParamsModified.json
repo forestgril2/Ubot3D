@@ -538,7 +538,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": 0.5,
+                "value": 3,
                 "valueType": ""
             },
             {
@@ -642,8 +642,8 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
-                "valueType": ""
+                "value": 130,
+                "valueType": "Text"
             },
             {
                 "cliSwitchLong": "--perimeter-speed",
@@ -658,7 +658,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": 60,
                 "valueType": ""
             },
             {
@@ -674,8 +674,8 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
-                "valueType": ""
+                "value": "15%",
+                "valueType": "Text"
             },
             {
                 "cliSwitchLong": "--external-perimeter-speed",
@@ -690,7 +690,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": null,
                 "valueType": ""
             },
             {

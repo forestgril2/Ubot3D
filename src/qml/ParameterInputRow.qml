@@ -11,25 +11,59 @@ Row {
     padding: 4
     spacing: 11
 
+    enum ValueType {
+        Text,
+        Number
+    }
+
     Frame {
         width: 100
-            TextInput {
-                id: textField
-                anchors.fill: parent
-//                width: parent.width
-                text: paramValue !== "" ? paramValue : root.paramData.defaultValue
-                Layout.alignment: Qt.AlignRight
-                horizontalAlignment: TextInput.AlignRight
-                rightPadding: root.padding
-                onEditingFinished: {
-                    if (parseInt(text) !== NaN)
-                    {
-                        paramValue = parseFloat(text)
-                        console.log(" paramValue: ", paramValue)
-                        console.log(" paramData.value: ", root.paramData.value)
-                    }
+        TextInput {
+            id: textField
+            anchors.fill: parent
+            text: paramValue !== "" ? paramValue : root.paramData.defaultValue
+            Layout.alignment: Qt.AlignRight
+            horizontalAlignment: TextInput.AlignRight
+            rightPadding: root.padding
+            onEditingFinished: {
+                parseParameterValue(paramData, text)
+            }
+
+            function parseParameterValue(paramData, text) {
+                switch (getValueType(paramData)) {
+                case ParameterInputRow.Number:
+                    parseNumberValue(text)
+                    break;
+                case ParameterInputRow.Text:
+                    parseTextValue(text)
+                    break;
                 }
             }
+
+            function getValueType(paramData) {
+                switch (paramData.valueType) {
+                case "Text":
+                    return ParameterInputRow.Text
+                case "Number":
+                default :
+                    return ParameterInputRow.Number
+                }
+            }
+
+            function parseNumberValue(text) {
+                if (parseInt(text) !== NaN)
+                {
+                    paramValue = parseFloat(text)
+                    console.log(" parseNumberValue paramValue: ", paramValue)
+                }
+            }
+
+            function parseTextValue(text) {
+                paramValue = text
+                console.log(" parseTextValue paramValue: ", paramValue)
+            }
+        }
+
     }
 
     Label {
