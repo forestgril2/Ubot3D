@@ -7,35 +7,33 @@ import QtQuick.Layouts 1.2
 Row {
     id: root
     property var paramData
+    property var paramValue: paramData.value
     padding: 4
     spacing: 11
 
-    signal dataChanged()
-
     Frame {
         width: 100
-        RowLayout {
-            anchors.fill: parent
             TextInput {
                 id: textField
-                text: paramData.value ? paramData.value : paramData.defaultValue
+                anchors.fill: parent
+//                width: parent.width
+                text: paramValue !== "" ? paramValue : root.paramData.defaultValue
                 Layout.alignment: Qt.AlignRight
                 horizontalAlignment: TextInput.AlignRight
                 rightPadding: root.padding
                 onEditingFinished: {
                     if (parseInt(text) !== NaN)
                     {
-                        paramData.value = parseFloat(text)
-                        console.log(" paramData.value: ", paramData.value)
-                        dataChanged()
+                        paramValue = parseFloat(text)
+                        console.log(" paramValue: ", paramValue)
+                        console.log(" paramData.value: ", root.paramData.value)
                     }
                 }
             }
-        }
     }
 
     Label {
-        text: paramData.text ? paramData.text : paramData.name ? paramData.name : paramData.description
+        text: root.paramData.text ? root.paramData.text : root.paramData.name ? root.paramData.name : root.paramData.description
     }
 
 }

@@ -52,13 +52,14 @@ Window {
 
                     ParameterInputRow {
                         id: parameterInput
-                        paramData: /*parameter*/ modelData
+                        paramData: modelData
 
-                        onDataChanged: {
-                            modelData = paramData
+                        onParamValueChanged: {
+//                            modelData = paramData
                             const paramGroupIndex = getParamGroupIndexWithName(root.paramGroups, /*groupName*/ paramRepeater.paramGroupName)
                             const paramIndex = getParamIndex(paramRepeater.paramGroup.params, paramData)
-                            paramGroups[paramGroupIndex].params[paramIndex] = modelData
+
+                            paramGroups[paramGroupIndex].params[paramIndex].value = paramValue
                         }
                     }
                 }
