@@ -691,7 +691,7 @@
                 "stepValue": "",
                 "text": "",
                 "value": null,
-                "valueType": ""
+                "valueType": "Text"
             },
             {
                 "cliSwitchLong": "--infill-speed",
@@ -706,7 +706,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": 80,
                 "valueType": ""
             },
             {
@@ -723,7 +723,7 @@
                 "stepValue": "",
                 "text": "",
                 "value": "",
-                "valueType": ""
+                "valueType": "Text"
             },
             {
                 "cliSwitchLong": "--top-solid-infill-speed",
@@ -739,7 +739,7 @@
                 "stepValue": "",
                 "text": "",
                 "value": "",
-                "valueType": ""
+                "valueType": "Text"
             },
             {
                 "cliSwitchLong": "--support-material-speed",
@@ -771,7 +771,7 @@
                 "stepValue": "",
                 "text": "",
                 "value": "",
-                "valueType": ""
+                "valueType": "Text"
             },
             {
                 "cliSwitchLong": "--bridge-speed",
@@ -819,7 +819,7 @@
                 "stepValue": "",
                 "text": "",
                 "value": "",
-                "valueType": ""
+                "valueType": "Text"
             }
         ]
     },
@@ -947,7 +947,7 @@
                 "stepValue": "",
                 "text": "",
                 "value": "",
-                "valueType": ""
+                "valueType": "Text"
             },
             {
                 "cliSwitchLong": "--infill-every-layers",
@@ -1067,7 +1067,7 @@
                 "stepValue": "",
                 "text": "",
                 "value": "",
-                "valueType": ""
+                "valueType": "Text"
             },
             {
                 "cliSwitchLong": "--fill-angle",
@@ -1095,18 +1095,32 @@
                 "maxValue": "",
                 "minValue": "",
                 "name": "",
-                "possibleValues": null,
+                "possibleValues": [
+                    "Stars",
+                    "Rectilinear",
+                    "Aligned Rectilinear",
+                    "Grid",
+                    "Triangles",
+                    "Cubic",
+                    "Concentric",
+                    "Honeycomb",
+                    "3D Honeycomb",
+                    "Gyroid",
+                    "Hilbert Curve",
+                    "Archmidean Chords",
+                    "Octagram Spiral"
+                ],
                 "stepValue": "",
                 "text": "",
-                "value": "",
-                "valueType": ""
+                "value": "Stars",
+                "valueType": "Enum"
             },
             {
                 "cliSwitchLong": "--fill-gaps",
                 "cliSwitchShort": "",
                 "defaultValue": "",
-                "description": "Fill gaps with single passes (default: yes) ",
-                "editFieldType": "",
+                "description": "Fill gaps with single passes (default: true) ",
+                "editFieldType": "CheckBox",
                 "isVisible": true,
                 "maxValue": "",
                 "minValue": "",
@@ -1114,8 +1128,8 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
-                "valueType": ""
+                "value": true,
+                "valueType": "Boolean"
             },
             {
                 "cliSwitchLong": "--external-infill-pattern",
@@ -1168,9 +1182,9 @@
             {
                 "cliSwitchLong": "--start-gcode",
                 "cliSwitchShort": "",
-                "defaultValue": "",
+                "defaultValue": false,
                 "description": "Load initial G-code from the supplied file. This will overwrite the default command (home all axes [G28]). ",
-                "editFieldType": "",
+                "editFieldType": "CheckBox",
                 "isVisible": true,
                 "maxValue": "",
                 "minValue": "",
@@ -1178,15 +1192,15 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
-                "valueType": ""
+                "value": true,
+                "valueType": "Boolean"
             },
             {
                 "cliSwitchLong": "--end-gcode",
                 "cliSwitchShort": "",
                 "defaultValue": "",
                 "description": "Load final G-code from the supplied file. This will overwrite the default commands (turn off temperature [M104 S0], home X axis [G28 X], disable motors [M84]). ",
-                "editFieldType": "",
+                "editFieldType": "CheckBox",
                 "isVisible": true,
                 "maxValue": "",
                 "minValue": "",
@@ -1194,8 +1208,8 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
-                "valueType": ""
+                "value": false,
+                "valueType": "Boolean"
             },
             {
                 "cliSwitchLong": "--before-layer-gcode",
@@ -1243,7 +1257,7 @@
                 "stepValue": "",
                 "text": "",
                 "value": "",
-                "valueType": ""
+                "valueType": "Text"
             },
             {
                 "cliSwitchLong": "--seam-position",
@@ -1265,8 +1279,8 @@
                 "cliSwitchLong": "--external-perimeters-first",
                 "cliSwitchShort": "",
                 "defaultValue": "",
-                "description": "Reverse perimeter order. (default: no) ",
-                "editFieldType": "",
+                "description": "Reverse perimeter order. (default: false) ",
+                "editFieldType": "CheckBox",
                 "isVisible": true,
                 "maxValue": "",
                 "minValue": "",
@@ -1274,8 +1288,8 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
-                "valueType": ""
+                "value": true,
+                "valueType": "Boolean"
             },
             {
                 "cliSwitchLong": "--spiral-vase",
@@ -1297,8 +1311,8 @@
                 "cliSwitchLong": "--only-retract-when-crossing-perimeters",
                 "cliSwitchShort": "",
                 "defaultValue": "",
-                "description": " Disable retraction when travelling between infill paths inside the same island. (default: no) ",
-                "editFieldType": "",
+                "description": "Disable retraction when travelling between infill paths inside the same island. (default: no) ",
+                "editFieldType": "CheckBox",
                 "isVisible": true,
                 "maxValue": "",
                 "minValue": "",
@@ -1306,14 +1320,14 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
-                "valueType": ""
+                "value": true,
+                "valueType": "Boolean"
             },
             {
                 "cliSwitchLong": "--solid-infill-below-area",
                 "cliSwitchShort": "",
                 "defaultValue": "",
-                "description": " Force solid infill when a region has a smaller area than this threshold (mm^2, default: 70) ",
+                "description": "Force solid infill when a region has a smaller area than this threshold (mm^2, default: 70) ",
                 "editFieldType": "",
                 "isVisible": true,
                 "maxValue": "",

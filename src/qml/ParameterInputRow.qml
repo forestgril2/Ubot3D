@@ -12,12 +12,30 @@ Row {
     spacing: 11
 
     enum ValueType {
-        Text,
-        Number
+        Boolean,
+        Number,
+        Text
+    }
+
+    Item {
+        id: checkBoxSpacer
+        visible: checkBox.visible
+        width: textField.width - checkBox.width - root.padding
+        height: 1//textField.width - checkBox.width
+    }
+
+    CheckBox {
+        id: checkBox
+        visible: getValueType(paramData) === ParameterInputRow.Boolean
+        onCheckedChanged: {
+            paramValue = checked
+        }
     }
 
     Frame {
         width: 100
+        visible: !checkBox.visible
+
         TextInput {
             id: textField
             anchors.fill: parent
@@ -26,29 +44,9 @@ Row {
             horizontalAlignment: TextInput.AlignRight
             rightPadding: root.padding
             onEditingFinished: {
-                parseParameterValue(paramData, text)
+                setParameterValue(paramData, text)
             }
 
-            function parseParameterValue(paramData, text) {
-                switch (getValueType(paramData)) {
-                case ParameterInputRow.Number:
-                    parseNumberValue(text)
-                    break;
-                case ParameterInputRow.Text:
-                    parseTextValue(text)
-                    break;
-                }
-            }
-
-            function getValueType(paramData) {
-                switch (paramData.valueType) {
-                case "Text":
-                    return ParameterInputRow.Text
-                case "Number":
-                default :
-                    return ParameterInputRow.Number
-                }
-            }
 
             function parseNumberValue(text) {
                 if (parseInt(text) !== NaN)
@@ -63,7 +61,29 @@ Row {
                 console.log(" parseTextValue paramValue: ", paramValue)
             }
         }
+    }
 
+    function setParameterValue(paramData, value) {
+        switch (getValueType(paramData)) {
+        case ParameterInputRow.Number:
+            textField.parseNumberValue(value)
+            break;
+        case ParameterInputRow.Value:
+            textField.parseTextValue(value)
+            break;
+        }
+    }
+
+    function getValueType(paramData) {
+        switch (paramData.valueType) {
+        case "Text":
+            return ParameterInputRow.Text
+        case "Boolean":
+            return ParameterInputRow.Boolean
+        case "Number":
+        default :
+            return ParameterInputRow.Number
+        }
     }
 
     Label {
