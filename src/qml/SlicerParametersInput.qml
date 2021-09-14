@@ -48,11 +48,38 @@ Window {
                     id: paramRepeater
                     property string paramGroupName: modelData
                     property var paramGroup: getParamGroupWithName(root.paramGroups, /*groupName*/ modelData)
+                    property int largestInputRowEditWidth: 0
+
                     model: /*params[]*/ getVisibleParamsInGroup(paramGroup)
 
                     ParameterInputRow {
                         id: parameterInput
                         paramData: modelData
+
+                        Connections {
+                            target: paramRepeater
+                            function onLargestInputRowEditWidthChanged() {
+                                parameterInput.largestEditWidth = paramRepeater.largestInputRowEditWidth
+                            }
+                        }
+
+                        onEditFieldWidthChanged: {
+                            if (editFieldWidth > paramRepeater.largestInputRowEditWidth) {
+                                paramRepeater.largestInputRowEditWidth = editFieldWidth
+                            }
+                            else {
+                                largestEditWidth = paramRepeater.largestInputRowEditWidth
+                            }
+                        }
+
+                        Component.onCompleted: {
+                            if (editFieldWidth > paramRepeater.largestInputRowEditWidth) {
+                                paramRepeater.largestInputRowEditWidth = editFieldWidth
+                            }
+                            else {
+                                largestEditWidth = paramRepeater.largestInputRowEditWidth
+                            }
+                        }
 
                         onParamValueChanged: {
                             const paramGroupIndex = getParamGroupIndexWithName(root.paramGroups, /*groupName*/ paramRepeater.paramGroupName)

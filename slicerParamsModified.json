@@ -1090,7 +1090,7 @@
                 "cliSwitchShort": "",
                 "defaultValue": "",
                 "description": "Pattern to use to fill non-solid layers (default: stars) ",
-                "editFieldType": "",
+                "editFieldType": "ComboBox",
                 "isVisible": true,
                 "maxValue": "",
                 "minValue": "",

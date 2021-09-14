@@ -8,6 +8,10 @@ Row {
     id: root
     property var paramData
     property var paramValue: paramData.value
+    property var editFieldWidth: paramData.editFieldType === "CheckBox" ? checkBox.width :
+                                                                          paramData.editFieldType === "ComboBox" ? comboBox.width :
+                                                                                                                   textEditFrame.width
+    property var largestEditWidth: 0
     padding: 4
     spacing: 11
 
@@ -20,21 +24,31 @@ Row {
     Item {
         id: checkBoxSpacer
         visible: checkBox.visible
-        width: textField.width - checkBox.width - root.padding
+        width:  largestEditWidth - checkBox.width - root.padding
         height: 1//textField.width - checkBox.width
     }
 
     CheckBox {
         id: checkBox
-        visible: getValueType(paramData) === ParameterInputRow.Boolean
+        visible: paramData.editFieldType === "CheckBox"
         onCheckedChanged: {
             paramValue = checked
         }
     }
 
+    ComboBox {
+        id: comboBox
+        model: root.paramData.possibleValues
+        visible: paramData.editFieldType === "ComboBox"
+        implicitContentWidthPolicy: ComboBox.WidestText
+        width: implicitWidth > largestEditWidth ? implicitWidth : largestEditWidth
+    }
+
     Frame {
-        width: 100
-        visible: !checkBox.visible
+        id: textEditFrame
+        property var defaultWidth: 50
+        width: defaultWidth > largestEditWidth ? defaultWidth : largestEditWidth
+        visible: !checkBox.visible && !comboBox.visible
 
         TextInput {
             id: textField
