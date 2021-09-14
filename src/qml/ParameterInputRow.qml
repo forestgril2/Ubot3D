@@ -28,17 +28,25 @@ Row {
 
     CheckBox {
         id: checkBox
+        checked: paramValue
         visible: paramData.editFieldType === "CheckBox"
+
         onCheckedChanged: {
+            if (!visible)
+                return
             paramValue = checked
         }
     }
 
     Switch {
         id: switchItem
+        checked: paramValue
         visible: paramData.editFieldType === "Switch"
-        onPositionChanged: {
-            paramValue = position === 0 ? false : true
+
+        onCheckedChanged: {
+            if (!visible)
+                return
+            paramValue = checked
         }
     }
 

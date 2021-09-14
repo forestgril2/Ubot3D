@@ -1002,7 +1002,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": 3,
                 "valueType": ""
             },
             {
@@ -1018,7 +1018,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": 3,
                 "valueType": ""
             },
             {
@@ -1034,7 +1034,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": 3,
                 "valueType": ""
             },
             {
@@ -1050,7 +1050,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": 3,
                 "valueType": ""
             },
             {
@@ -1066,8 +1066,8 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
-                "valueType": "Text"
+                "value": 20,
+                "valueType": "Number"
             },
             {
                 "cliSwitchLong": "--fill-angle",
@@ -1082,7 +1082,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": 45,
                 "valueType": ""
             },
             {
@@ -1336,7 +1336,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": 70,
                 "valueType": ""
             },
             {
@@ -1344,7 +1344,7 @@
                 "cliSwitchShort": "",
                 "defaultValue": "",
                 "description": " Only infill under ceilings (default: no) ",
-                "editFieldType": "",
+                "editFieldType": "Switch",
                 "isVisible": true,
                 "maxValue": "",
                 "minValue": "",
@@ -1353,14 +1353,14 @@
                 "stepValue": "",
                 "text": "",
                 "value": "",
-                "valueType": ""
+                "valueType": "Boolean"
             },
             {
                 "cliSwitchLong": "--infill-first",
                 "cliSwitchShort": "",
                 "defaultValue": "",
                 "description": "Make infill before perimeters (default: no) ",
-                "editFieldType": "",
+                "editFieldType": "Switch",
                 "isVisible": true,
                 "maxValue": "",
                 "minValue": "",
@@ -1369,7 +1369,7 @@
                 "stepValue": "",
                 "text": "",
                 "value": "",
-                "valueType": ""
+                "valueType": "Boolean"
             }
         ]
     },
