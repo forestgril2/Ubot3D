@@ -8,9 +8,7 @@ Row {
     id: root
     property var paramData
     property var paramValue: paramData.value
-    property var editFieldWidth: paramData.editFieldType === "CheckBox" ? checkBox.width :
-                                                                          paramData.editFieldType === "ComboBox" ? comboBox.width :
-                                                                                                                   textEditFrame.width
+    property var editFieldWidth: getEditFieldWidth()
     property var largestEditWidth: 0
     padding: 4
     spacing: 11
@@ -22,9 +20,9 @@ Row {
     }
 
     Item {
-        id: checkBoxSpacer
-        visible: checkBox.visible
-        width:  largestEditWidth - checkBox.width - root.padding
+        id: booleanInputSpacer
+        visible: getValueType(paramData) === ParameterInputRow.Boolean
+        width:  largestEditWidth - (checkBox.visible ? checkBox.width : switchItem.width) - root.padding
         height: 1//textField.width - checkBox.width
     }
 
@@ -33,6 +31,14 @@ Row {
         visible: paramData.editFieldType === "CheckBox"
         onCheckedChanged: {
             paramValue = checked
+        }
+    }
+
+    Switch {
+        id: switchItem
+        visible: paramData.editFieldType === "Switch"
+        onPositionChanged: {
+            paramValue = position === 0 ? false : true
         }
     }
 
@@ -48,7 +54,7 @@ Row {
         id: textEditFrame
         property var defaultWidth: 50
         width: defaultWidth > largestEditWidth ? defaultWidth : largestEditWidth
-        visible: !checkBox.visible && !comboBox.visible
+        visible: paramData.editFieldType === "TextInput" || (getValueType(paramData) !== ParameterInputRow.Boolean && !comboBox.visible)
 
         TextInput {
             id: textField
@@ -77,6 +83,10 @@ Row {
         }
     }
 
+    Label {
+        text: root.paramData.text ? root.paramData.text : root.paramData.name ? root.paramData.name : root.paramData.description
+    }
+
     function setParameterValue(paramData, value) {
         switch (getValueType(paramData)) {
         case ParameterInputRow.Number:
@@ -100,8 +110,14 @@ Row {
         }
     }
 
-    Label {
-        text: root.paramData.text ? root.paramData.text : root.paramData.name ? root.paramData.name : root.paramData.description
+    function getEditFieldWidth() {
+        switch(paramData.editFieldType) {
+        case "CheckBox":
+            return checkBox.width
+        case "ComboBox":
+            return comboBox.width
+        default:
+            return textEditFrame.width
+        }
     }
-
 }
