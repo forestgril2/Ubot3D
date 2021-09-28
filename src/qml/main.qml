@@ -355,10 +355,10 @@ ApplicationWindow {
             }
         }
 
-        ModelControls {
-            id: controls
+//        ModelControls {
+//            id: controls
 
-        }
+//        }
 
         ProcessLauncher {
             id: slicerProcessLauncher
@@ -400,7 +400,7 @@ ApplicationWindow {
                 }
 
                 var isTwoHeaderExtrusion = slicerParameters.isUsingTwoExtruders
-                generateGCode(selectedModels[0].geometry.inputFile, isTwoHeaderExtrusion)
+                generateGCode(fileDialog.slicerExec, selectedModels[0].geometry.inputFile, "C:\\Projects\\Ubot3D\\slicerParamsModified.json")
 //                generateSlices(selectedModels[0].geometry)
             }
         }

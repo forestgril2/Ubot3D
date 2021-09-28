@@ -6,12 +6,16 @@ import "HelperFunctions.js" as QmlHelpers
 FileDialog {
     id: root
 
+    // TODO: This doesn't belong here.
+    property string slicerExec
+
     enum FileType {
         GcodeImport,
         StlImport,
         StlExport,
         JsonImport,
-        JsonExport
+        JsonExport,
+        SlicerExec
     }
 
     property int fileType: TypedFileDialog.StlImport
@@ -57,36 +61,43 @@ FileDialog {
                 fileImportExport.saveJsonFile(JSON.stringify(slicerParameters.paramGroups), generateSystemFilePath(fileDialog.currentFile))
                 console.log(" ### TypedFileDialog.JsonsExport: " + fileDialog.currentFile)
                 break
+            case TypedFileDialog.SlicerExec:
+                slicerExec = generateSystemFilePath(fileDialog.currentFile)
+                console.log(" ### TypedFileDialog.SlicerExec: " + slicerExec)
+                break
 
         }
     }
 
-    function openImportJsonFileDialog()
-    {
+    function selectSlicerExec() {
+        nameFilters = [".exe files (*.exe)"]
+        fileMode = FileDialog.OpenFiles
+        fileType = TypedFileDialog.SlicerExec
+        open()
+    }
+
+    function openImportJsonFileDialog() {
         nameFilters = [".json files (*.json)"]
         fileMode = FileDialog.OpenFiles
         fileType = TypedFileDialog.JsonImport
         open()
     }
 
-    function openExportJsonFileDialog()
-    {
+    function openExportJsonFileDialog() {
         nameFilters = [".json files (*.json)"]
         fileMode = FileDialog.SaveFile
         fileType = TypedFileDialog.JsonExport
         open()
     }
 
-    function openImportStlFileDialog()
-    {
+    function openImportStlFileDialog() {
         nameFilters = ["STL files (*.stl *.STL)", "Object files (*.obj)"]
         fileMode = FileDialog.OpenFiles
         fileType = TypedFileDialog.StlImport
         open()
     }
 
-    function openExportStlFileDialog()
-    {
+    function openExportStlFileDialog() {
         console.log(" ### stlObjectsRepeater.count:" + stlObjectsRepeater.count )
         if (0 === stlObjectsRepeater.count)
         {
@@ -111,8 +122,7 @@ FileDialog {
         open()
     }
 
-    function openImportGcodeFileDialog()
-    {
+    function openImportGcodeFileDialog() {
         nameFilters = ["Gcode files (*.gcode)"]
         fileMode = FileDialog.OpenFile
         fileType = TypedFileDialog.GcodeImport

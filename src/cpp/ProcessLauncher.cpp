@@ -10,8 +10,12 @@
 #include "TriangleGeometry.h"
 #include "NaiveSlicerHeaders.h"
 
-static const std::string kUbotSlicerDir = "UBotSlicer";
-static const std::string kUbotSlicerProgram = "UBotSlicer.exe";
+#include <json.hpp>
+
+// for convenience
+using json = nlohmann::json;
+
+
 static const std::string kUbotSlicerSuccessString = "Plik zostal skonwertowany i zapisany: ";
 static const std::string kGCodeExtension = ".gcode";
 
@@ -20,22 +24,65 @@ ProcessLauncher::ProcessLauncher(QObject *parent) : QObject(parent)
 
 }
 
-void ProcessLauncher::generateGCode(const QString& stlFilePath, bool isTwoHeaderExtrusion)
+void ProcessLauncher::generateGCode(const QString& slicerExecPath, const QString& stlFilePath, const QString& paramsFilePath)
 {
-	static const std::string slicerDirFull = QDir::currentPath().toStdString() + "/../" + kUbotSlicerDir;
-	static const std::string slicerCommandFull = slicerDirFull + "/" + kUbotSlicerProgram;
-	static const QString program = QString::fromStdString(slicerCommandFull);
+	if (slicerExecPath.isEmpty())
+	{//TODO: All these errors should be bassed to the qml frontend.
+		std::cout << " ### " << __FUNCTION__ << " ERROR: slicer executable not specified. " << std::endl;
+		return;
+	}
+
 	QStringList arguments;
 
-	const QString filePathArgument = QString("-in--") + stlFilePath;
-	const QString extruderNumArguments = QString("-headers--") + (isTwoHeaderExtrusion ? QString("2") : QString("1"));
+	std::ifstream paramsFileStream(paramsFilePath.toStdString());
+	if (!paramsFileStream.is_open())
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR: cannot open file for reading: " << paramsFilePath.toStdString() << std::endl;
+		return;
+	}
+	json paramGroups = json::parse(paramsFileStream);
+	paramsFileStream.close();
 
-	arguments << filePathArgument;
-	arguments << extruderNumArguments;
+	for (const auto& paramGroup : paramGroups)
+	{
+		for (const auto& param : paramGroup["params"])
+		{
+			std::string value = param["value"].dump();
+
+			if (value.empty() || value == "\"\"")
+				continue;
+
+			if (value.starts_with("\""))
+			{
+				value = value.substr(1, value.length() -2);
+			}
+			const std::string cliSwitch = param["cliSwitchLong"];
+
+			if (param["value"] == false)
+				continue;
+
+			arguments << QString::fromStdString(cliSwitch);
+
+			if (param["value"] == true)
+				continue;
+
+			arguments << QString::fromStdString(value);
+		}
+	}
+
+	arguments << stlFilePath;
+
+	qDebug() << arguments;
 
 	QProcess *myProcess = new QProcess(this);
-	myProcess->setWorkingDirectory(QString::fromStdString(slicerDirFull));
-	myProcess->start(program, arguments);
+//	myProcess->setWorkingDirectory(QString::fromStdString(slicerDirFull));
+	myProcess->start(slicerExecPath, arguments);
+
+	if (QProcess::Running != myProcess->state())
+	{
+		std::cout << " ### " << __FUNCTION__ << " ERROR: slicer executable process could not be started. " << std::endl;
+		return;
+	}
 	myProcess->waitForFinished();
 
 	// Now parse standard output, to see, if we have succeeded.
@@ -43,12 +90,13 @@ void ProcessLauncher::generateGCode(const QString& stlFilePath, bool isTwoHeader
 	const QString slicerOutput = QDebug::toString(myProcess->readAllStandardOutput());
 	static const QString slicerSuccessString = QString::fromStdString(kUbotSlicerSuccessString);
 
-	if (!slicerOutput.contains(slicerSuccessString))
-	{
-		emit slicerError(slicerOutput);
+//	if (!slicerOutput.contains(slicerSuccessString))
+//	{
+//		emit slicerError(slicerOutput);
 		std::cout << " ### " << __FUNCTION__ << " ERROR, slicer output: " << slicerOutput.toStdString() << std::endl;
-		return;
-	}
+		std::cout << " ### " << __FUNCTION__ << " slicer myProcess->: " << myProcess->nativeArguments().toStdString() << std::endl;
+//		return;
+//	}
 
 	const QString slicerOutputPath = slicerOutput.split(slicerSuccessString).back()
 												 .split(QString::fromStdString(kGCodeExtension)).front() +

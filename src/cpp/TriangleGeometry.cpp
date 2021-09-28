@@ -443,7 +443,6 @@ bool TriangleGeometry::isMainGeometry() const
 
 void TriangleGeometry::setSceneTransform(const QMatrix4x4& transform)
 {
-	std::cout << " ### " << __FUNCTION__ << " :" << "" << "," << "" << std::endl;
 	if (qFuzzyCompare(_sceneTransform, transform))
 		return;
 

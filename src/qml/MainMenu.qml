@@ -75,7 +75,8 @@ MenuBar {
                 onTriggered: slicerProcessLauncher.sliceSelectedModel()
 			}
 			MenuItem{
-				text: qsTr("???")
+                text: qsTr("Set slicer executable")
+                onTriggered: fileDialog.selectSlicerExec()
 			}
 		},
 		Menu {
