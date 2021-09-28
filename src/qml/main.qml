@@ -101,23 +101,26 @@ ApplicationWindow {
             sceneCenter: Qt.vector3d(100, 100, 0)
         }
 
-//        Keys.onPressed: {
-//            if (event.key === Qt.Key_Delete) {
-//                var allModels = stlObjectsRepeater.model
-//                var selectedStlIndices = QmlHelpers.getSelectedModelIndices(stlObjectsRepeater)
-//                for (var i=0; i<selectedStlIndices.length; i++) {
-//                    const index = selectedStlIndices[i]
-//                    allModels.splice(index, 1);
-//                }
+        Keys.onPressed: {
+        // TODO: This is badly implemented. But can now be used to delete one stl model from the scene.
+            if (event.key === Qt.Key_Delete) {
+                var allModels = stlObjectsRepeater.model
+                var selectedStlIndices = QmlHelpers.getSelectedModelIndices(stlObjectsRepeater)
 
-//                for (var i=0; i<allModels.length; i++) {
-//                    console.log(allModels[i])
-//                }
+                for (var i=0; i<selectedStlIndices.length; i++) {
+                    const index = selectedStlIndices[i]
+                    allModels.splice(index, 1);
+                }
 
-//                stlObjectsRepeater.model = allModels
+                for (var i=0; i<allModels.length; i++) {
+                    console.log(allModels[i])
+                }
 
-//                event.accepted = true;
-//            }
+                stlObjectsRepeater.model = allModels
+
+                event.accepted = true;
+            }
+        }
 //            if (event.modifiers & Qt.ControlModifier) {
 //                var selectedModels = QmlHelpers.getSelectedModels(stlObjectsRepeater)
 //                if (selectedModels.length === 0) {
