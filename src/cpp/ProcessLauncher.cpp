@@ -16,7 +16,7 @@
 using json = nlohmann::json;
 
 
-static const std::string kUbotSlicerSuccessString = "Plik zostal skonwertowany i zapisany: ";
+static const std::string kUbotSlicerSuccessString = "Exporting G-code to ";
 static const std::string kGCodeExtension = ".gcode";
 
 ProcessLauncher::ProcessLauncher(QObject *parent) : QObject(parent)
