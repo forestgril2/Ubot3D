@@ -207,7 +207,7 @@ ApplicationWindow {
             id: gCodeObjectsRepeater
             property var gcodeGeometry: (objectAt(0) === null ? null : objectAt(0).geometry)
 
-            signal delegateLoaded(var modelCeHinter)
+            signal delegateLoaded(var modelCenter)
 
             model: []
             delegate: GCodeGeometryRepeaterModelDelegate {
