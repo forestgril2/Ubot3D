@@ -22,6 +22,7 @@ ApplicationWindow {
         onClearSceneRequested: {
             stlObjectsRepeater.model = []
             gCodeObjectsRepeater.model = []
+            view3d.pickedModelsChanged()
         }
     }
 
@@ -119,6 +120,7 @@ ApplicationWindow {
                 stlObjectsRepeater.model = allModels
 
                 event.accepted = true;
+                pickedModelsChanged()
             }
         }
 //            if (event.modifiers & Qt.ControlModifier) {
