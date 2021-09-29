@@ -36,6 +36,7 @@ static const json kParamSchema =
 	{"editFieldType",         ""},
 	{kParamDescriptionKey,    ""},
 	{"isVisible",             true},
+	{"isExtruderParam",       ""},
 	{"minValue",              ""},
 	{"maxValue",              ""},
 	{"defaultValue",          ""},
