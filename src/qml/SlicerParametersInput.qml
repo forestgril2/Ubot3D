@@ -118,12 +118,22 @@ Window {
         }
         Button {
             text: "Ok"
+            onPressed: {
+                fileDialog.openExportJsonFileDialog()
+                root.close()
+            }
         }
         Button {
             text: "Apply"
+            onPressed: {
+                fileDialog.openExportJsonFileDialog()
+            }
         }
         Button {
             text: "Cancel"
+            onPressed: {
+                root.close()
+            }
         }
     }
 
