@@ -8,9 +8,9 @@ Row {
     id: root
     property var paramData
     property var paramValue: paramData.value
-    property var editFieldWidth: editFieldRepeater.width
+    property var editFieldWidth: parameterEditRepeater.width
     property var largestEditWidth: 0
-    property bool isSwitch: paramData.editFieldType === "Switch"
+    property bool isSwitchEdit: paramData.editFieldType === "Switch"
     padding: 4
     spacing: 11
 
@@ -21,14 +21,14 @@ Row {
     }
 
     Repeater {
-        id: editFieldRepeater
+        id: parameterEditRepeater
         model: paramData.isExtruderParam ? 2 : 1
 
         Row {
             Item {
                 id: booleanInputSpacer
                 visible: getValueType(paramData) === ParameterInputRow.Boolean
-                width:  largestEditWidth - (checkBox.visible ? checkBox.width : switchItem.width) - root.padding
+                width:  0//largestEditWidth - (checkBox.visible ? checkBox.width : switchItem.width) - root.padding
                 height: 1//textField.width - checkBox.width
             }
 
@@ -47,7 +47,7 @@ Row {
             Switch {
                 id: switchItem
                 checked: paramValue
-                visible: editFieldRepeater.isSwitch
+                visible: paramData.editFieldType === "Switch"
 
                 onCheckedChanged: {
                     if (!visible)
@@ -64,7 +64,7 @@ Row {
                 width: implicitWidth > largestEditWidth ? implicitWidth : largestEditWidth
             }
 
-            ParameterInputEdit {
+            ParameterInputTextEdit {
                 id: textEditFrame
                 visible: paramData.editFieldType === "TextInput" || (getValueType(paramData) !== ParameterInputRow.Boolean && !comboBox.visible)
             }
