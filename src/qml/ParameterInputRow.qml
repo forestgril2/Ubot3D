@@ -20,9 +20,14 @@ Row {
         Text
     }
 
-    Item {
-        id: booleanInputSpacer
-        visible: getValueType(paramData) === ParameterInputRow.Boolean
+    Repeater {
+        id: editFieldRepeater
+        model: paramData.isExtruderParam ? 2 : 1
+
+        Row {
+            Item {
+                id: booleanInputSpacer
+                visible: getValueType(paramData) === ParameterInputRow.Boolean
                 width:  largestEditWidth - (checkBox.visible ? checkBox.width : switchItem.width) - root.padding
                 height: 1//textField.width - checkBox.width
             }
