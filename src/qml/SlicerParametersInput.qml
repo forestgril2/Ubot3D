@@ -11,7 +11,9 @@ Window {
     id: root
     property var isUsingTwoExtruders: false
     property var paramGroups
-    property var visibleParamGroups: getParamGroupNames(getVisibleParamGroups(paramGroups))
+    property var visibleParamGroups: getVisibleParamGroups(paramGroups)
+    property var visibleParamGroupNames: getParamGroupNames(visibleParamGroups)
+
     onVisibleParamGroupsChanged: {
         console.log(" ### onVisibleParamGroupsChanged:")
     }
@@ -27,7 +29,7 @@ Window {
          width: parent.width
          Repeater {
              id: tabBarRepeater
-             model: visibleParamGroups
+             model: visibleParamGroupNames
              TabButton {
                  text: /*groupName*/ modelData
              }
@@ -49,11 +51,14 @@ Window {
                 paramGroup: modelData
 
                 onParamValueChanged: {
-//                    paramInputRows.paramValueChanged(param, value)
                     const paramGroupIndex = getParamGroupIndexWithName(paramGroups, /*groupName*/ paramInputGridElementRepeater.paramGroupName)
                     const paramIndex = getParamIndex(paramInputGridElementRepeater.paramGroup.params, paramData)
                     paramGroups[paramGroupIndex].params[paramIndex].value = paramValue
                 }
+            }
+
+            onModelChanged: {
+                console.log(model)
             }
         }
     }

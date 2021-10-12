@@ -11,13 +11,13 @@ GridLayout {
     id: paramInputRows
 
     property var paramGroup
+    property var visibleParams: getVisibleParamsInGroup(paramGroup)
 
     signal paramValueChanged(var param, var value)
 
-    // First, we will fill param edit column(s) and next - param names/descriptions column.
-    flow: GridLayout.TopToBottom
-    rows: getVisibleParamsInGroup(paramGroup).length
 
+    flow: GridLayout.LeftToRight
+    rows: visibleParams.length
 
     Repeater {
         id: paramInputGridElementRepeater
@@ -26,23 +26,32 @@ GridLayout {
 //        property var paramGroup: getParamGroupWithName(paramGroups, /*groupName*/ modelData)
 //        model: /*params[]*/ getVisibleParamsInGroup(paramGroup)
 
-        model: getParamGridColumnElementsInOrder(paramGroup)
+        model: getParamGridElementSpecifiersInOrder(paramGroup)
 
-        ParameterInputRow {
-            id: parameterInput
-            paramData: modelData
-
-            onParamValueChanged: {
-                paramInputRows.paramValueChanged(param, paramValue)
-                const paramGroupIndex = getParamGroupIndexWithName(paramGroups, /*groupName*/ paramInputGridElementRepeater.paramGroupName)
-                const paramIndex = getParamIndex(paramInputGridElementRepeater.paramGroup.params, paramData)
-                paramGroups[paramGroupIndex].params[paramIndex].value = paramValue
-            }
+        ParameterRowElement {
+            specifier: modelData
         }
     }
 
-    function getParamGridColumnElementsInOrder(paramGroup) {
+    function getParamGridElementSpecifiersInOrder(paramGroup) {
+        if (!paramGroup)
+            return []
 
+        var specifiers = []
+        for (var i=0; i<paramGroup.params.length; i++) {
+            var paramData = paramGroup.params[i]
+            var firstInputspecifier = {paramData: paramData, isFirstParam: true}
+            specifiers.push(firstInputspecifier)
+
+            var secondInputspecifier = paramData.isExtruderParam ? {paramData: paramData, isFirstParam: false} : null
+            specifiers.push(secondInputspecifier)
+
+            var paramNameSpecifier = {paramName: paramData.text ? paramData.text : paramData.name ? paramData.name : paramData.description}
+            specifiers.push(paramNameSpecifier)
+        }
+
+        console.log(specifiers)
+        return specifiers
     }
 
 //    function getParamGroupWithName(paramGroups, name) {

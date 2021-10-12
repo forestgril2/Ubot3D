@@ -23,5 +23,6 @@
         <file>ParameterInputRow.qml</file>
         <file>ParameterInputTextEdit.qml</file>
         <file>ParamGroupEdit.qml</file>
+        <file>ParameterRowElement.qml</file>
     </qresource>
 </RCC>
