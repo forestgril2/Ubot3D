@@ -6,25 +6,28 @@ import QtQuick.Window 2.15
 import QtQuick3D 1.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import customgeometry 1.0
-import "HelperFunctions.js" as QmlHelpers
 
 Window {
     id: root
     property var isUsingTwoExtruders: false
-    property var paramGroups: []
+    property var paramGroups
+    property var visibleParamGroups: getParamGroupNames(getVisibleParamGroups(paramGroups))
+    onVisibleParamGroupsChanged: {
+        console.log(" ### onVisibleParamGroupsChanged:")
+    }
 
     minimumWidth: 300
-    minimumHeight: paramGroupsTabs.height + stackLayout.height + buttons.height
+    minimumHeight: paramGroupSelectorTabs.height + parameterGroupEditFormsStack.height + buttons.height
     height: minimumHeight
 	title: "Input slicer parameters"
 
+
     TabBar {
-        id: paramGroupsTabs
+        id: paramGroupSelectorTabs
          width: parent.width
          Repeater {
              id: tabBarRepeater
-             model: getVisibleParamGroupNames(root.paramGroups)
+             model: visibleParamGroups
              TabButton {
                  text: /*groupName*/ modelData
              }
@@ -32,67 +35,30 @@ Window {
     }
 
     StackLayout {
-        id: stackLayout
+        id: parameterGroupEditFormsStack
         width: parent.width
-        anchors.top: paramGroupsTabs.bottom
-        currentIndex: paramGroupsTabs.currentIndex
+        anchors.top: paramGroupSelectorTabs.bottom
+        currentIndex: paramGroupSelectorTabs.currentIndex
 
         Repeater {
-            id: paramGroupNameRepeater
-            model: /*groupName[]*/ getVisibleParamGroupNames(root.paramGroups)
+            id: paramGroupEditForms
+            model: visibleParamGroups
 
-            Column {
-                id: paramColumn
+            ParamGroupEdit {
+                id: paramGroupEditForm
+                paramGroup: modelData
 
-                Repeater {
-                    id: paramRepeater
-                    property string paramGroupName: modelData
-                    property var paramGroup: getParamGroupWithName(root.paramGroups, /*groupName*/ modelData)
-                    property int largestInputRowEditWidth: 0
-
-                    model: /*params[]*/ getVisibleParamsInGroup(paramGroup)
-
-                    ParameterInputRow {
-                        id: parameterInput
-                        paramData: modelData
-
-                        Connections {
-                            target: paramRepeater
-                            function onLargestInputRowEditWidthChanged() {
-                                parameterInput.largestEditWidth = paramRepeater.largestInputRowEditWidth
-                            }
-                        }
-
-                        onEditFieldWidthChanged: {
-                            if (editFieldWidth > paramRepeater.largestInputRowEditWidth) {
-                                paramRepeater.largestInputRowEditWidth = editFieldWidth
-                            }
-                            else {
-                                largestEditWidth = paramRepeater.largestInputRowEditWidth
-                            }
-                        }
-
-                        Component.onCompleted: {
-                            if (editFieldWidth > paramRepeater.largestInputRowEditWidth) {
-                                paramRepeater.largestInputRowEditWidth = editFieldWidth
-                            }
-                            else {
-                                largestEditWidth = paramRepeater.largestInputRowEditWidth
-                            }
-                        }
-
-                        onParamValueChanged: {
-                            const paramGroupIndex = getParamGroupIndexWithName(root.paramGroups, /*groupName*/ paramRepeater.paramGroupName)
-                            const paramIndex = getParamIndex(paramRepeater.paramGroup.params, paramData)
-                            paramGroups[paramGroupIndex].params[paramIndex].value = paramValue
-                        }
-                    }
+                onParamValueChanged: {
+//                    paramInputRows.paramValueChanged(param, value)
+                    const paramGroupIndex = getParamGroupIndexWithName(paramGroups, /*groupName*/ paramInputGridElementRepeater.paramGroupName)
+                    const paramIndex = getParamIndex(paramInputGridElementRepeater.paramGroup.params, paramData)
+                    paramGroups[paramGroupIndex].params[paramIndex].value = paramValue
                 }
-
             }
         }
     }
 
+    //TODO: Change Window to Popup, where all these buttons are predefined.
     Row {
         id: buttons
 
@@ -137,58 +103,24 @@ Window {
         }
     }
 
-    function getVisibleParamGroupNames(paramGroups) {
+    function getVisibleParamGroups(paramGroups) {
         if (!paramGroups)
             return []
 
-        var names = []
+        var visible = []
         for (var i=0; i<paramGroups.length; i++) {
             if (!paramGroups[i].isVisible)
                 continue
+            visible.push(paramGroups[i])
+        }
+        return visible
+    }
+
+    function getParamGroupNames(paramGroups) {
+        var names = []
+        for (var i=0; i<paramGroups.length; i++) {
             names.push(paramGroups[i].groupName)
         }
         return names
-    }
-
-    function getParamIndex(params, param) {
-        if (!params || 0 === params.length)
-            return null
-
-        for (var i=0; i<params.length; i++) {
-            if (param.cliSwitchLong === params[i].cliSwitchLong &&
-                param.cliSwitchShort === params[i].cliSwitchShort)
-                return i
-        }
-        return null
-    }
-
-    function getParamGroupIndexWithName(paramGroups, name) {
-        if (!paramGroups)
-            return null
-
-        for (var i=0; i<paramGroups.length; i++) {
-            if (name === paramGroups[i].groupName)
-                return i
-        }
-        return null
-    }
-
-    function getParamGroupWithName(paramGroups, name) {
-        return paramGroups[getParamGroupIndexWithName(paramGroups, name) ]
-    }
-
-
-    function getVisibleParamsInGroup(paramGroup) {
-        if (!paramGroups)
-            return []
-
-        var visibleParams = []
-        for (var i=0; i<paramGroup.params.length; i++) {
-            if (!paramGroup.params[i].isVisible)
-                continue
-            visibleParams.push(paramGroup.params[i])
-        }
-
-        return visibleParams
     }
 }

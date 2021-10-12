@@ -22,5 +22,6 @@
         <file>StlModelSupport.qml</file>
         <file>ParameterInputRow.qml</file>
         <file>ParameterInputTextEdit.qml</file>
+        <file>ParamGroupEdit.qml</file>
     </qresource>
 </RCC>
