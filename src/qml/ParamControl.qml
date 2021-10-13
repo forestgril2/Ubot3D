@@ -16,17 +16,21 @@ Row {
         Text
     }
 
-	Item {
-		id: booleanInputSpacer
-        visible: paramValue && (getValueType(paramData) === ParamControl.Boolean)
-		width:  0//largestEditWidth - (checkBox.visible ? checkBox.width : switchItem.width) - root.padding
-		height: 1//textField.width - checkBox.width
-	}
+//    Rectangle {
+//        property var paramData: (specifier && specifier.paramData !== undefined) ? specifier.paramData : false
+//        visible: paramData
+//        color: "green"
+//        height: 25
+//        width: 1
+//    }
 	
 	CheckBox {
 		id: checkBox
-		checked: paramValue
-        visible: paramValue && (paramData.editFieldType === "CheckBox")
+        checked: paramData
+        visible: paramData && (paramData.editFieldType === "CheckBox")
+
+        height: 25
+        width: 25
 		
 		onCheckedChanged: {
 			if (!visible)
@@ -37,8 +41,11 @@ Row {
 	
 	Switch {
 		id: switchItem
-		checked: paramValue
-        visible: paramValue && (paramData.editFieldType === "Switch")
+        checked: paramData
+        visible: paramData && (paramData.editFieldType === "Switch")
+
+        height: 25
+        width: 50
 		
 		onCheckedChanged: {
 			if (!visible)
@@ -49,26 +56,23 @@ Row {
 	
 	ComboBox {
 		id: comboBox
-        model: paramValue && (paramData.possibleValues) ? paramData.possibleValues : []
-        visible: paramValue && (paramData.editFieldType === "ComboBox")
+        model: paramData && (paramData.possibleValues) ? paramData.possibleValues : []
+        visible: paramData && (paramData.editFieldType === "ComboBox")
 		implicitContentWidthPolicy: ComboBox.WidestText
         width: implicitWidth
+        height: 25
     }
 	
     ParamTextEdit {
 		id: textEditFrame
-        visible: paramValue && paramData.editFieldType && (paramData.editFieldType === "TextInput" || (getValueType(paramData) !== ParamControl.Boolean && !comboBox.visible))
+        visible: paramData && (paramData.editFieldType === "TextInput" || (getValueType(paramData) !== ParamControl.Boolean && !comboBox.visible))
 	}
 
-    function getValueType(paramData) {
-        switch (paramData.valueType) {
-        case "Text":
-            return ParamControl.Text
-        case "Boolean":
-            return ParamControl.Boolean
-        case "Number":
-        default :
-            return ParamControl.Number
-        }
-    }
+//    Rectangle {
+//        property var paramData: (specifier && specifier.paramData !== undefined) ? specifier.paramData : false
+//        visible: paramData
+//        color: "green"
+//        height: 25
+//        width: 5
+//    }
 }

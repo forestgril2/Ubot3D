@@ -39,8 +39,11 @@ Window {
     StackLayout {
         id: paramGroupEditFormStack
         width: parent.width
-        anchors.top: paramGroupSelectorTabs.bottom
         currentIndex: paramGroupSelectorTabs.currentIndex
+        anchors.top: paramGroupSelectorTabs.bottom
+        anchors.topMargin: 4
+        anchors.left: paramGroupSelectorTabs.left
+        anchors.leftMargin: 4
 
         Repeater {
             id: paramGroupEditForms
@@ -55,10 +58,6 @@ Window {
                     const paramIndex = getParamIndex(paramInputGridElementRepeater.paramGroup.params, paramData)
                     paramGroups[paramGroupIndex].params[paramIndex].value = paramValue
                 }
-            }
-
-            onModelChanged: {
-                console.log(model)
             }
         }
     }

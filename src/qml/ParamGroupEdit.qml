@@ -33,15 +33,8 @@ Grid {
 
         delegate: ParamRowElement {
             specifier: modelData
-
-            //            onSpecifierChanged: {
-            //                console.log(" ###          paramData: " + specifier.paramData ? specifier.paramData : "")
-            //                console.log(" ###          paramName: " + specifier.paramName ? specifier.paramName : "")
-            //            }
         }
     }
-
-    Component.onCompleted: forceLayout()
 
     function getParamGridElementSpecifiersInOrder(params) {
         if (!params)

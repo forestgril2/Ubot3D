@@ -10,27 +10,27 @@ import QtQuick.Layouts 1.15
 Row {
     id: root
     property var specifier
+    spacing: 5
 
     ParamControl {
         id: paramControl
         paramData: (specifier && specifier.paramData !== undefined) ? specifier.paramData : false
         visible: paramControl.paramData
-        height: 30
-        width: 50
     }
 
     Label {
         id: paramLabel
         visible: (specifier && specifier.paramName) ? true : false
         text: (specifier && specifier.paramName) ? specifier.paramName : ""
+        height: 25
     }
 
     Rectangle {
         id: blankSpace
         visible: !specifier
-        color: "lightgrey"
-        height: 30
-        width: 50
+        color: "white"
+        height: 25
+        width: 1
     }
 
 //	onParamValueChanged: {
