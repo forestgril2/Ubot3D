@@ -7,7 +7,7 @@ import QtQuick.Layouts 1.2
 Frame {
 	id: textEditFrame
 	property var defaultWidth: 50
-	width: defaultWidth > largestEditWidth ? defaultWidth : largestEditWidth
+    width: defaultWidth > implicitWidth ? defaultWidth : implicitWidth
 
 	TextInput {
 		id: textField

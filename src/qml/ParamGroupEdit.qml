@@ -7,39 +7,49 @@ import QtQuick3D 1.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 
-GridLayout {
-    id: paramInputRows
+Grid {
+    id: root
 
     property var paramGroup
     property var visibleParams: getVisibleParamsInGroup(paramGroup)
 
     signal paramValueChanged(var param, var value)
 
-
     flow: GridLayout.LeftToRight
-    rows: visibleParams.length
+    horizontalItemAlignment : GridLayout.AlignLeft
+    verticalItemAlignment : GridLayout.AlignVCenter
+    columns: 3
+    spacing: 6
 
     Repeater {
         id: paramInputGridElementRepeater
+
 
 //        property string paramGroupName: modelData
 //        property var paramGroup: getParamGroupWithName(paramGroups, /*groupName*/ modelData)
 //        model: /*params[]*/ getVisibleParamsInGroup(paramGroup)
 
-        model: getParamGridElementSpecifiersInOrder(paramGroup)
+        model: getParamGridElementSpecifiersInOrder(visibleParams)
 
-        ParameterRowElement {
+        delegate: ParamRowElement {
             specifier: modelData
+
+            //            onSpecifierChanged: {
+            //                console.log(" ###          paramData: " + specifier.paramData ? specifier.paramData : "")
+            //                console.log(" ###          paramName: " + specifier.paramName ? specifier.paramName : "")
+            //            }
         }
     }
 
-    function getParamGridElementSpecifiersInOrder(paramGroup) {
-        if (!paramGroup)
+    Component.onCompleted: forceLayout()
+
+    function getParamGridElementSpecifiersInOrder(params) {
+        if (!params)
             return []
 
         var specifiers = []
-        for (var i=0; i<paramGroup.params.length; i++) {
-            var paramData = paramGroup.params[i]
+        for (var i=0; i<params.length; i++) {
+            var paramData = params[i]
             var firstInputspecifier = {paramData: paramData, isFirstParam: true}
             specifiers.push(firstInputspecifier)
 
@@ -50,7 +60,6 @@ GridLayout {
             specifiers.push(paramNameSpecifier)
         }
 
-        console.log(specifiers)
         return specifiers
     }
 

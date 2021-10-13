@@ -19,7 +19,7 @@ Window {
     }
 
     minimumWidth: 300
-    minimumHeight: paramGroupSelectorTabs.height + parameterGroupEditFormsStack.height + buttons.height
+    minimumHeight: paramGroupSelectorTabs.height + paramGroupEditFormStack.height + buttons.height
     height: minimumHeight
 	title: "Input slicer parameters"
 
@@ -37,7 +37,7 @@ Window {
     }
 
     StackLayout {
-        id: parameterGroupEditFormsStack
+        id: paramGroupEditFormStack
         width: parent.width
         anchors.top: paramGroupSelectorTabs.bottom
         currentIndex: paramGroupSelectorTabs.currentIndex

@@ -21,8 +21,9 @@
         <file>RaftOptions.qml</file>
         <file>StlModelSupport.qml</file>
         <file>ParameterInputRow.qml</file>
-        <file>ParameterInputTextEdit.qml</file>
+        <file>ParamTextEdit.qml</file>
         <file>ParamGroupEdit.qml</file>
-        <file>ParameterRowElement.qml</file>
+        <file>ParamRowElement.qml</file>
+        <file>ParamControl.qml</file>
     </qresource>
 </RCC>
