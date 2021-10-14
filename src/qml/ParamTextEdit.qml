@@ -24,13 +24,13 @@ Frame {
 		function parseNumberValue(text) {
 			if (parseInt(text) !== NaN)
 			{
-				paramValue = parseFloat(text)
+                setControlValue(parseFloat(text))
 				console.log(" parseNumberValue paramValue: ", paramValue)
 			}
 		}
 		
 		function parseTextValue(text) {
-			paramValue = text
+            setControlValue(text)
 			console.log(" parseTextValue paramValue: ", paramValue)
 		}
 	}

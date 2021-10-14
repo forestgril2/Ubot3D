@@ -355,9 +355,12 @@
                 "minValue": "0.01",
                 "name": "Nozzle Diameter",
                 "possibleValues": null,
-                "stepValue": "0.01",
+                "stepValue": "0.001",
                 "text": "Nozzle diameter [mm]",
-                "value": 0.9,
+                "value": [
+                    0.3,
+                    0.95
+                ],
                 "valueType": "number"
             },
             {
@@ -1176,7 +1179,7 @@
                 ],
                 "stepValue": "",
                 "text": "",
-                "value": "stars",
+                "value": "Archmidean Chords",
                 "valueType": "Enum"
             },
             {

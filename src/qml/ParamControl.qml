@@ -8,8 +8,10 @@ Row {
     id: root
 
     property var paramData
-
-    property var paramValue: paramData && paramData.value ? paramData.value : null
+    property var isExtruderParam
+    property var extruderIndex
+    property var paramValue: getParamValue()
+    property var controlValue: getControlValue()
     property bool isSwitchEdit: (paramValue && (paramData.editFieldType === "Switch"))
 
     enum ValueType {
@@ -29,7 +31,7 @@ Row {
 	CheckBox {
 		id: checkBox
         visible: paramData && (paramData.editFieldType === "CheckBox")
-        checked: visible ? paramData.value : false
+        checked: visible ? controlValue : false
 
         height: 25
         width: 25
@@ -44,7 +46,7 @@ Row {
 	Switch {
 		id: switchItem
         visible: paramData && (paramData.editFieldType === "Switch")
-        checked: visible ? paramData.value : false
+        checked: visible ? controlValue : false
 
         height: 25
         width: 50
@@ -52,7 +54,7 @@ Row {
 		onCheckedChanged: {
 			if (!visible)
 				return
-			paramValue = checked
+            setControlValue(checked)
 		}
 	}
 	
@@ -63,17 +65,44 @@ Row {
 		implicitContentWidthPolicy: ComboBox.WidestText
         width: implicitWidth
         height: 25
+        currentIndex: model.indexOf(getControlValue())
 
         onCurrentValueChanged: {
-            paramValue = currentValue
+            setControlValue(currentValue)
         }
     }
 	
     ParamTextEdit {
 		id: textEditFrame
-        text: paramValue !== "" ? paramValue : paramData.defaultValue
+        text: controlValue && controlValue !== "" ? controlValue : (paramData.defaultValue ? paramData.defaultValue : "")
         visible: paramData && (paramData.editFieldType === "TextInput" || (getValueType(paramData) !== ParamControl.Boolean && !comboBox.visible))
 	}
+
+    function getControlValue() {
+        if (paramValue === null)
+            return null
+
+        if (isExtruderParam)
+            return paramValue[extruderIndex]
+
+        return paramValue
+    }
+
+    function setControlValue(value) {
+        if (isExtruderParam) {
+            paramValue[extruderIndex] = value
+        }
+        else {
+            paramValue = value
+        }
+    }
+
+    function getParamValue() {
+        return paramData && paramData.value ? paramData.value : null
+    }
+
+    function setParamValue() {
+    }
 
 //    Rectangle {
 //        property var paramData: (specifier && specifier.paramData !== undefined) ? specifier.paramData : false
