@@ -12,10 +12,16 @@ Row {
     property var specifier
     spacing: 5
 
+    signal paramValueChanged(var param, var value)
+
     ParamControl {
         id: paramControl
         paramData: (specifier && specifier.paramData !== undefined) ? specifier.paramData : false
         visible: paramControl.paramData
+
+        onParamValueChanged: {
+            if (paramValue !== null) root.paramValueChanged(paramData, paramValue)
+        }
     }
 
     Label {
@@ -32,8 +38,4 @@ Row {
         height: 25
         width: 1
     }
-
-//	onParamValueChanged: {
-//		root.paramValueChanged(param, paramValue)
-//	}
 }

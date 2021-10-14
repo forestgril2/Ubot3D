@@ -5,6 +5,8 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.2
 
 Row {
+    id: root
+
     property var paramData
 
     property var paramValue: paramData && paramData.value ? paramData.value : null
@@ -26,8 +28,8 @@ Row {
 	
 	CheckBox {
 		id: checkBox
-        checked: paramData
         visible: paramData && (paramData.editFieldType === "CheckBox")
+        checked: visible ? paramData.value : false
 
         height: 25
         width: 25
@@ -41,8 +43,8 @@ Row {
 	
 	Switch {
 		id: switchItem
-        checked: paramData
         visible: paramData && (paramData.editFieldType === "Switch")
+        checked: visible ? paramData.value : false
 
         height: 25
         width: 50
@@ -61,10 +63,15 @@ Row {
 		implicitContentWidthPolicy: ComboBox.WidestText
         width: implicitWidth
         height: 25
+
+        onCurrentValueChanged: {
+            paramValue = currentValue
+        }
     }
 	
     ParamTextEdit {
 		id: textEditFrame
+        text: paramValue !== "" ? paramValue : paramData.defaultValue
         visible: paramData && (paramData.editFieldType === "TextInput" || (getValueType(paramData) !== ParamControl.Boolean && !comboBox.visible))
 	}
 

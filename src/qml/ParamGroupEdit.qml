@@ -11,28 +11,23 @@ Grid {
     id: root
 
     property var paramGroup
-    property var visibleParams: getVisibleParamsInGroup(paramGroup)
+    property var visibleParams: paramGroup.params.filter(function(param){return param.isVisible})
 
     signal paramValueChanged(var param, var value)
 
     flow: GridLayout.LeftToRight
-    horizontalItemAlignment : GridLayout.AlignLeft
-    verticalItemAlignment : GridLayout.AlignVCenter
+    horizontalItemAlignment: Qt.AlignLeft
+    verticalItemAlignment: Qt.AlignVCenter
     columns: 3
     spacing: 6
 
     Repeater {
         id: paramInputGridElementRepeater
-
-
-//        property string paramGroupName: modelData
-//        property var paramGroup: getParamGroupWithName(paramGroups, /*groupName*/ modelData)
-//        model: /*params[]*/ getVisibleParamsInGroup(paramGroup)
-
         model: getParamGridElementSpecifiersInOrder(visibleParams)
-
         delegate: ParamRowElement {
             specifier: modelData
+
+            onParamValueChanged: root.paramValueChanged(param, value)
         }
     }
 
@@ -54,45 +49,5 @@ Grid {
         }
 
         return specifiers
-    }
-
-//    function getParamGroupWithName(paramGroups, name) {
-//        return paramGroups[getParamGroupIndexWithName(paramGroups, name) ]
-//    }
-
-    function getVisibleParamsInGroup(paramGroup) {
-        if (!paramGroup)
-            return []
-
-        var visibleParams = []
-        for (var i=0; i<paramGroup.params.length; i++) {
-            if (!paramGroup.params[i].isVisible)
-                continue
-            visibleParams.push(paramGroup.params[i])
-        }
-        return visibleParams
-    }
-
-    function getParamGroupIndexWithName(paramGroups, name) {
-        if (!paramGroups)
-            return null
-
-        for (var i=0; i<paramGroups.length; i++) {
-            if (name === paramGroups[i].groupName)
-                return i
-        }
-        return null
-    }
-
-    function getParamIndex(params, param) {
-        if (!params || 0 === params.length)
-            return null
-
-        for (var i=0; i<params.length; i++) {
-            if (param.cliSwitchLong === params[i].cliSwitchLong &&
-                    param.cliSwitchShort === params[i].cliSwitchShort)
-                return i
-        }
-        return null
     }
 }

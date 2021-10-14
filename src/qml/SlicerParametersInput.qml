@@ -11,18 +11,13 @@ Window {
     id: root
     property var isUsingTwoExtruders: false
     property var paramGroups
-    property var visibleParamGroups: getVisibleParamGroups(paramGroups)
+    property var visibleParamGroups: paramGroups.filter(group => {return group.isVisible})
     property var visibleParamGroupNames: getParamGroupNames(visibleParamGroups)
-
-    onVisibleParamGroupsChanged: {
-        console.log(" ### onVisibleParamGroupsChanged:")
-    }
 
     minimumWidth: 300
     minimumHeight: paramGroupSelectorTabs.height + paramGroupEditFormStack.height + buttons.height
     height: minimumHeight
 	title: "Input slicer parameters"
-
 
     TabBar {
         id: paramGroupSelectorTabs
@@ -54,15 +49,28 @@ Window {
                 paramGroup: modelData
 
                 onParamValueChanged: {
-                    const paramGroupIndex = getParamGroupIndexWithName(paramGroups, /*groupName*/ paramInputGridElementRepeater.paramGroupName)
-                    const paramIndex = getParamIndex(paramInputGridElementRepeater.paramGroup.params, paramData)
-                    paramGroups[paramGroupIndex].params[paramIndex].value = paramValue
+                    console.log(" ### value :" + value )
+                    console.log(" ### param.name:" + param.name)
+                    console.log(" ### paramGroup.groupName:" + paramGroup.groupName)
+
+                    const paramGroupIndex = paramGroups.findIndex(function(group) {return  group.groupName === paramGroup.groupName})
+//                    console.log(" ### paramGroupIndex:" + paramGroupIndex)
+                    const paramIndex = paramGroup.params.findIndex(function(paramTested) {return areParamCliSwitchesMatching(paramTested, param)})
+//                    console.log(" ### paramIndex:" + paramIndex)
+
+                    paramGroups[paramGroupIndex].params[paramIndex].value = value
+                    console.log(" ### paramGroups[paramGroupIndex].params[paramIndex].value :" + paramGroups[paramGroupIndex].params[paramIndex].value )
+                }
+
+                function areParamCliSwitchesMatching(param1, param2) {
+                    return (param1.cliSwitchLong === param2.cliSwitchLong) &&
+                            (param1.cliSwitchShort === param2.cliSwitchShort)
                 }
             }
         }
     }
 
-    //TODO: Change Window to Popup, where all these buttons are predefined.
+    //TODO: Change Window to DialogButtonBox QML Type, where all these buttons are predefined.
     Row {
         id: buttons
 
@@ -105,19 +113,6 @@ Window {
                 root.close()
             }
         }
-    }
-
-    function getVisibleParamGroups(paramGroups) {
-        if (!paramGroups)
-            return []
-
-        var visible = []
-        for (var i=0; i<paramGroups.length; i++) {
-            if (!paramGroups[i].isVisible)
-                continue
-            visible.push(paramGroups[i])
-        }
-        return visible
     }
 
     function getParamGroupNames(paramGroups) {

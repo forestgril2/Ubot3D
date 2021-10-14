@@ -1176,7 +1176,7 @@
                 ],
                 "stepValue": "",
                 "text": "",
-                "value": "grid",
+                "value": "stars",
                 "valueType": "Enum"
             },
             {
@@ -1414,7 +1414,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": 70,
+                "value": 77,
                 "valueType": ""
             },
             {

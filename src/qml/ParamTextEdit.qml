@@ -6,6 +6,7 @@ import QtQuick.Layouts 1.2
 
 Frame {
 	id: textEditFrame
+    property alias text: textField.text
 	property var defaultWidth: 50
     height: 25
     width: defaultWidth > implicitWidth ? defaultWidth : implicitWidth
@@ -13,7 +14,6 @@ Frame {
 	TextInput {
 		id: textField
 		anchors.fill: parent
-		text: paramValue !== "" ? paramValue : root.paramData.defaultValue
 		Layout.alignment: Qt.AlignRight
 		horizontalAlignment: TextInput.AlignRight
         rightPadding: 4
@@ -49,11 +49,12 @@ Frame {
     }
 
     function setParameterValue(paramData, value) {
+        console.log(" setParameterValue: paramValue, value - ", paramValue, ", ", value)
         switch (getValueType(paramData)) {
-        case ParameterInputRow.Number:
+        case ParamControl.Number:
             textField.parseNumberValue(value)
             break;
-        case ParameterInputRow.Value:
+        case ParamControl.Text:
             textField.parseTextValue(value)
             break;
         }
