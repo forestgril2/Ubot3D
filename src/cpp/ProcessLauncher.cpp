@@ -56,6 +56,17 @@ void ProcessLauncher::generateGCode(const QString& slicerExecPath, const QString
 			{
 				value = value.substr(1, value.length() -2);
 			}
+
+			if (value.starts_with("["))
+			{
+				value = value.substr(1, value.length() -1);
+			}
+
+			if (value.ends_with("]"))
+			{
+				value = value.substr(0, value.length() -2);
+			}
+
 			const std::string cliSwitch = param["cliSwitchLong"];
 
 			if (param["value"] == false)

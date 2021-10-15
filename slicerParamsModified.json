@@ -733,7 +733,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": null,
+                "value": "50%",
                 "valueType": "Text"
             },
             {
@@ -767,7 +767,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": "20%",
                 "valueType": "Text"
             },
             {
@@ -784,7 +784,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": "15%",
                 "valueType": "Text"
             },
             {
@@ -818,7 +818,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": "100%",
                 "valueType": "Text"
             },
             {
@@ -869,7 +869,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": "30%",
                 "valueType": "Text"
             }
         ]
@@ -1004,7 +1004,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": "0.35",
                 "valueType": "Text"
             },
             {
