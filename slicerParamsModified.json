@@ -359,7 +359,7 @@
                 "text": "Nozzle diameter [mm]",
                 "value": [
                     0.3,
-                    0.95
+                    0.9
                 ],
                 "valueType": "number"
             },
@@ -572,7 +572,10 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": 3,
+                "value": [
+                    1,
+                    4
+                ],
                 "valueType": ""
             },
             {
@@ -589,7 +592,10 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": 1,
+                "value": [
+                    1,
+                    1
+                ],
                 "valueType": ""
             },
             {
@@ -606,7 +612,10 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": 200,
+                "value": [
+                    200,
+                    200
+                ],
                 "valueType": ""
             },
             {
@@ -682,7 +691,10 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": 130,
+                "value": [
+                    130,
+                    130
+                ],
                 "valueType": "Text"
             },
             {
@@ -1196,7 +1208,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": true,
+                "value": false,
                 "valueType": "Boolean"
             },
             {
@@ -1366,7 +1378,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": false,
+                "value": true,
                 "valueType": "Boolean"
             },
             {
@@ -1400,7 +1412,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": true,
+                "value": false,
                 "valueType": "Boolean"
             },
             {
@@ -1434,7 +1446,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": true,
                 "valueType": "Boolean"
             },
             {
@@ -1451,7 +1463,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": true,
                 "valueType": "Boolean"
             }
         ]

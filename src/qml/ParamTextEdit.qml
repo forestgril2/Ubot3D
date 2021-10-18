@@ -21,17 +21,17 @@ Frame {
 			setParameterValue(paramData, text)
 		}
 		
-		function parseNumberValue(text) {
+        function parseNumber(text) {
 			if (parseInt(text) !== NaN)
 			{
+                console.log(" parseNumberValue paramValue: ", paramValue)
                 setControlValue(parseFloat(text))
-				console.log(" parseNumberValue paramValue: ", paramValue)
 			}
 		}
 		
-		function parseTextValue(text) {
+        function parseText(text) {
+            console.log(" parseTextValue paramValue: ", paramValue)
             setControlValue(text)
-			console.log(" parseTextValue paramValue: ", paramValue)
 		}
 	}
 
@@ -48,14 +48,14 @@ Frame {
         }
     }
 
-    function setParameterValue(paramData, value) {
-        console.log(" setParameterValue: paramValue, value - ", paramValue, ", ", value)
+    function setParameterValue(paramData, text) {
+        console.log(" setParameterValue: paramValue, value - ", paramValue, ", ", text)
         switch (getValueType(paramData)) {
         case ParamControl.Number:
-            textField.parseNumberValue(value)
+            textField.parseNumber(text)
             break;
         case ParamControl.Text:
-            textField.parseTextValue(value)
+            textField.parseText(text)
             break;
         }
     }

@@ -17,8 +17,8 @@ Row {
     ParamControl {
         id: paramControl
         paramData: (specifier && specifier.paramData !== undefined) ? specifier.paramData : false
-        isExtruderParam: !paramData  ? undefined : paramData.isExtruderParam
-        extruderIndex: !paramData ? undefined : specifier.isFirstParam ? 0 : 1
+        isExtruderParam: !paramData ? null : paramData.isExtruderParam
+        extruderIndex: !paramData ? null : specifier.isFirstParam ? 0 : 1
         visible: paramControl.paramData
 
         onParamValueChanged: {

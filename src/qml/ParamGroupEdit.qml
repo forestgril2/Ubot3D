@@ -27,7 +27,10 @@ Grid {
         delegate: ParamRowElement {
             specifier: modelData
 
-            onParamValueChanged: root.paramValueChanged(param, value)
+            onParamValueChanged: {
+//                console.log(" ### onParamValueChanged:" + onParamValueChanged)
+                root.paramValueChanged(param, value)
+            }
         }
     }
 

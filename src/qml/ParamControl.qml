@@ -12,7 +12,7 @@ Row {
     property var extruderIndex
     property var paramValue: getParamValue()
     property var controlValue: getControlValue()
-    property bool isSwitchEdit: (paramValue && (paramData.editFieldType === "Switch"))
+    property bool isSwitchEdit: paramData && paramData.editFieldType === "Switch"
 
     enum ValueType {
         Boolean,
@@ -78,8 +78,46 @@ Row {
         visible: paramData && (paramData.editFieldType === "TextInput" || (getValueType(paramData) !== ParamControl.Boolean && !comboBox.visible))
 	}
 
+    function isValueTypeConsistent(value) {
+        // If it is an extruder param, we should have one value for each extruder
+//        console.log(" ### isValueTypeConsistent")
+//        console.log(" ### isValueTypeConsistent value:" + value)
+//        console.log(" ### isValueTypeConsistent Array:" + Array.isArray(value))
+//        console.log(" ### isValueTypeConsistent isExtruderParam :" + isExtruderParam)
+        return isExtruderParam === Array.isArray(value)
+    }
+
+    function getFixedParamValue(value) {
+        if (isExtruderParam && !Array.isArray(value)) {
+            // Handle case of only single value defined.
+            console.warn(" ### WARNING: One value defined for double extruder parameter. Converting to an array.")
+            return [value, value]
+        }
+
+        if (!isExtruderParam && Array.isArray(value)) {
+            // Handle case of only single value defined.
+            console.error(" ### ERROR: Two values defined for non-extruder parameter. Returning first value only.")
+            return value[0]
+        }
+
+        return value
+    }
+
+    function getParamValue() {
+        var value = (paramData && paramData.value) ? paramData.value : null
+//        console.log(" ### getParamValue() :" + value)
+
+        if (value && !isValueTypeConsistent(value)) {
+//            console.log(" ### getParamValue() :" + value)
+            value = getFixedParamValue(value)
+//            console.log(" ### fixedParamValue() :" + value)
+        }
+
+        return value
+    }
+
     function getControlValue() {
-        if (paramValue === null)
+        if (!paramValue)
             return null
 
         if (isExtruderParam)
@@ -90,18 +128,17 @@ Row {
 
     function setControlValue(value) {
         if (isExtruderParam) {
+//            console.log(" ### isExtruderParam:" + isExtruderParam)
+//            console.log(" ### extruderIndex:" + extruderIndex)
+//            console.log(" ### value:" + value)
+//            console.log(" ### paramValue:" + paramValue)
             paramValue[extruderIndex] = value
+            paramValue = paramValue
+//            console.log(" ### paramValue:" + paramValue)
         }
         else {
             paramValue = value
         }
-    }
-
-    function getParamValue() {
-        return paramData && paramData.value ? paramData.value : null
-    }
-
-    function setParamValue() {
     }
 
 //    Rectangle {

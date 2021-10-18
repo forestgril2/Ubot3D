@@ -49,9 +49,9 @@ Window {
                 paramGroup: modelData
 
                 onParamValueChanged: {
-                    console.log(" ### value :" + value )
-                    console.log(" ### param.name:" + param.name)
-                    console.log(" ### paramGroup.groupName:" + paramGroup.groupName)
+//                    console.log(" ### value :" + value )
+//                    console.log(" ### param.name:" + param.name)
+//                    console.log(" ### paramGroup.groupName:" + paramGroup.groupName)
 
                     const paramGroupIndex = paramGroups.findIndex(function(group) {return  group.groupName === paramGroup.groupName})
 //                    console.log(" ### paramGroupIndex:" + paramGroupIndex)
@@ -59,7 +59,7 @@ Window {
 //                    console.log(" ### paramIndex:" + paramIndex)
 
                     paramGroups[paramGroupIndex].params[paramIndex].value = value
-                    console.log(" ### paramGroups[paramGroupIndex].params[paramIndex].value :" + paramGroups[paramGroupIndex].params[paramIndex].value )
+//                    console.log(" ### paramGroups[paramGroupIndex].params[paramIndex].value :" + paramGroups[paramGroupIndex].params[paramIndex].value )
                 }
 
                 function areParamCliSwitchesMatching(param1, param2) {
