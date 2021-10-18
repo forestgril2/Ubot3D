@@ -1208,7 +1208,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": false,
+                "value": true,
                 "valueType": "Boolean"
             },
             {
@@ -1412,7 +1412,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": false,
+                "value": true,
                 "valueType": "Boolean"
             },
             {
@@ -2673,7 +2673,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": 1,
                 "valueType": ""
             },
             {
@@ -2690,7 +2690,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": 2,
                 "valueType": ""
             },
             {
@@ -2707,7 +2707,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": 2,
                 "valueType": ""
             },
             {
@@ -2724,7 +2724,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": 2,
                 "valueType": ""
             },
             {
@@ -2741,7 +2741,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "",
+                "value": 1,
                 "valueType": ""
             },
             {

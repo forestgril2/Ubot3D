@@ -24,6 +24,29 @@ ProcessLauncher::ProcessLauncher(QObject *parent) : QObject(parent)
 
 }
 
+void ProcessLauncher::appendCliArgument(const json& param, QStringList& arguments)
+{
+	std::string value = param["value"].dump();
+
+	if (value.empty() || value == "\"\"")
+		return;
+
+	if (value.starts_with("\""))
+	{
+		value = value.substr(1, value.length() -2);
+	}
+
+	if (param["value"] == false)
+		return;
+
+	arguments << QString::fromStdString(param["cliSwitchLong"]);
+
+	if (param["value"] == true)
+		return;
+
+	arguments << QString::fromStdString(value);
+}
+
 void ProcessLauncher::generateGCode(const QString& slicerExecPath, const QString& stlFilePath, const QString& paramsFilePath)
 {
 	if (slicerExecPath.isEmpty())
@@ -47,37 +70,24 @@ void ProcessLauncher::generateGCode(const QString& slicerExecPath, const QString
 	{
 		for (const auto& param : paramGroup["params"])
 		{
-			std::string value = param["value"].dump();
-
-			if (value.empty() || value == "\"\"")
-				continue;
-
-			if (value.starts_with("\""))
+			std::vector<json> paramsForSwitch;
+			if (param["value"].is_array())
 			{
-				value = value.substr(1, value.length() -2);
+				for (const auto& val: param["value"])
+				{
+					paramsForSwitch.push_back(param);
+					paramsForSwitch.back()["value"] = val;
+				}
+			}
+			else
+			{
+				paramsForSwitch = {param};
 			}
 
-			if (value.starts_with("["))
+			for (const auto& param : paramsForSwitch)
 			{
-				value = value.substr(1, value.length() -1);
+				appendCliArgument(param, arguments);
 			}
-
-			if (value.ends_with("]"))
-			{
-				value = value.substr(0, value.length() -2);
-			}
-
-			const std::string cliSwitch = param["cliSwitchLong"];
-
-			if (param["value"] == false)
-				continue;
-
-			arguments << QString::fromStdString(cliSwitch);
-
-			if (param["value"] == true)
-				continue;
-
-			arguments << QString::fromStdString(value);
 		}
 	}
 

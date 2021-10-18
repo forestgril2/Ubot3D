@@ -5,11 +5,16 @@
 #include <qqml.h>
 #include "TriangleGeometry.h"
 
+#include <json.hpp>
+// for convenience
+using json = nlohmann::json;
 
 class ProcessLauncher : public QObject
 {
 	Q_OBJECT
 	QML_NAMED_ELEMENT(ProcessLauncher)
+
+	void appendCliArgument(const nlohmann::json& param, QStringList& arguments);
 
 public:
 	explicit ProcessLauncher(QObject *parent = nullptr);
