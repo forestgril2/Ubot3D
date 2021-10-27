@@ -218,6 +218,7 @@ ApplicationWindow {
 
                 Component.onCompleted: {
                     gCodeObjectsRepeater.delegateLoaded(gCodeModel.modelCenter)
+                    controls.resetSliders(gCodeModel.geometry)
                 }
             }
 
@@ -360,10 +361,10 @@ ApplicationWindow {
             }
         }
 
-//        ModelControls {
-//            id: controls
+        ModelControls {
+            id: controls
 
-//        }
+        }
 
         ProcessLauncher {
             id: slicerProcessLauncher

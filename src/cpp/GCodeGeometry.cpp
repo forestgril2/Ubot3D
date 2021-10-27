@@ -238,6 +238,7 @@ void GCodeGeometry::loadExtruderData()
 void GCodeGeometry::initialize()
 {
 	setStride(static_cast<int32_t>(3 * sizeof(float)));
+	_numVisiblePaths = getAllExtrudersNumPaths();
 
 	updateData();
 	update();
@@ -248,9 +249,9 @@ void GCodeGeometry::initialize()
 		update();
 	};
 
-	connect(this, &GCodeGeometry::numSubPathsChanged, this, updateDataAndUpdate);
-	connect(this, &GCodeGeometry::numPointsInSubPathChanged, this, updateDataAndUpdate);
-	connect(this, &GCodeGeometry::numPathPointsStepsChanged, this, updateDataAndUpdate);
+	connect(this, &GCodeGeometry::numVisiblePathsChanged, this, updateDataAndUpdate);
+	connect(this, &GCodeGeometry::numPathPointsUsedChanged, this, updateDataAndUpdate);
+	connect(this, &GCodeGeometry::numPathPointsUsedChanged, this, updateDataAndUpdate);
 }
 
 GCodeGeometry::GCodeGeometry() :
@@ -294,8 +295,8 @@ void GCodeGeometry::setInputFile(const QString& url)
 
 	loadExtruderData();
 
-	std::cout << "### " << __FUNCTION__ << "_extruderSubPaths.size(): " << _extrData.paths.size() << std::endl;
-	std::cout << "### " << __FUNCTION__ << "_numSubPaths: " << _extrData.numPaths << std::endl;
+	std::cout << "### " << __FUNCTION__ << "_extrData.paths.size(): " << _extrData.paths.size() << std::endl;
+	std::cout << "### " << __FUNCTION__ << "_extrData.numPaths: " << _extrData.numPaths << std::endl;
 
 	updateData();
 	update();
@@ -343,6 +344,11 @@ bool GCodeGeometry::isPicked() const
 	return _isPicked;
 }
 
+uint32_t GCodeGeometry::getNumPaths() const
+{
+	return _extrData.numPaths;
+}
+
 void GCodeGeometry::setPicked(const bool isPicked)
 {
 	if (_isPicked == isPicked)
@@ -352,44 +358,44 @@ void GCodeGeometry::setPicked(const bool isPicked)
 	isPickedChanged();
 }
 
-void GCodeGeometry::setNumSubPaths(const unsigned num)
+void GCodeGeometry::setNumVisiblePaths(const unsigned num)
 {
-	if (_extrData.numPaths == num)
+	if (_numVisiblePaths == num)
 		return;
 
-	_extrData.numPaths = num;
+	_numVisiblePaths = num;
 
-	emit numSubPathsChanged();
+	emit numVisiblePathsChanged();
 }
 
-unsigned GCodeGeometry::getNumSubPaths() const
+unsigned GCodeGeometry::getNumVisiblePaths() const
 {
-	return _extrData.numPaths;
+	return _numVisiblePaths;
 }
 
-void GCodeGeometry::setNumPointsInSubPath(const unsigned num)
+void GCodeGeometry::setNumPointsInPath(const unsigned num)
 {
 	if (_extrData.numPathPointsMax == num)
 		return;
 
 	_extrData.numPathPointsMax = num;
 
-	emit numPointsInSubPathChanged();
+	emit numPathPointsUsedChanged();
 }
 
-uint32_t GCodeGeometry::getNumPointsInSubPath() const
+uint32_t GCodeGeometry::getNumPointsInPath() const
 {
 	return _extrData.numPathPointsMax;
 }
 
-void GCodeGeometry::setNumPathStepsUsed(const uint32_t num)
+void GCodeGeometry::setNumPathPointsUsed(const uint32_t num)
 {
 	if (_numPathStepsUsed == num)
 		return;
 
 	_numPathStepsUsed = num;
 
-	emit numPathPointsStepsChanged();
+	emit numPathPointsUsedChanged();
 
 }
 
@@ -405,16 +411,16 @@ QList<GCodeGeometry*> GCodeGeometry::getSubGeometries()
 
 size_t GCodeGeometry::calcVerifyModelNumbers()
 {
-	const size_t numSubPathsUsed = std::min<uint32_t>(static_cast<uint32_t>(_extrData.paths.size()), _extrData.numPaths);
-	if (numSubPathsUsed == 0)
+	const size_t numPathsUsed = std::min<uint32_t>(static_cast<uint32_t>(_extrData.paths.size()), _extrData.numPaths);
+	if (numPathsUsed == 0)
 	{
 		std::cout << "### " << __FUNCTION__ << ": numSubPathUsed == 0, return" << std::endl;
 		return 0;
 	}
-	std::cout << "### calcVerifyModelNumbers() numSubPathUsed:" << numSubPathsUsed << std::endl;
+	std::cout << "### calcVerifyModelNumbers() numSubPathUsed:" << numPathsUsed << std::endl;
 
 	size_t numPathPoints = 0;
-	for (uint32_t subPathIndex = 0; subPathIndex < numSubPathsUsed; ++subPathIndex)
+	for (uint32_t subPathIndex = 0; subPathIndex < numPathsUsed; ++subPathIndex)
 	{
 		numPathPoints += std::min<uint32_t>(_extrData.numPathPointsMax, static_cast<uint32_t>(_extrData.paths[subPathIndex].size()));
 	}
@@ -424,7 +430,7 @@ size_t GCodeGeometry::calcVerifyModelNumbers()
 		return 0;
 	}
 	std::cout << "### calcVerifyModelNumbers() numPathPoints:" << numPathPoints << std::endl;
-	return numSubPathsUsed;
+	return numPathsUsed;
 }
 
 #ifdef ENABLE_GENERATION_CODE
@@ -435,20 +441,27 @@ void GCodeGeometry::reset()
 	_numPathStepsUsed = 0;
 	_modelVertices.resize(0);
 	_modelIndices.resize(0);
+
 	_numTotalPathStepVertices.resize(0);
 	_numTotalPathStepIndices.resize(0);
+	_numTotalPathVertices.resize(0);
+	_numTotalPathIndices.resize(0);
+
 	// Push back 0's to always be able to quickly compare the new size
 	// with the previous (without additional checks for container size);
+
 	_numTotalPathStepVertices.push_back(0);
 	_numTotalPathStepIndices.push_back(0);
+	_numTotalPathVertices.push_back(0);
+	_numTotalPathIndices.push_back(0);
 }
 
-bool GCodeGeometry::verifyEnoughPoints(const Extrusion::Path& subPath)
+bool GCodeGeometry::verifyEnoughPoints(const Extrusion::Path& path)
 {
-	if (subPath.size() > 1)
+	if (path.size() > 1)
 		return true;
 
-	std::cout << " ### WARNING extruder subPath.size(): " << subPath.size() << std::endl;
+	std::cout << " ### WARNING extruder path.size(): " << path.size() << std::endl;
 	return false;
 }
 
@@ -457,7 +470,7 @@ float GCodeGeometry::getLayerBottom(const uint32_t layerIndex)
 	return _extrData.layerBottomsDict[layerIndex].second;
 }
 
-void GCodeGeometry::logSubPath(const Extrusion::Path& path)
+void GCodeGeometry::logPath(const Extrusion::Path& path)
 {
 	std::cout << " ### " << __FUNCTION__ << " subPath:" << "" << "," << "" << std::endl;
 	for(const ExtrPoint& p : path)
@@ -483,52 +496,52 @@ void GCodeGeometry::generate()
 	//Remember start point to know the direction and level, from which extruder head arrives in next subpath.
 	ExtrPoint lastStartPoint{0,0,0,0};
 	const std::vector<ExtrLayer>& layerBottomsDict = _extrData.layerBottomsDict;
-	const std::vector<ExtrPath>& extruderSubPaths = _extrData.paths;
+	const std::vector<ExtrPath>& extruderPaths = _extrData.paths;
 
 	for (uint32_t layerIndex=0; layerIndex<layerBottomsDict.size(); ++layerIndex)
 	{// For every model layer.
 		const float layerBottom = getLayerBottom(layerIndex);
 
-		uint32_t subPathIndex = layerBottomsDict[layerIndex].first;
-		const uint32_t nextLayerSubPathIndex = (layerIndex < layerBottomsDict.size() -1) ?
+		uint32_t pathIndex = layerBottomsDict[layerIndex].first;
+		const uint32_t nextLayerPathIndex = (layerIndex < layerBottomsDict.size() -1) ?
 												layerBottomsDict[layerIndex +1].first :
-												uint32_t(extruderSubPaths.size());
+												uint32_t(extruderPaths.size());
 
-		for (; subPathIndex<nextLayerSubPathIndex; ++subPathIndex)
+		for (; pathIndex<nextLayerPathIndex; ++pathIndex)
 		{// For every layer subPath - which is a set of consecutive extrusion points - generate a corresponding contiguous geometry.
-			const ExtrPath& subPath = extruderSubPaths[subPathIndex];
+			const ExtrPath& path = extruderPaths[pathIndex];
 
-			if (!verifyEnoughPoints(subPath))
+			if (!verifyEnoughPoints(path))
 				continue;
 
 			// To get a path step with known length, remember the first point of new subPath
-			lastStartPoint = subPath[0];
+			lastStartPoint = path[0];
 
 			// Profile recalculation for the beginning of the subpath.
-			Vector3f subPathCuboid = calculateSubpathCuboid(subPath[0], subPath[1], layerBottom);
+			Vector3f subPathCuboid = calculateSubpathCuboid(path[0], path[1], layerBottom);
 
-			// Prepend the first subPath point with half of a cylinder.
-			const Vector3f dirAtBeginning = (subPath[1] - subPath[0]).head<3>().normalized();
+			// Prepend the first path point with half of a cylinder.
+			const Vector3f dirAtBeginning = (path[1] - path[0]).head<3>().normalized();
 			static const Vector3f upVector{0,0,1};
 			Vector3f rightToDir = dirAtBeginning.cross(upVector);
 			Vector3f turnAxis = rightToDir.cross(dirAtBeginning);
 			// TODO: The turn radius is calculated based on a certain simplification.
 			assert(qIsFinite(subPathCuboid.x()));
 			assert(isFinite(rightToDir));
-			generateSubPathTurn(subPath[0],
+			generatePathTurn(path[0],
 					0.5f * subPathCuboid.x() * rightToDir,
 					turnAxis, -float(M_PI), subPathCuboid.y(), _modelVertices, _modelIndices);
 
 			// Start iterating from the second point, end before the last one.
-			const uint32_t numSubPathPoints = std::min<uint32_t>(_extrData.numPathPointsMax, uint32_t(subPath.size()));
+			const uint32_t numSubPathPoints = std::min<uint32_t>(_extrData.numPathPointsMax, uint32_t(path.size()));
 			for (uint32_t subPathPointIndex = 1; subPathPointIndex < numSubPathPoints -1; ++subPathPointIndex)
 			{
-				const ExtrPoint& currPoint = subPath[subPathPointIndex];
-				const ExtrPoint& nextPoint = subPath[subPathPointIndex +1];
+				const ExtrPoint& currPoint = path[subPathPointIndex];
+				const ExtrPoint& nextPoint = path[subPathPointIndex +1];
 				const Vector4f pathStep = currPoint - lastStartPoint;
 
 				subPathCuboid = calculateSubpathCuboid(lastStartPoint, currPoint, layerBottom);
-				generateSubPathStep(lastStartPoint.head<3>(), pathStep.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
+				generatePathStep(lastStartPoint.head<3>(), pathStep.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
 
 				// Insert a cylinder section (pie) between two path steps, forget about w==filament extrusion length.
 				const Vector3f prevDirection = pathStep.head<3>().normalized();
@@ -545,7 +558,7 @@ void GCodeGeometry::generate()
 					assert(isFinite(prevDirection.cross(turnAxis)));
 					if (qIsFinite(turnAngle))
 					{
-						generateSubPathTurn(currPoint - ExtrPoint{bottomShift.x(), bottomShift.y(), bottomShift.z(), 0},
+						generatePathTurn(currPoint - ExtrPoint{bottomShift.x(), bottomShift.y(), bottomShift.z(), 0},
 										0.5f * subPathCuboid.x() * prevDirection.cross(turnAxis),
 										turnAxis, turnAngle, subPathCuboid.y(), _modelVertices, _modelIndices);
 					}
@@ -555,31 +568,46 @@ void GCodeGeometry::generate()
 			}
 
 			// The last point should be generated differently.
-			const ExtrPoint& currPoint = subPath[numSubPathPoints -1];
+			const ExtrPoint& currPoint = path[numSubPathPoints -1];
 			const Vector4f pathStep = currPoint - lastStartPoint;
 
-			// Profile recalculation for the end of the subpath.
+			// Profile recalculation for the end of the path.
 			subPathCuboid = calculateSubpathCuboid(lastStartPoint, currPoint, layerBottom);
-			generateSubPathStep(lastStartPoint.head<3>(), pathStep.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
+			generatePathStep(lastStartPoint.head<3>(), pathStep.head<3>(), subPathCuboid, _modelVertices, _modelIndices);
 
-			// Append a semi-circle cylinder half to the end of the subPath.
+			// Append a semi-circle cylinder half to the end of the path.
 			const Vector3f dirAtEnd = (currPoint - lastStartPoint).head<3>().normalized();
 			rightToDir = dirAtEnd.cross(upVector);
 			turnAxis = rightToDir.cross(dirAtEnd);
 
 			assert(qIsFinite(subPathCuboid.x()));
 			assert(isFinite(rightToDir));
-			generateSubPathTurn(currPoint,
+			generatePathTurn(currPoint,
 								0.5f * subPathCuboid.x() * rightToDir,
 								turnAxis, float(M_PI), subPathCuboid.y(), _modelVertices, _modelIndices);
 
 			lastStartPoint = currPoint;
+
+			_numTotalPathVertices.push_back(_numTotalPathStepVertices.back());
+			_numTotalPathIndices.push_back(_numTotalPathStepIndices.back());
 		}
 	}
 
 	setBounds({minBound.x(), minBound.y(), minBound.z()}, {maxBound.x(), maxBound.y(),maxBound.z()});
 
 	_wasGenerated = true;
+}
+
+unsigned GCodeGeometry::getAllExtrudersNumPaths() const
+{
+	return std::accumulate(_subGeometries.begin(), _subGeometries.end(), 0, [](unsigned acc, const GCodeGeometry* subGeom){
+		return acc + subGeom->_extrData.numPaths;
+	});
+}
+
+unsigned GCodeGeometry::getNumVisiblePathsInGeometry(unsigned numVisiblePathsInAllSubgeometries) const
+{
+	return _extrData.totalExtrNumPathsDict.at(numVisiblePathsInAllSubgeometries);
 }
 
 void GCodeGeometry::updateData()
@@ -598,11 +626,12 @@ void GCodeGeometry::updateData()
 	QByteArray usedVertices(_modelVertices);
 	QByteArray usedIndices(_modelIndices);
 
-	const uint32_t numTotalPathStepVerticesUsed = _numTotalPathStepVertices[_numPathStepsUsed];
-	const uint32_t numTotalPathStepIndicesUsed = _numTotalPathStepIndices[_numPathStepsUsed];
+	const unsigned numPathsInSubGeometry = getNumVisiblePathsInGeometry(_numVisiblePaths);
+	const uint32_t numVisiblePathVerticesUsed = _numTotalPathVertices[numPathsInSubGeometry];
+	const uint32_t numVisiblePathStepIndicesUsed = _numTotalPathIndices[numPathsInSubGeometry];
 
-	usedVertices.resize(numTotalPathStepVerticesUsed * static_cast<uint32_t>(stride()));
-	usedIndices.resize(numTotalPathStepIndicesUsed * sizeof(uint32_t));
+	usedVertices.resize(numVisiblePathVerticesUsed * static_cast<uint32_t>(stride()));
+	usedIndices.resize(numVisiblePathStepIndicesUsed * sizeof(uint32_t));
 
 //	for (uint32_t pos = 0; pos < _modelVertices.size(); pos+=static_cast<uint32_t>(stride()))
 //	{
@@ -631,7 +660,7 @@ void GCodeGeometry::updateData()
 }
 
 
-void GCodeGeometry::generateSubPathStep(const Vector3f& prevPoint,
+void GCodeGeometry::generatePathStep(const Vector3f& prevPoint,
 										const Vector3f& pathStep,
 										const Vector3f& cuboid,
 										QByteArray& modelVertices,
@@ -710,7 +739,7 @@ void GCodeGeometry::generateSubPathStep(const Vector3f& prevPoint,
 	++_numPathStepsUsed;
 }
 
-void GCodeGeometry::generateSubPathTurn(const ExtrPoint& center,
+void GCodeGeometry::generatePathTurn(const ExtrPoint& center,
 										const Vector3f& radiusStart,
 										const Vector3f& axis,
 										const float angle,

@@ -15,11 +15,12 @@ struct Extrusion
 	std::vector<Path>                 paths{Path{{0,0,0,0}}};
 	std::vector<LayerBottomDictEntry> layerBottomsDict{{0u, 0.0f}};
 	std::vector<AnnotationDictEntry>  annotationsDict;               /** Annotations for paths */
+	std::map<unsigned, unsigned>      totalExtrNumPathsDict;              /** Maps this extrusion stages to number of all paths at a certain print stage. */
 
 	size_t numPaths = 0;
 	size_t numPathPointsMax = 0;
 
 	bool isActive = false;
-	float filamentCrossArea = 3.0f*3.0f*float(M_PI/4);   /** Filament cross-section area in mm^2 for filament cross section diameter 1.75mm */
+	float filamentCrossArea = 3.0f*3.0f*float(M_PI/4);   /** Filament cross-section area in mm^2 for filament cross section diameter 3.0mm */
 };
 

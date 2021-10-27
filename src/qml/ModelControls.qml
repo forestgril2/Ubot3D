@@ -2,7 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 Row {
 
-    property alias numSubPathsSlider: numSubPathsSlider
+    property alias numPathsSlider: numPathsSlider
     property alias numPointsInSubPathSlider: numPointsInSubPathSlider
     property alias numPathStepsUsedSlider: numPathStepsUsedSlider
 
@@ -11,21 +11,22 @@ Row {
     property alias triangleModelWarpSlider: triangleModelWarpSlider
 
     property var referencedGcodeGeometry
-    property int numSubPaths
+    property int numPaths
     property int numPointsInSubPath
     property int numPathStepsUsed
 
     anchors {
-        left: parent.left
+        right: parent.right
         top: parent.top
         bottom: parent.bottom
         topMargin: 10
         bottomMargin: 10
-        leftMargin: 10
+        rightMargin: 10
     }
 
     Slider {
         id: triangleModelWarpSlider
+        visible: false
         orientation: Qt.Vertical
         from: -0.1
         to: 0.1
@@ -38,19 +39,20 @@ Row {
     }
 
     ValueEditSlider {
-        id: numSubPathsSlider
+        id: numPathsSlider
         from: 0
-        to: numSubPaths
+        to: numPaths
 
         onValueChanged: {
             if (!referencedGcodeGeometry)
                 return;
-            referencedGcodeGeometry.numSubPaths = numSubPathsSlider.value
+            referencedGcodeGeometry.numVisiblePaths = numPathsSlider.value
         }
     }
 
     ValueEditSlider {
         id: numPointsInSubPathSlider
+        visible: false
 
         from: 0
         to: numPointsInSubPath
@@ -64,6 +66,7 @@ Row {
 
     ValueEditSlider {
         id: numPathStepsUsedSlider
+        visible: false
 
         from: 0
         to: numPathStepsUsed
@@ -76,6 +79,7 @@ Row {
     }
 
     Column {
+        visible: false
         anchors {
             bottom: parent.bottom
         }
@@ -118,14 +122,16 @@ Row {
 
         referencedGcodeGeometry = gcodeGeometry;
 
-        console.log(" ### resetSliders(): gcodeModels.gcodeGeometry.inputFile:" + gcodeGeometry.inputFile)
 
-        numSubPaths = gcodeGeometry.numSubPaths
-        numSubPathsSlider.value = gcodeGeometry.numSubPaths
+        numPaths = gcodeGeometry.numPaths
+        numPathsSlider.value = gcodeGeometry.numPaths
+
         numPointsInSubPath = gcodeGeometry.numPointsInSubPath
         numPointsInSubPathSlider.value = gcodeGeometry.numPointsInSubPath
-        numSubPaths = gcodeGeometry.numSubPaths
+
         numPathStepsUsed = gcodeGeometry.numPathStepsUsed
         numPathStepsUsedSlider.value = gcodeGeometry.numPathStepsUsed
+
+        console.log(" ### resetSliders(): gcodeModels.gcodeGeometry.inputFile, numSubPaths:" + gcodeGeometry.inputFile, ", ", numPaths)
     }
 }

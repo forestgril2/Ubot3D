@@ -19,9 +19,10 @@ class GCodeGeometry : public QQuick3DGeometry
 	Q_PROPERTY(QVector3D maxBounds READ maxBounds WRITE setMaxBounds NOTIFY boundsChanged)
 	Q_PROPERTY(bool isPicked READ isPicked WRITE setPicked NOTIFY isPickedChanged)
 	Q_PROPERTY(QString inputFile READ getInputFile WRITE setInputFile)// NOTIFY inputFileChanged)
-	Q_PROPERTY(uint32_t numSubPaths READ getNumSubPaths WRITE setNumSubPaths NOTIFY numSubPathsChanged)
-	Q_PROPERTY(uint32_t numPointsInSubPath READ getNumPointsInSubPath WRITE setNumPointsInSubPath NOTIFY numPointsInSubPathChanged)
-	Q_PROPERTY(uint32_t numPathStepsUsed READ getNumPathPointsUsed WRITE setNumPathStepsUsed NOTIFY numPathPointsStepsChanged)
+	Q_PROPERTY(uint32_t numPaths READ getNumPaths)
+	Q_PROPERTY(uint32_t numVisiblePaths READ getNumVisiblePaths WRITE setNumVisiblePaths NOTIFY numVisiblePathsChanged)
+	Q_PROPERTY(uint32_t numPointsInPath READ getNumPointsInPath WRITE setNumPointsInPath NOTIFY numPointsInPathChanged)
+	Q_PROPERTY(uint32_t numPathPointsUsed READ getNumPathPointsUsed WRITE setNumPathPointsUsed NOTIFY numPathPointsUsedChanged)
 	Q_PROPERTY(QList<GCodeGeometry*> subGeometries READ getSubGeometries NOTIFY subGeometriesChanged)
 
 public:
@@ -38,13 +39,14 @@ public:
 	void setPicked(const bool isPicked);
 	bool isPicked() const;
 
-	void setNumSubPaths(const uint32_t num);
-	uint32_t getNumSubPaths() const;
+	uint32_t getNumPaths() const;
+	void setNumVisiblePaths(const uint32_t num);
+	uint32_t getNumVisiblePaths() const;
 
-	void setNumPointsInSubPath(const uint32_t num);
-	uint32_t getNumPointsInSubPath() const;
+	void setNumPointsInPath(const uint32_t num);
+	uint32_t getNumPointsInPath() const;
 
-	void setNumPathStepsUsed(const uint32_t num);
+	void setNumPathPointsUsed(const uint32_t num);
 	uint32_t getNumPathPointsUsed() const;
 
 	QList<GCodeGeometry*> getSubGeometries();
@@ -57,9 +59,9 @@ signals:
 	void boundsChanged();
 	void modelLoaded();
 	void isPickedChanged();
-	void numPointsInSubPathChanged();
-	void numSubPathsChanged();
-	void numPathPointsStepsChanged();
+	void numPointsInPathChanged();
+	void numVisiblePathsChanged();
+	void numPathPointsUsedChanged();
 	void subGeometriesChanged();
 
 private:
@@ -71,24 +73,27 @@ private:
 	void updateData();
 	void loadExtruderData();
 	void generate();
+	unsigned getAllExtrudersNumPaths() const;
+	unsigned getNumVisiblePathsInGeometry(unsigned numVisiblePathsInAllSubgeometries) const;
+
 	Eigen::Vector3f calculateSubpathCuboid(const Extrusion::Point& pathStart,
-											   const Extrusion::Point& pathEnd,
-											   const float pathBaseLevelZ);
+										   const Extrusion::Point& pathEnd,
+										   const float pathBaseLevelZ);
 	size_t calcVerifyModelNumbers();
-	bool verifyEnoughPoints(const Extrusion::Path& subPath);
-	void generateSubPathTurn(const Extrusion::Point& center,
+	bool verifyEnoughPoints(const Extrusion::Path& path);
+	void generatePathTurn(const Extrusion::Point& center,
 							 const Eigen::Vector3f& radiusStart,
 							 const Eigen::Vector3f& axis,
 							 const float angle,
 							 const float height,
 							 QByteArray& modelVertices,
 							 QByteArray& modelIndices);
-	void generateSubPathStep(const Eigen::Vector3f& prevPoint,
+	void generatePathStep(const Eigen::Vector3f& prevPoint,
 							 const Eigen::Vector3f& pathStep, const Eigen::Vector3f& cuboid,
 							 QByteArray& modelVertices,
 							 QByteArray& modelIndices);
 	float getLayerBottom(const uint32_t layerIndex);
-	void logSubPath(const Extrusion::Path& path);
+	void logPath(const Extrusion::Path& path);
 
 	bool _isPicked = false;
 	bool _wasGenerated = false;
@@ -97,11 +102,15 @@ private:
 	QList<GCodeGeometry*> _subGeometries;
 
 	uint32_t _numPathStepsUsed;
+	uint32_t _numVisiblePaths;
 
 	QByteArray _modelIndices;
 	QByteArray _modelVertices;
 	std::vector<uint32_t> _numTotalPathStepVertices;              /** Remember how many vertices are added in each consecutive path step. */
 	std::vector<uint32_t> _numTotalPathStepIndices;               /** Remember how many indices are added in each consecutive path step. */
+
+	std::vector<uint32_t> _numTotalPathVertices;              /** Remember how many vertices are added in each consecutive path. */
+	std::vector<uint32_t> _numTotalPathIndices;               /** Remember how many indices are added in each consecutive path. */
 
 	QString _inputFile;
 };

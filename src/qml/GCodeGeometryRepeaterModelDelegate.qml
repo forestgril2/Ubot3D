@@ -10,6 +10,7 @@ import customgeometry 1.0
 Node {
     id: gCodeModel
 
+    property alias geometry: gcodeGeometry
     property alias inputFile: gcodeGeometry.inputFile
 
     property bool isPicked: false

@@ -34,7 +34,7 @@ private:
 		Vector4i whichCoordsSetInBlock = {0,0,0,0};
 	} _extrWorkPoints;
 
-	void setExtruder(const uint32_t extruderIndex);
+	void setExtruder(const uint32_t switchedExtruderIndex);
 	void setupCurrentExtruderReferences(uint32_t extruderIndex);
 
 	void processChunks(const gpr::block& block);
@@ -47,6 +47,7 @@ private:
 	void setExtrusionOn(Extrusion* extrusion, const ExtrPoint& lastAbsCoords);
 	void setAbsoluteModeOn();
 	void setAbsoluteModeOff(ExtrPoint* blockCurrRelativeCoords);
+	unsigned getNumTotalPaths() const;
 
 	void updateCurrentBlockAbsCoords();
 	void updateLastAbsCoords();
@@ -69,7 +70,7 @@ private:
 
 	bool _isAbsoluteMode = true;
 
-	static void dumpSubPath(const std::string& blockString, const ExtrPath& path);
+	static void dumpPath(const std::string& blockString, const ExtrPath& path);
 
 	const static std::set<std::string> _kPathAnnotations;
 
