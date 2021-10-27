@@ -66,14 +66,13 @@ signals:
 
 private:
 	// This constructor is private - to create extruder data for subgeometries.
-	GCodeGeometry(const Extrusion& extruderData);
+	GCodeGeometry(const Extrusion& extruderData, unsigned numAllPaths);
 
-	void initialize();
+	void initialize(unsigned numAllPaths);
 	void reset();
 	void updateData();
 	void loadExtruderData();
 	void generate();
-	unsigned getAllExtrudersNumPaths() const;
 	unsigned getNumVisiblePathsInGeometry(unsigned numVisiblePathsInAllSubgeometries) const;
 
 	Eigen::Vector3f calculateSubpathCuboid(const Extrusion::Point& pathStart,

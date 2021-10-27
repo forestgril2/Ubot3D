@@ -363,7 +363,6 @@ ApplicationWindow {
 
         ModelControls {
             id: controls
-
         }
 
         ProcessLauncher {
