@@ -573,7 +573,7 @@
                 "stepValue": "",
                 "text": "",
                 "value": [
-                    1,
+                    3,
                     4
                 ],
                 "valueType": ""
@@ -999,7 +999,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": 0.3,
+                "value": 0.15,
                 "valueType": ""
             },
             {
@@ -1016,7 +1016,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": "0.35",
+                "value": "0.15",
                 "valueType": "Text"
             },
             {
@@ -1191,7 +1191,7 @@
                 ],
                 "stepValue": "",
                 "text": "",
-                "value": "Archmidean Chords",
+                "value": "stars",
                 "valueType": "Enum"
             },
             {
@@ -1378,7 +1378,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": true,
+                "value": false,
                 "valueType": "Boolean"
             },
             {
@@ -1412,7 +1412,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": true,
+                "value": false,
                 "valueType": "Boolean"
             },
             {
@@ -1446,7 +1446,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": true,
+                "value": false,
                 "valueType": "Boolean"
             },
             {
@@ -1463,7 +1463,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": true,
+                "value": false,
                 "valueType": "Boolean"
             }
         ]
@@ -2707,7 +2707,7 @@
                 "possibleValues": null,
                 "stepValue": "",
                 "text": "",
-                "value": 2,
+                "value": 1,
                 "valueType": ""
             },
             {

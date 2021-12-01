@@ -59,6 +59,11 @@ void GCodeProgramProcessor::setExtruder(const uint32_t switchedExtruderIndex)
 	_extrusionCurr->numPaths = (*_extruderPathsCurr).size();
 	_extrusionCurr->totalExtrNumPathsDict[getNumTotalPaths()] = _extrusionCurr->numPaths;
 
+	if (_extrusionCurr->numPaths > 1450)
+	{
+		bool test = true;
+	}
+
 	// After the following point, _extruderIndexCurr and _extrusionCurr will point to a different extruder.
 	setupCurrentExtruderReferences(switchedExtruderIndex);
 }
@@ -367,6 +372,12 @@ void GCodeProgramProcessor::setExtrusionOff(Extrusion* extrusion)
 	_extruderPathsCurr->push_back(_pathCurr);
 	extrusion->numPaths = (*_extruderPathsCurr).size();
 	_extrusionCurr->totalExtrNumPathsDict[getNumTotalPaths()] = _extrusionCurr->numPaths;
+
+	if (_extrusionCurr->numPaths > 1450)
+	{
+		unsigned total = getNumTotalPaths();
+		bool test = true;
+	}
 
 	_pathCurr = ExtrPath();
 }

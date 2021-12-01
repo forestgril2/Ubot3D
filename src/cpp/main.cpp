@@ -18,13 +18,23 @@
 #include <SlicerParams.h>
 #include <Utils.h>
 
+#include <QDebug>
+
 int main(int argc, char *argv[])
 {
+    qInfo() << " ### ";
+
+    qDebug() << " ### ";
+
+    std::cout << " ### " << __FUNCTION__ << " :" << "" << "," << "" << std::endl;
     QApplication app(argc, argv);
 	QSurfaceFormat::setDefaultFormat(QQuick3D::idealSurfaceFormat());
 
 	QQmlApplicationEngine engine;
 	QQmlContext* context = engine.rootContext();
+
+
+    std::cout << " ### " << __FUNCTION__ << " :" << "" << "," << "" << std::endl;
 
 	Chronograph::setOutputFile("Chronograph.log");
 	Helpers3D helpers3D;

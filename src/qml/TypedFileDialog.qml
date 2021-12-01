@@ -7,7 +7,7 @@ FileDialog {
     id: root
 
     // TODO: This doesn't belong here.
-    property string slicerExec
+    property string slicerExec: utils.getDefaultSlicerExecutablePath()
 
     enum FileType {
         GcodeImport,
@@ -139,5 +139,9 @@ FileDialog {
                                })
         }
         return exportDataList;
+    }
+
+    function getDefaultSlicerExecutable() {
+
     }
 }

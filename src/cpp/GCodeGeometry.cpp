@@ -224,9 +224,14 @@ void GCodeGeometry::loadExtruderData()
 	_extrData = extrusions[*indicesIterator++];
 	_subGeometries.push_back(this);
 
+	const unsigned mainGeometryNumPaths = extrusions[0].numPaths;
+	const unsigned subGeometryNumPaths = extrusions[1].numPaths;
+
 	const unsigned numAllPaths = std::accumulate(extrusions.begin(), extrusions.end(), 0, [](unsigned acc, const auto& extrusionToIndex) {
 		return acc + extrusionToIndex.second.numPaths;
 	});
+
+	std::ofstream firstGeomFile;
 
 	initialize(numAllPaths);
 
@@ -605,6 +610,10 @@ void GCodeGeometry::generate()
 unsigned GCodeGeometry::getNumVisiblePathsInGeometry(unsigned numVisiblePathsInAllSubgeometries) const
 {
 	const unsigned maxNumVisibleSubPathsHere = _extrData.totalExtrNumPathsDict.rbegin()->first;
+	if (maxNumVisibleSubPathsHere != 0)
+	{
+		bool test = true;
+	}
 	return _extrData.totalExtrNumPathsDict.at(std::min(maxNumVisibleSubPathsHere, numVisiblePathsInAllSubgeometries));
 }
 
@@ -624,7 +633,8 @@ void GCodeGeometry::updateData()
 	QByteArray usedVertices(_modelVertices);
 	QByteArray usedIndices(_modelIndices);
 
-	const unsigned numPathsInSubGeometryIndex = std::min<unsigned>(_numTotalPathIndices.size() -1, getNumVisiblePathsInGeometry(_numVisiblePaths) -1);
+	const unsigned numPathsInSubGeometryIndex = std::min<unsigned>(_numTotalPathIndices.size() -1,
+																   getNumVisiblePathsInGeometry(_numVisiblePaths) -1);
 	const uint32_t numVisiblePathVerticesUsed = _numTotalPathVertices[numPathsInSubGeometryIndex];
 	const uint32_t numVisiblePathStepIndicesUsed = _numTotalPathIndices[numPathsInSubGeometryIndex];
 

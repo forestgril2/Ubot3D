@@ -29,18 +29,12 @@
 #include <D:\Projects\qt6-a80e52\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
 #include <QtQuick3DAssetImport/private/qssgmeshbvhbuilder_p.h>
 #else
-#include <QtQuick3DRuntimeRender/private/qssgrenderbuffermanager_p.h>
-#include <QtQuick3DRuntimeRender/private/qssgrenderray_p.h>
-#include <QtQuick3DAssetImport/private/qssgmeshbvhbuilder_p.h>
+#include <QtQuick3DRuntimeRender/6.2.1/QtQuick3DRuntimeRender/private/qssgrenderbuffermanager_p.h>
+#include <QtQuick3DRuntimeRender/6.2.1/QtQuick3DRuntimeRender/private/qssgrenderray_p.h>
+#include <QtQuick3DUtils/private/qssgmeshbvhbuilder_p.h>
 #endif
 
 #include <QtQuick3DUtils/private/qssgmeshbvh_p.h>
-//qssgmeshbvhbuilder_p.h
-
-//#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrendermodel_p.h>
-//#include <D:\Projects\qt6\qtquick3d\src\utils\qssgoption_p.h>
-//#include <D:\Projects\qt6\qtquick3d\src\runtimerender\graphobjects\qssgrenderlayer_p.h>
-
 
 #include <clipper.hpp>
 
@@ -1026,29 +1020,29 @@ void TriangleGeometry::buildIntersectionData()
 {
 	delete _intersectionData;
 
-	QSSGRef<QSSGMeshUtilities::QSSGMeshBuilder> meshBuilder = QSSGMeshUtilities::QSSGMeshBuilder::createMeshBuilder();
-	QSSGMeshUtilities::MeshData meshData;
+//	QSSGRef<QSSGMeshUtilities::QSSGMeshBuilder> meshBuilder = QSSGMeshUtilities::QSSGMeshBuilder::createMeshBuilder();
+//	QSSGMeshUtilities::MeshData meshData;
 
-	QByteArray vertexBufferCopy;
-	meshData.m_vertexBuffer.resize(vertexData().size());
-	memcpy(meshData.m_vertexBuffer.data(), vertexData().data(), size_t(vertexData().size()));
+//	QByteArray vertexBufferCopy;
+//	meshData.m_vertexBuffer.resize(vertexData().size());
+//	memcpy(meshData.m_vertexBuffer.data(), vertexData().data(), size_t(vertexData().size()));
 
-	QByteArray indexBufferCopy;
-	meshData.m_indexBuffer.resize(indexData().size());
-	memcpy(meshData.m_indexBuffer.data(), indexData().data(), size_t(indexData().size()));
+//	QByteArray indexBufferCopy;
+//	meshData.m_indexBuffer.resize(indexData().size());
+//	memcpy(meshData.m_indexBuffer.data(), indexData().data(), size_t(indexData().size()));
 
-//	meshData.m_vertexBuffer = vertexBufferCopy;
-//	meshData.m_indexBuffer = indexBuffer();
-//	qDebug() << " ### indexBuffer().size():" << indexData().size();
-//	qDebug() << " ### vertexBuffer().size():" << vertexData().size();
-//	qDebug() << " ### attributeCount():" << attributeCount();
-//	qDebug() << " ### stride():" << stride();
-	meshData.m_stride = stride();
-	meshData.m_attributeCount = attributeCount();
-	// TODO: Hacking... do it properly.... if needed :)
-	meshData.m_attributes[_indexAttributeIndex].semantic = QSSGMeshUtilities::MeshData::Attribute::IndexSemantic;
-	meshData.m_attributes[_indexAttributeIndex].offset = 0;
-	meshData.m_attributes[_indexAttributeIndex].componentType = QSSGMeshUtilities::MeshData::Attribute::U32Type;
+////	meshData.m_vertexBuffer = vertexBufferCopy;
+////	meshData.m_indexBuffer = indexBuffer();
+////	qDebug() << " ### indexBuffer().size():" << indexData().size();
+////	qDebug() << " ### vertexBuffer().size():" << vertexData().size();
+////	qDebug() << " ### attributeCount():" << attributeCount();
+////	qDebug() << " ### stride():" << stride();
+//	meshData.m_stride = stride();
+//	meshData.m_attributeCount = attributeCount();
+//	// TODO: Hacking... do it properly.... if needed :)
+//	meshData.m_attributes[_indexAttributeIndex].semantic = QSSGMeshUtilities::MeshData::Attribute::IndexSemantic;
+//	meshData.m_attributes[_indexAttributeIndex].offset = 0;
+//	meshData.m_attributes[_indexAttributeIndex].componentType = QSSGMeshUtilities::MeshData::Attribute::U32Type;
 
 //	for (unsigned i = 0; i < meshData.m_attributeCount; ++i)
 //	{
@@ -1056,23 +1050,33 @@ void TriangleGeometry::buildIntersectionData()
 //		meshData.m_attributes[i].offset = 0;
 //		meshData.m_attributes[i].componentType = QSSGMeshUtilities::MeshData::Attribute::F32Type;
 //	}
-	QString error;
-	QSSGMeshUtilities::Mesh* mesh = meshBuilder->buildMesh(meshData, error, QSSGBounds3(minBounds(), maxBounds()));
+//	QString error;
+//	QSSGMesh::Mesh* mesh = meshBuilder->buildMesh(meshData, error, QSSGBounds3(minBounds(), maxBounds()));
 
 //	// Return the current mesh.  This is only good for this function call, item may change or be
 //    // released
 //    // due to any further function calls.
 //    Mesh &getMesh() override
 
-	if (!error.isEmpty())
-	{
-		qDebug() << " ### error:" << error;
-	}
+//	if (!error.isEmpty())
+//	{
+//		qDebug() << " ### error:" << error;
+//	}
 //	mesh->m_subsets = m_subsets;
 //	mesh->m_joints = m_joints;
 
 //	auto &outputMesh = meshBuilder->getMesh();
-	QSSGMeshBVHBuilder meshBVHBuilder(mesh);
+
+    QSSGMeshBVHBuilder meshBVHBuilder(vertexData(),
+                                      stride(),
+                                      0,
+                                      false,
+                                      0,
+                                      true,
+                                      indexData(),
+                                      QSSGRenderComponentType::Integer32);
+
+//	QSSGMeshBVHBuilder meshBVHBuilder(*mesh);
 	_intersectionData = meshBVHBuilder.buildTree();
 }
 
@@ -1099,6 +1103,13 @@ QVariantMap TriangleGeometry::getPick(const QVector3D& origin,
 //	const auto &globalTransform = model.globalTransform;
 
 	QSSGRenderRay::RayData rayData = QSSGRenderRay::createRayData(globalTransform, hitRay);
+
+//TODO: !!!
+//	auto hit = QSSGRenderRay::intersectWithAABBv2(rayData, modelBounds);
+
+//    // If we don't intersect with the model at all, then there's no need to go furher down!
+//    if (!hit.intersects())
+//        return noHit;
 
 	QVector<QSSGRenderRay::IntersectionResult> intersections =
 		QSSGRenderRay::intersectWithBVHTriangles(rayData, _intersectionData->triangles, 0, int(_intersectionData->triangles.size()));

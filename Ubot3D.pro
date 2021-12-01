@@ -114,12 +114,12 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 #target.path = $$[QT_INSTALL_EXAMPLES]/quick3d/customgeometry
 #INSTALLS += target
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/release/ -lassimp-vc142-mtd
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../assimp-5.0.1/build/code/Debug/ -lassimp-vc142-mtd# -L$$PWD/../gpr/build/ -lmsys-gpr
+win32:CONFIG(release, debug|release): LIBS += -L$$$$PWD/..\assimp\build\bin\Release\libassimp-5.dll
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$$$PWD/..\assimp\build\bin\Release\libassimp-5.dll# -L$$PWD/../gpr/build/ -lmsys-gpr
 
 
 unix {
-
+message("Building for Unix")
 CGAL_INCLUDEPATH=/usr/include
 BOOST_INCLUDEPATH=/usr/include/boost
 ASSIMP_INCLUDEPATH=/usr/include/assimp
@@ -144,24 +144,30 @@ LIBS += -lpolyclipping -lassimp
 }
 
 win32 {
+message("Building for Windows")
 CLIPPER_INCLUDEPATH=$$PWD/../clipper/cpp/
 CGAL_INCLUDEPATH=D:/Programy/CGAL/include
 BOOST_INCLUDEPATH=D:/Programy/boost_1_75_0
-ASSIMP_PATH=$$PWD/../assimp-5.0.1
+
 EIGEN_PATH=$$PWD/../eigen
 GLM_PATH=$$PWD/../glm
 GPR_PATH=$$PWD/../gpr/src
 JSON_PATH=$$PWD/../json/single_include/nlohmann
 
-INCLUDEPATH += $$ASSIMP_PATH/include
-INCLUDEPATH += $$ASSIMP_PATH/build/include
+INCLUDEPATH += \
+$$[QT_INSTALL_HEADERS]/QtQuick3DRuntimeRender/$$[QT_VERSION]/ \
+$$[QT_INSTALL_HEADERS]/QtQuick3DUtils/$$[QT_VERSION]/ \
+$$[QT_INSTALL_HEADERS]/QtQuick3DAssetImport/$$[QT_VERSION]/ \
+$$[QT_INSTALL_HEADERS]/QtGui/$$[QT_VERSION] \
+$$[QT_INSTALL_HEADERS]/QtGui/$$[QT_VERSION]/QtGui
 
-DEPENDPATH += $$ASSIMP_PATH/include
-DEPENDPATH += $$ASSIMP_PATH/build/include
+INCLUDEPATH += D:\Qt62b\qtbase\include\QtQuick3DUtils\6.2
+INCLUDEPATH += D:\Qt62b\qtbase\include\QtGui\6.2
+INCLUDEPATH += D:\Qt62b\qtbase\include\QtQuick3DAssetImport\6.2
+INCLUDEPATH += D:\Qt62b\qtbase\include\QtQuick3DAssetImport\6.2
+INCLUDEPATH += $$PWD/..\assimp\include
+INCLUDEPATH += $$PWD/..\assimp\build\include
 
-INCLUDEPATH += D:\Projects\qt6-build-release-a80e52\qtbase\include\QtQuick3DUtils\6.0.1
-INCLUDEPATH += D:\Projects\qt6-build-release-a80e52\qtbase\include\QtGui\6.0.1
-INCLUDEPATH += D:\Projects\qt6-build-release-a80e52\qtbase\include\QtQuick3DAssetImport\6.0.1
 
 HEADERS += $$PWD/../clipper/cpp/clipper.hpp
 SOURCES += $$PWD/../clipper/cpp/clipper.cpp
@@ -181,56 +187,9 @@ INCLUDEPATH += $$JSON_PATH
 DEPENDPATH += $$GPR_PATH
 DEPENDPATH += $$ASSIMP_INCLUDEPATH
 
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../assimp/build/lib/Release/ -llibassimp.dll
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../assimp/build/lib/Release/ -llibassimp.dlld
+else:unix:!macx: LIBS += -L$$PWD/../assimp/build/lib/Release/ -llibassimp.dll
 
-
-#QT += quick3dassetimport-private quick3dutils-private shadertools-private quick-private
-
-#include(graphobjects/graphobjects.pri)
-#include(rendererimpl/rendererimpl.pri)
-#include(resourcemanager/resourcemanager.pri)
-
-#HEADERS += \
-#    qssgrendercommands_p.h \
-#    qtquick3druntimerenderglobal_p.h \
-#    qssgrenderableimage_p.h \
-#    qssgrenderclippingfrustum_p.h \
-#    qssgrendercontextcore_p.h \
-#    qssgrhicustommaterialsystem_p.h \
-#    qssgrenderdefaultmaterialshadergenerator_p.h \
-#    qssgrendererutil_p.h \
-#    qssgrenderimagetexturedata_p.h \
-#    qssgrenderinputstreamfactory_p.h \
-#    qssgrendermaterialshadergenerator_p.h \
-#    qssgrendermesh_p.h \
-#    qssgrenderray_p.h \
-#    qssgrendershadercache_p.h \
-#    qssgrendershadercodegenerator_p.h \
-#    qssgrendershaderkeys_p.h \
-#    qssgrendershadowmap_p.h \
-#    qssgruntimerenderlogging_p.h \
-#    qssgperframeallocator_p.h \
-#    qssgshaderresourcemergecontext_p.h \
-#    qssgrendershadermetadata_p.h \
-#    qssgrhiquadrenderer_p.h \
-#    qssgrhieffectsystem_p.h \
-#    qssgrhicontext_p.h \
-#    qssgshadermaterialadapter_p.h \
-#    qssgshadermapkey_p.h
-
-#SOURCES += \
-#    qssgrenderclippingfrustum.cpp \
-#    qssgrendercommands.cpp \
-#    qssgrendercontextcore.cpp \
-#    qssgrhicustommaterialsystem.cpp \
-#    qssgrenderdefaultmaterialshadergenerator.cpp \
-#    qssgrenderinputstreamfactory.cpp \
-#    qssgrenderray.cpp \
-#    qssgrendershadercache.cpp \
-#    qssgrendershadercodegenerator.cpp \
-#    qssgrendershadermetadata.cpp \
-#    qssgrendershadowmap.cpp \
-#    qssgruntimerenderlogging.cpp \
-#    qssgrhiquadrenderer.cpp \
-#    qssgrhieffectsystem.cpp \
-#    qssgrhicontext.cpp \
-#    qssgshadermaterialadapter.cpp
+INCLUDEPATH += $$PWD/../assimp/build/lib/Release
+DEPENDPATH += $$PWD/../assimp/build/lib/Release

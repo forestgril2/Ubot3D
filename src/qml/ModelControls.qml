@@ -40,6 +40,7 @@ Row {
 
     ValueEditSlider {
         id: numPathsSlider
+        visible: referencedGcodeGeometry ? true : false
         from: 0
         to: numPaths
 

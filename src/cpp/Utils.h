@@ -11,5 +11,6 @@ public:
     explicit Utils(QObject *parent = nullptr);
 
     static Q_INVOKABLE QString generateSystemFilePath(const QString& filePath);
+	static Q_INVOKABLE QString getDefaultSlicerExecutablePath();
 };
 
