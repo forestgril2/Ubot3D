@@ -32,7 +32,7 @@ ApplicationWindow {
 
     SlicerParametersInput {
         id: slicerParameters
-        property string defaultParamPath: "C:\\Projects\\Ubot3D\\slicerParamsModified.json"
+        property string defaultParamPath: "D:\\Projects\\Ubot3D\\slicerParamsModified.json"
         width: 1200
         paramGroups: JSON.parse(fileImportExport.readJsonFile(defaultParamPath))
     }
@@ -102,7 +102,7 @@ ApplicationWindow {
             sceneCenter: Qt.vector3d(100, 100, 0)
         }
 
-        Keys.onPressed: {
+        Keys.onPressed: (event) => {
         // TODO: This is badly implemented. But can now be used to delete one stl model from the scene.
             if (event.key === Qt.Key_Delete) {
                 var allModels = stlObjectsRepeater.model
@@ -222,7 +222,7 @@ ApplicationWindow {
                 }
             }
 
-            onDelegateLoaded: {
+            onDelegateLoaded: (modelCenter) => {
                 sceneBase.camera.position = modelCenter.plus(sceneBase.camera.initDistToModel)
                 sceneBase.camera.lookAt(modelCenter)
             }
@@ -375,7 +375,7 @@ ApplicationWindow {
                 popup.open()
             }
 
-            onGcodeGenerated: {
+            onGcodeGenerated: (outputFilePath) => {
                 popup.backgroundColor = "lime"
                 popup.messageColor = "black"
                 popup.messageText = "Slicer process successful."
@@ -405,7 +405,7 @@ ApplicationWindow {
                 }
 
                 var isTwoHeaderExtrusion = slicerParameters.isUsingTwoExtruders
-                generateGCode(fileDialog.slicerExec, selectedModels[0].geometry.inputFile, "C:\\Projects\\Ubot3D\\slicerParamsModified.json")
+                generateGCode(fileDialog.slicerExec, selectedModels[0].geometry.inputFile, "D:\\Projects\\Ubot3D\\slicerParamsModified.json")
 //                generateSlices(selectedModels[0].geometry)
             }
         }

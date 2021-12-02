@@ -84,9 +84,12 @@ Item {
         }
     }
 
-    Keys.onPressed: if (keysEnabled) handleKeyPress(event)
-    Keys.onReleased: if (keysEnabled) handleKeyRelease(event)
-
+    Keys.onPressed: (event) => {
+                        if (keysEnabled) handleKeyPress(event)
+                    }
+    Keys.onReleased: (event) => {
+                         if (keysEnabled) handleKeyRelease(event)
+                     }
     function mousePressed(newPos) {
         status.currentPos = newPos
         status.lastPos = newPos

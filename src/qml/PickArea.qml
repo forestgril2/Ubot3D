@@ -29,12 +29,12 @@ MouseArea {
         }
     }
 
-    onPressed: {
+    onPressed: (mouse) => {
         if (doubleClickCountdown(mouse))
             return
     }
 
-    onPositionChanged: {
+    onPositionChanged: (mouse) => {
         // If position changes more than a little, disable further click&double click
         if (Math.abs(mouse.x-pressStartPosition.x) > pressMoveIgnoreDist ||
             Math.abs(mouse.y-pressStartPosition.y) > pressMoveIgnoreDist) {
@@ -42,7 +42,7 @@ MouseArea {
         }
     }
 
-    onClicked: {
+    onClicked: (mouse) => {
         if (doubleClickTimer.running) {
             postponedOnClickedActionData = mouse
             return

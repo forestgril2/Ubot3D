@@ -48,7 +48,7 @@ Window {
                 id: paramGroupEditForm
                 paramGroup: modelData
 
-                onParamValueChanged: {
+                onParamValueChanged: (param, value) => {
 //                    console.log(" ### value :" + value )
 //                    console.log(" ### param.name:" + param.name)
 //                    console.log(" ### paramGroup.groupName:" + paramGroup.groupName)
