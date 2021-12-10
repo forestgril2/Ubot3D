@@ -146,8 +146,8 @@ static std::pair<Vertices, Indices> generateCylinderPieSection(const ExtrPoint& 
 		}
 
 		ind.push_back(0);
-		ind.push_back(uint32_t(p)+1);
 		ind.push_back(uint32_t(p)+2);
+		ind.push_back(uint32_t(p)+1);
 	}
 
 	// Copy the circle  pie shifted by height in rotation axis direction.
@@ -156,28 +156,31 @@ static std::pair<Vertices, Indices> generateCylinderPieSection(const ExtrPoint& 
 	const uint32_t firstIndicesSize = uint32_t(ind.size());
 	vert.resize(2*upperCircleCenterIndex);
 	ind.resize(2*firstIndicesSize);
-	for (uint32_t i = 0, j = upperCircleCenterIndex; i < upperCircleCenterIndex; ++i, ++j)
+	for (uint32_t i=0, j=upperCircleCenterIndex; i<upperCircleCenterIndex; ++i, ++j)
 	{
 		assert(isFinite(vert[i]));
 		vert[j] = vert[i] + heightShift;
 	}
-	for (uint32_t i = 0, j = firstIndicesSize; i < firstIndicesSize; ++i, ++j)
+	// Need to reverse upper triangle indices order.
+	for (uint32_t i=0, j=firstIndicesSize; i<firstIndicesSize; i+=3, j+=3)
 	{
-		ind[j] = ind[i] + upperCircleCenterIndex;
+		ind[j  ] = ind[i  ] + upperCircleCenterIndex;
+        ind[j+1] = ind[i+1] + upperCircleCenterIndex;
+        ind[j+2] = ind[i+2] + upperCircleCenterIndex;
 	}
 
 	// Setup pie cylinder side part indices, 1 quad == 2 triangles per each point
 	const uint32_t secondIndSize = uint32_t(ind.size());
 	ind.resize(ind.size() + (6 * numAngleSteps));
 	uint32_t* triangleIndexPtr = &ind[secondIndSize];
-	for (uint32_t i = 1, j = firstIndicesSize +1; i < 3*numAngleSteps; i+=3, j+=3)
+	for (uint32_t i=1, j=firstIndicesSize+1; i<3*numAngleSteps; i+=3, j+=3)
 	{
 		*triangleIndexPtr++ = ind[i];
 		*triangleIndexPtr++ = ind[j];
 		*triangleIndexPtr++ = ind[i+1];
 		*triangleIndexPtr++ = ind[i+1];
-		*triangleIndexPtr++ = ind[j+1];
 		*triangleIndexPtr++ = ind[j];
+		*triangleIndexPtr++ = ind[j+1];
 	}
 
 	return {vert, ind};

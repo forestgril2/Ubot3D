@@ -24,15 +24,9 @@
 //#include <D:\Projects\qt6\qtquick3d\src\runtimerender\qssgrendermesh_p.h>
 //#include <D:\Projects\qt6\qtquick3d\src\assetimport\qssgmeshutilities.cpp>
 
-#ifdef _MSC_VER
-#include <D:\Projects\qt6-a80e52\qtquick3d\src\runtimerender\qssgrenderray_p.h>
-#include <D:\Projects\qt6-a80e52\qtquick3d\src\assetimport\qssgmeshbvhbuilder_p.h>
-#include <QtQuick3DAssetImport/private/qssgmeshbvhbuilder_p.h>
-#else
 #include <QtQuick3DRuntimeRender/6.2.1/QtQuick3DRuntimeRender/private/qssgrenderbuffermanager_p.h>
 #include <QtQuick3DRuntimeRender/6.2.1/QtQuick3DRuntimeRender/private/qssgrenderray_p.h>
 #include <QtQuick3DUtils/private/qssgmeshbvhbuilder_p.h>
-#endif
 
 #include <QtQuick3DUtils/private/qssgmeshbvh_p.h>
 

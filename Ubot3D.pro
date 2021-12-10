@@ -115,11 +115,11 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 #INSTALLS += target
 
 win32:CONFIG(release, debug|release): LIBS += -L$$$$PWD/..\assimp\build\bin\Release\libassimp-5.dll
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$$$PWD/..\assimp\build\bin\Release\libassimp-5.dll# -L$$PWD/../gpr/build/ -lmsys-gpr
+#else:win32:CONFIG(debug, debug|release): LIBS += -L$$$$PWD/..\assimp\build\bin\Release\libassimp-5.dll# -L$$PWD/../gpr/build/ -lmsys-gpr
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$$$PWD/..\assimp\build_debug_msvc\bin\Debug\assimp-vc143-mtd.dll# -L$$PWD/../gpr/build/ -lmsys-gpr
 
 
 unix {
-message("Building for Unix")
 CGAL_INCLUDEPATH=/usr/include
 BOOST_INCLUDEPATH=/usr/include/boost
 ASSIMP_INCLUDEPATH=/usr/include/assimp
@@ -144,7 +144,6 @@ LIBS += -lpolyclipping -lassimp
 }
 
 win32 {
-message("Building for Windows")
 CLIPPER_INCLUDEPATH=$$PWD/../clipper/cpp/
 CGAL_INCLUDEPATH=D:/Programy/CGAL/include
 BOOST_INCLUDEPATH=D:/Programy/boost_1_75_0
@@ -155,16 +154,20 @@ GPR_PATH=$$PWD/../gpr/src
 JSON_PATH=$$PWD/../json/single_include/nlohmann
 
 INCLUDEPATH += \
+$$[QT_INSTALL_HEADERS]/ \
 $$[QT_INSTALL_HEADERS]/QtQuick3DRuntimeRender/$$[QT_VERSION]/ \
 $$[QT_INSTALL_HEADERS]/QtQuick3DUtils/$$[QT_VERSION]/ \
 $$[QT_INSTALL_HEADERS]/QtQuick3DAssetImport/$$[QT_VERSION]/ \
 $$[QT_INSTALL_HEADERS]/QtGui/$$[QT_VERSION] \
 $$[QT_INSTALL_HEADERS]/QtGui/$$[QT_VERSION]/QtGui
 
-INCLUDEPATH += D:\Qt62b\qtbase\include\QtQuick3DUtils\6.2
-INCLUDEPATH += D:\Qt62b\qtbase\include\QtGui\6.2
-INCLUDEPATH += D:\Qt62b\qtbase\include\QtQuick3DAssetImport\6.2
-INCLUDEPATH += D:\Qt62b\qtbase\include\QtQuick3DAssetImport\6.2
+message($$[QT_INSTALL_HEADERS])
+message($$[QT_VERSION])
+
+INCLUDEPATH += D:\Qt62b\qtbase\include\QtQuick3DUtils\6.2.1
+INCLUDEPATH += D:\Qt62b\qtbase\include\QtGui\6.2.1
+INCLUDEPATH += D:\Qt62b\qtbase\include\QtQuick3DAssetImport\6.2.1
+INCLUDEPATH += D:\Qt62b\qtbase\include\QtQuick3DAssetImport\6.2.1
 INCLUDEPATH += $$PWD/..\assimp\include
 INCLUDEPATH += $$PWD/..\assimp\build\include
 
@@ -187,9 +190,11 @@ INCLUDEPATH += $$JSON_PATH
 DEPENDPATH += $$GPR_PATH
 DEPENDPATH += $$ASSIMP_INCLUDEPATH
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../assimp/build/lib/Release/ -llibassimp.dll
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../assimp/build/lib/Release/ -llibassimp.dlld
-else:unix:!macx: LIBS += -L$$PWD/../assimp/build/lib/Release/ -llibassimp.dll
+#win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../assimp/build/lib/Release/ -llibassimp.dll
+#else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../assimp/build/lib/Release/ -llibassimp
+#else:unix:!macx: LIBS += -L$$PWD/../assimp/build/lib/Release/ -llibassimp.dll
+
+LIBS+="D:\Projects\assimp\build_debug_msvc\lib\Debug\assimp-vc143-mtd.lib"
 
 INCLUDEPATH += $$PWD/../assimp/build/lib/Release
 DEPENDPATH += $$PWD/../assimp/build/lib/Release
